@@ -170,7 +170,7 @@ def requirements(*args, **kwargs):
     """
     def wrap_obj(obj):
         getreq = getattr(obj, REQUIREMENTS_KEY, {})
-        for name, value in kwargs.iteritems():
+        for name, value in kwargs.items():
             getreq[name] = value
         setattr(obj, REQUIREMENTS_KEY, getreq)
         return obj
@@ -183,11 +183,11 @@ def testparams(**kwargs):
     """
     def decorated(function):
         function.__doc__ += "Test Params:" + "\n\t"
-        for key, value in kwargs.iteritems():
+        for key, value in kwargs.items():
             function.__doc__ += str(key) + ' : ' + str(value) + '\n\t'
 
         def wrapper(self, *args):
-            for key, value in kwargs.iteritems():
+            for key, value in kwargs.items():
                 keyname = type(self).__name__ + "." + key
                 if keyname not in self.conf.keys():
                     self.conf[keyname] = value
@@ -231,8 +231,8 @@ class PBSServiceInstanceWrapper(dict):
     """
 
     def __init__(self, *args, **kwargs):
-        super(self.__class__, self).__init__(self, *args, **kwargs)
-        self.orderedlist = super(self.__class__, self).keys()
+        super().__init__(*args, **kwargs)
+        self.orderedlist = list(super().keys())
 
     def __setitem__(self, key, value):
         super(self.__class__, self).__setitem__(key, value)
@@ -282,16 +282,13 @@ class PBSServiceInstanceWrapper(dict):
         return iter(self.orderedlist)
 
     def host_keys(self):
-        return map(lambda h: h.split('@')[0], self.keys())
+        return [h.split('@')[0] for h in self.keys()]
 
     def keys(self):
-        return self.orderedlist
-
-    def itervalues(self):
-        return (self[key] for key in self.orderedlist)
+        return list(self.orderedlist)
 
     def values(self):
-        return [self[key] for key in self.orderedlist]
+        return list(self[key] for key in self.orderedlist)
 
 
 class setUpClassError(Exception):

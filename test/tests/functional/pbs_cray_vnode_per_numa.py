@@ -95,29 +95,30 @@ class TestVnodePerNumaNode(TestFunctional):
         # Get the pbsnodes -av output for comparison later
         vnodes_pernuma = self.server.status(NODE)
         for n in vnodes_pernuma:
-            if n['resources_available.host'] not in dncpus.keys():
+            if n['resources_available.host'] not in list(dncpus.keys()):
                 dncpus[n['resources_available.host']] = int(
                     n['resources_available.ncpus'])
             else:
                 dncpus[n['resources_available.host']
                        ] += int(n['resources_available.ncpus'])
-            if n['resources_available.host'] not in dmem.keys():
+            if n['resources_available.host'] not in list(dmem.keys()):
                 dmem[n['resources_available.host']] = int(
                     n['resources_available.mem'][0:-2])
             else:
                 dmem[n['resources_available.host']
                      ] += int(n['resources_available.mem'][0:-2])
-            if 'resources_available.naccelerators' in n.keys():
+            if 'resources_available.naccelerators' in list(n.keys()):
                 if n['resources_available.naccelerators'][0] != '@':
-                    if n['resources_available.host'] not in dacc.keys():
+                    if n['resources_available.host'] not in list(dacc.keys()):
                         dacc[n['resources_available.host']] = int(
                             n['resources_available.naccelerators'])
                     else:
                         dacc[n['resources_available.host']
                              ] += int(n['resources_available.naccelerators'])
-            if 'resources_available.accelerator_memory' in n.keys():
+            if 'resources_available.accelerator_memory' in list(n.keys()):
                 if n['resources_available.accelerator_memory'][0] != '@':
-                    if n['resources_available.host'] not in daccmem.keys():
+                    if n['resources_available.host'] not in list(
+                            daccmem.keys()):
                         daccmem[n['resources_available.host']] = int(
                             n['resources_available.accelerator_memory'][0:-2])
                     else:

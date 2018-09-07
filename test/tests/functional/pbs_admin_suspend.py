@@ -148,7 +148,8 @@ class TestAdminSuspend(TestFunctional):
 
         # Adding sleep to avoid failure at resume since PBS licenses
         # might not be available and as a result resume fails
-        time.sleep(2)
+        self.server.expect(SERVER, {'FLicenses': 0}, op=GT, max_attempts=60)
+        # time.sleep(2)
 
         # admin-resume job
         self.server.sigjob(jid, 'admin-resume', runas=ROOT_USER)

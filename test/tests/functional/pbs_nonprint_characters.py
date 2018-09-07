@@ -68,9 +68,9 @@ class TestNonprintingCharacters(TestFunctional):
         self.npch_asis = ['\x09', '\x0A']
 
         # Terminal control characters used in the tests
-        self.bold = u"\u001b[1m"
-        self.red = u"\u001b[31m"
-        self.reset = u"\u001b[0m"
+        self.bold = "\u001b[1m"
+        self.red = "\u001b[31m"
+        self.reset = "\u001b[0m"
         # Mapping of terminal control character to escaped representation
         self.bold_esc = "^[[1m"
         self.red_esc = "^[[31m"
@@ -89,7 +89,7 @@ unset -f foo
 exit 0
 """
         fn = self.du.create_temp_file(body=foo_scr)
-        self.du.chmod(path=fn, mode=0755)
+        self.du.chmod(path=fn, mode=0o755)
         foo_msg = 'Failed to run foo_scr'
         ret = self.du.run_cmd(self.server.hostname, cmd=fn)
         self.assertEqual(ret['rc'], 0, foo_msg)
@@ -99,6 +99,13 @@ exit 0
             if m.find(msg) != -1:
                 self.n = m.split('=')[0]
                 continue
+        pbs_conf = self.du.parse_pbs_config(self.server.hostname)
+        if 'PBS_EXEC' in pbs_conf:
+            self.pbs_exec = pbs_conf['PBS_EXEC']
+        else:
+            raise "PBS EXEC does not exist."
+        self.qmgr = os.path.join(self.pbs_exec, 'bin', 'qmgr')
+        self.pbsnodes = os.path.join(self.pbs_exec, 'bin', 'pbsnodes')
 
     def create_and_submit_job(self, user=None, attribs=None, content=None,
                               content_interactive=None, preserve_env=False):
@@ -155,9 +162,9 @@ exit 0
             job_outfile = qstat[0][ATTR_o].split(':')[1]
 
             # variable to check if with escaped nonprinting character or not
-            chk_var = 'var1=A\,B\,%s\,C\,D' % self.npcat[ch]
+            chk_var = r'var1=A\,B\,%s\,C\,D' % self.npcat[ch]
             if ch in self.npch_asis:
-                chk_var = 'var1=A\,B\,%s\,C\,D' % ch
+                chk_var = r'var1=A\,B\,%s\,C\,D' % ch
 
             # Check if Variable_List contains the escaped character
             self.server.expect(
@@ -188,9 +195,9 @@ exit 0
             job_outfile = qstat[0][ATTR_o].split(':')[1]
 
             # variable to check if with escaped nonprinting character or not
-            chk_var = 'var1=A\,B\,%s\,C\,D' % self.npcat[ch]
+            chk_var = r'var1=A\,B\,%s\,C\,D' % self.npcat[ch]
             if ch in self.npch_asis:
-                chk_var = 'var1=A\,B\,%s\,C\,D' % ch
+                chk_var = r'var1=A\,B\,%s\,C\,D' % ch
 
             # Check if Variable_List contains the escaped character
             self.server.expect(
@@ -226,7 +233,6 @@ exit 0
             chk_var = 'NONPRINT_VAR=X%sY' % self.npcat[ch]
             if ch in self.npch_asis:
                 chk_var = 'NONPRINT_VAR=X%sY' % ch
-
             # Check if Variable_List contains the escaped character
             self.server.expect(
                 JOB, {'Variable_List': (MATCH, '%s' % chk_var)}, id=jid)
@@ -435,7 +441,8 @@ exit 0
         Find msg in tracejob output of jid.
         """
         rc = 0
-        cmd = ['tracejob', jid]
+        tracejob = os.path.join(self.pbs_exec, 'bin', 'tracejob')
+        cmd = [tracejob, jid]
         ret = self.du.run_cmd(self.server.hostname, cmd, sudo=True)
         self.assertEqual(ret['rc'], 0)
         for m in ret['out']:
@@ -453,7 +460,8 @@ exit 0
         rc = 0
         jbfile = os.path.join(self.mom.pbs_conf['PBS_HOME'], 'mom_priv',
                               'jobs', jid + '.JB')
-        cmd = ['printjob', jbfile]
+        printjob = os.path.join(self.pbs_exec, 'bin', 'printjob')
+        cmd = [printjob, jbfile]
         ret = self.du.run_cmd(self.mom.hostname, cmd, sudo=True)
         self.assertEqual(ret['rc'], 0)
         for m in ret['out']:
@@ -534,9 +542,7 @@ exit 0
                 ' -f -F json ' + str(jid)
             ret = self.du.run_cmd(self.server.hostname, cmd=qstat_cmd_json)
         elif cmd == 'nodes':
-            nodes_cmd_json = os.path.join(
-                self.server.pbs_conf['PBS_EXEC'], 'bin', 'pbsnodes') + \
-                ' -av -F json'
+            nodes_cmd_json = self.pbsnodes + ' -av -F json'
             ret = self.du.run_cmd(self.server.hostname, cmd=nodes_cmd_json)
         ret_out = "\n".join(ret['out'])
         try:
@@ -735,9 +741,9 @@ exit 0
                 content_interactive=interactive_script,
                 preserve_env=True)
             # variable to check if with escaped nonprinting character or not
-            chk_var = 'NONPRINT_VAR=X\,%s\,Y' % self.npcat[ch]
+            chk_var = r'NONPRINT_VAR=X\,%s\,Y' % self.npcat[ch]
             if ch in self.npch_asis:
-                chk_var = 'NONPRINT_VAR=X\,%s\,Y' % ch
+                chk_var = r'NONPRINT_VAR=X\,%s\,Y' % ch
             # Check if Variable_List contains the escaped character
             self.server.expect(
                 JOB, {'Variable_List': (MATCH, '%s' % chk_var)}, id=jid)
@@ -779,7 +785,7 @@ exit 0
             content_interactive=interactive_script,
             preserve_env=True)
         # variable to check if with escaped nonprinting character
-        chk_var = 'NONPRINT_VAR=X\,%s\,%s\,Y' % (self.bold_esc, self.red_esc)
+        chk_var = r'NONPRINT_VAR=X\,%s\,%s\,Y' % (self.bold_esc, self.red_esc)
         self.server.expect(
             JOB, {'Variable_List': (MATCH, '%s' % chk_var)}, id=jid)
         # Once all commands sent and matched, job exits
@@ -853,7 +859,7 @@ e.env["LAUNCH_NONPRINT"] = "CD"
         qstat = self.server.status(JOB, ATTR_o, id=jid)
         job_outfile = qstat[0][ATTR_o].split(':')[1]
         # variable to check if with escaped nonprinting character
-        chk_var = 'NONPRINT_VAR=X\,%s\,%s\,Y' % (self.bold_esc, self.red_esc)
+        chk_var = r'NONPRINT_VAR=X\,%s\,%s\,Y' % (self.bold_esc, self.red_esc)
         self.server.expect(
             JOB, {'Variable_List': (MATCH, '%s' % chk_var)}, id=jid)
         # Check for the non-printable character in the job output file
@@ -885,14 +891,14 @@ e.env["LAUNCH_NONPRINT"] = "CD"
         """
         # Print hook displays escaped nonprinting characters
         phook = 'create hook %s' % hook_name_esc
-        cmd = ['qmgr', '-c', 'print hook']
+        cmd = [self.qmgr, '-c', 'print hook']
         ret = self.du.run_cmd(self.server.hostname, cmd, sudo=True)
         self.assertEqual(ret['rc'], 0)
         if phook in ret['out']:
             self.logger.info('Found \"%s\" in print hook output' % phook)
         # List hook displays escaped nonprinting characters
         lhook = 'Hook %s' % hook_name_esc
-        cmd = ['qmgr', '-c', 'list hook']
+        cmd = [self.qmgr, '-c', 'list hook']
         ret = self.du.run_cmd(self.server.hostname, cmd, sudo=True)
         self.assertEqual(ret['rc'], 0)
         if lhook in ret['out']:
@@ -904,9 +910,9 @@ e.env["LAUNCH_NONPRINT"] = "CD"
         'print hook' and 'list hook' displays the escaped nonprint character.
         """
         hook_name = "h%s%sd" % (self.bold, self.red)
-        create_hook = ['qmgr', '-c', 'create hook %s' % hook_name]
-        delete_hook = ['qmgr', '-c', 'delete hook %s' % hook_name]
-        list_hook = ['qmgr', '-c', 'list hook %s' % hook_name]
+        create_hook = [self.qmgr, '-c', 'create hook %s' % hook_name]
+        delete_hook = [self.qmgr, '-c', 'delete hook %s' % hook_name]
+        list_hook = [self.qmgr, '-c', 'list hook %s' % hook_name]
         # Delete hook if hook already exists
         ret = self.du.run_cmd(self.server.hostname, list_hook, sudo=True)
         if ret['rc'] == 0:
@@ -996,7 +1002,7 @@ e.env["LAUNCH_NONPRINT"] = "CD"
         valid json and escaped representation id displayed correctly.
         """
         comment = 'h%s%sd%s' % (self.bold, self.red, self.reset)
-        cmd = ['pbsnodes', '-C', '%s' % comment, self.mom.shortname]
+        cmd = [self.pbsnodes, '-C', '%s' % comment, self.mom.shortname]
         self.du.run_cmd(self.server.hostname, cmd)
         # Check json output
         comm1 = 'h%s%sd%s' % (self.bold_esc, self.red_esc, self.reset_esc)
@@ -1004,14 +1010,14 @@ e.env["LAUNCH_NONPRINT"] = "CD"
         self.assertGreaterEqual(rc, 2)
         # Check qmgr -c 'list node @default' output
         comm2 = '    comment = %s' % comm1
-        cmd = ['qmgr', '-c', 'list node @default']
+        cmd = [self.qmgr, '-c', 'list node @default']
         ret = self.du.run_cmd(self.server.hostname, cmd, sudo=True)
         self.assertEqual(ret['rc'], 0)
         if comm2 in ret['out']:
             self.logger.info('Found \"%s\" in qmgr list node output' % comm2)
         # Check pbsnodes -a output
         comm3 = '     comment = %s' % comm1
-        cmd = ['pbsnodes', '-a']
+        cmd = [self.pbsnodes, '-a']
         ret = self.du.run_cmd(self.server.hostname, cmd)
         self.assertEqual(ret['rc'], 0)
         if comm3 in ret['out']:
@@ -1025,13 +1031,14 @@ e.env["LAUNCH_NONPRINT"] = "CD"
         valid json and escaped representation id displayed correctly.
         """
         self.npch_exclude += ['\x1C']
+        pbs_conf = self.du.parse_pbs_config(self.server.hostname)
         for ch in self.npcat:
             self.logger.info('##### non-printable char: %s #####' % repr(ch))
             if ch in self.npch_exclude:
                 self.logger.info('##### excluded char: %s' % repr(ch))
                 continue
             comment = 'h%sd' % ch
-            cmd = ['pbsnodes', '-C', '%s' % comment, self.mom.shortname]
+            cmd = [self.pbsnodes, '-C', '%s' % comment, self.mom.shortname]
             self.du.run_cmd(self.server.hostname, cmd, sudo=True)
             comm1 = 'h%sd' % self.npcat[ch]
             if ch in self.npch_asis:
@@ -1049,14 +1056,14 @@ e.env["LAUNCH_NONPRINT"] = "CD"
             self.assertGreaterEqual(rc, 2)
             # Check qmgr -c 'list node @default' output
             comm2 = '    comment = %s' % comm1
-            cmd = ['qmgr', '-c', 'list node @default']
+            cmd = [self.qmgr, '-c', 'list node @default']
             ret = self.du.run_cmd(self.server.hostname, cmd, sudo=True)
             self.assertEqual(ret['rc'], 0)
             if comm2 in ret['out']:
                 self.logger.info('Found \"%s\" in qmgr list node out' % comm2)
             # Check pbsnodes -a output
             comm3 = '     comment = %s' % comm1
-            cmd = ['pbsnodes', '-a']
+            cmd = [self.pbsnodes, '-a']
             ret = self.du.run_cmd(self.server.hostname, cmd)
             self.assertEqual(ret['rc'], 0)
             if comm3 in ret['out']:

@@ -51,9 +51,9 @@ class TestPbsExecutePrologue(TestFunctional):
 
         TestFunctional.setUp(self)
 
-        self.momA = self.moms.values()[0]
-        self.momB = self.moms.values()[1]
-        self.momC = self.moms.values()[2]
+        self.momA = list(self.moms.values())[0]
+        self.momB = list(self.moms.values())[1]
+        self.momC = list(self.moms.values())[2]
 
         self.hostA = self.momA.shortname
         self.hostB = self.momB.shortname
@@ -230,7 +230,7 @@ class TestPbsExecutePrologue(TestFunctional):
                 'fail_action': 'offline_vnodes'}
         try:
             self.server.create_import_hook(hook_name, attr, hook_body)
-        except PbsManagerError, e:
+        except PbsManagerError as e:
             exp_err = "Can't set hook fail_action value to 'offline_vnodes':"
             exp_err += " hook event must"
             exp_err += " contain at least one of execjob_begin"

@@ -86,18 +86,18 @@ class TestNodeBuckets(TestFunctional):
         nodes of each color, letter, and shape.  The value of bool is True
         for the last 5005 nodes and unset for the first 5005 nodes
         """
-        a = {'resources_available.color': self.colors[numnode / 1430],
+        a = {'resources_available.color': self.colors[numnode // 1430],
              'resources_available.shape': self.shapes[numnode % 7],
              'resources_available.letter': self.letters[numnode % 7]}
 
-        if numnode / 5005 == 0:
+        if numnode // 5005 == 0:
             a['resources_available.bool'] = 'True'
 
         # Yellow buckets get a higher priority
-        if numnode / 1430 == 2:
+        if numnode // 1430 == 2:
             a['Priority'] = 100
 
-        return dict(attribs.items() + a.items())
+        return dict(list(attribs.items()) + list(a.items()))
 
     def check_normal_path(self, sel='2:ncpus=2:mem=1gb', pl='scatter:excl',
                           queue='workq'):
@@ -561,8 +561,8 @@ class TestNodeBuckets(TestFunctional):
 
         c1 = n1[0]['resources_available.color']
         c2 = n2[0]['resources_available.color']
-        self.assertEquals(c1, 'yellow', "Job didn't run on yellow nodes")
-        self.assertEquals(c2, 'yellow', "Job didn't run on yellow nodes")
+        self.assertEqual(c1, 'yellow', "Job didn't run on yellow nodes")
+        self.assertEqual(c2, 'yellow', "Job didn't run on yellow nodes")
 
     @timeout(450)
     def test_psets(self):
@@ -615,9 +615,7 @@ class TestNodeBuckets(TestFunctional):
         Test that jobs in the calendar fit within a placement set
         """
         self.scheduler.set_sched_config({'strict_ordering': 'True'})
-        svr_attr = {'node_group_key': 'shape', 'node_group_enable': 'True',
-                    'backfill_depth': 5}
-        self.server.manager(MGR_CMD_SET, SERVER, svr_attr)
+        self.server.manager(MGR_CMD_SET, SERVER, {'backfill_depth': 5})
 
         chunk1 = '10010:ncpus=1'
         a = {'Resource_List.select': chunk1,
@@ -626,9 +624,11 @@ class TestNodeBuckets(TestFunctional):
 
         j1 = Job(TEST_USER, attrs=a)
         jid1 = self.server.submit(j1)
-
         self.server.expect(JOB, {'job_state': 'R'}, id=jid1)
         self.scheduler.log_match(jid1 + ';Chunk: ' + chunk1, n=10000)
+
+        svr_attr = {'node_group_key': 'shape', 'node_group_enable': 'True'}
+        self.server.manager(MGR_CMD_SET, SERVER, svr_attr)
 
         chunk2 = '1430:ncpus=1'
         a['Resource_List.select'] = chunk2
@@ -698,10 +698,6 @@ class TestNodeBuckets(TestFunctional):
         Request more nodes than available in one placement set and see
         the job span or not depending on the value of do_not_span_psets
         """
-        # Turn off scheduling to be sure there is no cycle running when
-        # configurations are changed
-        a = {'scheduling': 'False'}
-        self.server.manager(MGR_CMD_SET, SERVER, a)
         a = {'node_group_key': 'shape', 'node_group_enable': 'True'}
         self.server.manager(MGR_CMD_SET, SERVER, a)
 
@@ -715,11 +711,6 @@ class TestNodeBuckets(TestFunctional):
 
         j = Job(TEST_USER, attrs=a)
         jid = self.server.submit(j)
-
-        # Trigger a scheduling cycle
-        a = {'scheduling': 'True'}
-        self.server.manager(MGR_CMD_SET, SERVER, a)
-
         a = {'job_state': 'Q', 'comment':
              (MATCH_RE, 'can\'t fit in the largest placement set, '
               'and can\'t span psets')}
@@ -832,8 +823,8 @@ class TestNodeBuckets(TestFunctional):
         n2 = j1.get_vnodes(s2[0]['exec_vnode'])
 
         msg = 'job did not run on correct number of nodes'
-        self.assertEquals(len(n1), 715, msg)
-        self.assertEquals(len(n2), 715, msg)
+        self.assertEqual(len(n1), 715, msg)
+        self.assertEqual(len(n2), 715, msg)
 
         for node in n1:
             self.assertTrue(node not in n2, 'Jobs share nodes: ' + node)

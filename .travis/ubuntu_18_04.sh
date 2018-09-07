@@ -1,7 +1,7 @@
 #!/bin/bash -xe
-BUILDPKGS='build-essential dpkg-dev autoconf libtool rpm alien libssl-dev libxt-dev libpq-dev libexpat1-dev libedit-dev libncurses5-dev libical-dev libhwloc-dev pkg-config tcl-dev tk-dev python-dev swig'
+BUILDPKGS='build-essential dpkg-dev autoconf libtool rpm alien libssl-dev libxt-dev libpq-dev libexpat1-dev libedit-dev libncurses5-dev libical-dev libhwloc-dev pkg-config tcl-dev tk-dev python3-dev swig'
 DEPPKGS='expat postgresql'
-TESTPKGS='python-pip sudo man-db'
+TESTPKGS='python3-pip sudo man-db'
 if [ "x${DEBIAN_FRONTEND}x" == "xx" ]; then
   export DEBIAN_FRONTEND=noninteractive
 fi

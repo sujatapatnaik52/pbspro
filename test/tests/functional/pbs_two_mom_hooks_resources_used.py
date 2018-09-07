@@ -68,8 +68,8 @@ class TestAcctlogRescUsedWithTwoMomHooks(TestFunctional):
         rc = self.server.manager(MGR_CMD_SET, SERVER, a)
         self.assertEqual(rc, 0)
 
-        self.momA = self.moms.values()[0]
-        self.momB = self.moms.values()[1]
+        self.momA = list(self.moms.values())[0]
+        self.momB = list(self.moms.values())[1]
         self.momA.delete_vnode_defs()
         self.momB.delete_vnode_defs()
 
@@ -144,7 +144,7 @@ class TestAcctlogRescUsedWithTwoMomHooks(TestFunctional):
         try:
             rv = self.server.expect(JOB, {'resources_used.walltime': '0'},
                                     id=jid1, max_attempts=2, extend='x')
-        except PtlExpectError, e:
+        except PtlExpectError as e:
             # resources_used.walltime is non-zero.
             self.assertFalse(rv)
         else:

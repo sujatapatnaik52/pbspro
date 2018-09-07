@@ -3186,9 +3186,10 @@ main(int argc, char *argv[], char *envp[])
 
 		set_alarm(hook_alarm, pbs_python_set_interrupt);
 		if (hook_script[0] == '\0') {
-			char *tmp_argv[2];
+			wchar_t *tmp_argv[2];
 
-			tmp_argv[0] = argv[0];
+			tmp_argv[0] = Py_DecodeLocale(argv[0], NULL);
+			/* if (tmp_argv[0] == NULL)  - add this error handling */
 			tmp_argv[1] = NULL;
 
 			rc=Py_Main(1, tmp_argv);

@@ -80,10 +80,10 @@ class TestqstatStateCount(TestFunctional):
         counts['all_state_count'] = all_state_count
         counts['total_jobs'] = int(qstat[0]['total_jobs'])
         # Find queued count from output of qstat
-        counts['expected_queued_count'] = (counts['total_jobs']
-                                           - counts['Held']
-                                           - counts['Waiting']
-                                           - counts['Running'])
+        counts['expected_queued_count'] = (counts['total_jobs'] -
+                                           counts['Held'] -
+                                           counts['Waiting'] -
+                                           counts['Running'])
         return counts
 
     def verify_count(self):

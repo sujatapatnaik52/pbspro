@@ -52,8 +52,8 @@ class TestPbsHookCrossLinkMom(TestFunctional):
             self.skipTest('test requires two MoMs as input, ' +
                           'use -p moms=<mom1>:<mom2>')
 
-        self.momA = self.moms.values()[0]
-        self.momB = self.moms.values()[1]
+        self.momA = list(self.moms.values())[0]
+        self.momB = list(self.moms.values())[1]
 
         self.hostA = self.momA.shortname
         self.hostB = self.momB.shortname
@@ -108,8 +108,8 @@ this_event.accept()
 
         status = self.server.status(NODE, id=self.hostA)
         Mom = status[0][ATTR_NODE_Mom]
-        self.assertEquals(Mom, Mom1_before)
+        self.assertEqual(Mom, Mom1_before)
 
         status = self.server.status(NODE, id=self.hostB)
         Mom = status[0][ATTR_NODE_Mom]
-        self.assertEquals(Mom, Mom2_before)
+        self.assertEqual(Mom, Mom2_before)

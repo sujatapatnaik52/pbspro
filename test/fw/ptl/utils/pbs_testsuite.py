@@ -176,7 +176,7 @@ def timeout(val):
         val = MINIMUM_TESTCASE_TIMEOUT
 
     def wrapper(obj):
-        msg = 'for test ' + obj.func_name
+        msg = 'for test ' + obj.__name__
         msg += ' minimum-testcase-timeout updated to '
         msg += str(val) + ' from ' + str(old_val)
         if old_val:
@@ -243,7 +243,7 @@ def requirements(*args, **kwargs):
     """
     def wrap_obj(obj):
         getreq = getattr(obj, REQUIREMENTS_KEY, {})
-        for name, value in kwargs.iteritems():
+        for name, value in kwargs.items():
             getreq[name] = value
         setattr(obj, REQUIREMENTS_KEY, getreq)
         return obj
@@ -256,11 +256,11 @@ def testparams(**kwargs):
     """
     def decorated(function):
         function.__doc__ += "Test Params:" + "\n\t"
-        for key, value in kwargs.iteritems():
+        for key, value in kwargs.items():
             function.__doc__ += str(key) + ' : ' + str(value) + '\n\t'
 
         def wrapper(self, *args):
-            for key, value in kwargs.iteritems():
+            for key, value in kwargs.items():
                 keyname = type(self).__name__ + "." + key
                 if keyname not in self.conf.keys():
                     self.conf[keyname] = value
@@ -305,7 +305,7 @@ class PBSServiceInstanceWrapper(dict):
 
     def __init__(self, *args, **kwargs):
         super(self.__class__, self).__init__(self, *args, **kwargs)
-        self.orderedlist = super(self.__class__, self).keys()
+        self.orderedlist = list(super(self.__class__, self).keys())
 
     def __setitem__(self, key, value):
         super(self.__class__, self).__setitem__(key, value)
@@ -355,16 +355,13 @@ class PBSServiceInstanceWrapper(dict):
         return iter(self.orderedlist)
 
     def host_keys(self):
-        return map(lambda h: h.split('@')[0], self.keys())
+        return [h.split('@')[0] for h in list(self.keys())]
 
-    def keys(self):
-        return self.orderedlist
-
-    def itervalues(self):
-        return (self[key] for key in self.orderedlist)
+    '''def keys(self):
+        return self.orderedlist'''
 
     def values(self):
-        return [self[key] for key in self.orderedlist]
+        return (self[key] for key in self.orderedlist)
 
 
 class setUpClassError(Exception):
@@ -637,7 +634,7 @@ class PBSTestSuite(unittest.TestCase):
         cls._validate_param('del-vnodes')
         cls._validate_param('revert-queues')
         cls._validate_param('revert-resources')
-        if 'default-testcase-timeout' not in cls.conf.keys():
+        if 'default-testcase-timeout' not in list(cls.conf.keys()):
             cls.conf['default_testcase_timeout'] = MINIMUM_TESTCASE_TIMEOUT
         else:
             cls.conf['default_testcase_timeout'] = int(
@@ -745,7 +742,7 @@ class PBSTestSuite(unittest.TestCase):
                                          multiple='servers', skip=skip,
                                          func=init_server_func)
         if cls.servers:
-            cls.server = cls.servers.values()[0]
+            cls.server = list(cls.servers.values())[0]
 
     @classmethod
     def init_comms(cls, init_comm_func=None, skip=None):
@@ -759,7 +756,7 @@ class PBSTestSuite(unittest.TestCase):
                                        multiple='comms', skip=skip,
                                        func=init_comm_func)
         if cls.comms:
-            cls.comm = cls.comms.values()[0]
+            cls.comm = list(cls.comms.values())[0]
         cls.server.comms = cls.comms
 
     @classmethod
@@ -794,7 +791,7 @@ class PBSTestSuite(unittest.TestCase):
                                       multiple='moms', skip=skip,
                                       func=init_mom_func)
         if cls.moms:
-            cls.mom = cls.moms.values()[0]
+            cls.mom = list(cls.moms.values())[0]
         cls.server.moms = cls.moms
 
     @classmethod
@@ -1252,10 +1249,10 @@ class PBSTestSuite(unittest.TestCase):
             if not server_obj.schedulers['default'].isUp():
                 self.fail("Scheduler is not up")
         elif daemon_name == "mom":
-            if not server_obj.moms.values()[0].isUp():
+            if not list(server_obj.moms.values())[0].isUp():
                 self.fail("Mom is not up")
         elif daemon_name == "comm":
-            if not server_obj.comms.values()[0].isUp():
+            if not list(server_obj.comms.values())[0].isUp():
                 self.fail("Comm is not up")
         else:
             self.fail("Incorrect daemon specified")
@@ -1290,7 +1287,7 @@ class PBSTestSuite(unittest.TestCase):
         """
         Revert the values set for servers
         """
-        for server in self.servers.values():
+        for server in list(self.servers.values()):
             self.revert_server(server, force)
 
     def revert_comms(self, force=False):

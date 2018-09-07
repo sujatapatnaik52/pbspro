@@ -56,7 +56,7 @@ class Test_acl_host_moms(TestFunctional):
 
         # PBSTestSuite returns the moms passed in as parameters as dictionary
         # of hostname and MoM object
-        self.momA = self.moms.values()[0]
+        self.momA = list(self.moms.values())[0]
         self.momA.delete_vnode_defs()
 
         self.hostA = self.momA.shortname

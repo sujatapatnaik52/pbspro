@@ -193,7 +193,7 @@ class TestPBSSnapshot(TestFunctional):
             snap_cmd.append("-H " + primary_host)
 
         ret = self.du.run_cmd(cmd=snap_cmd, logerr=False, as_script=True)
-        self.assertEquals(ret['rc'], 0)
+        self.assertEqual(ret['rc'], 0)
 
         # Get the name of the tarball that was created
         # pbs_snapshot prints to stdout only the following:
@@ -254,7 +254,7 @@ class TestPBSSnapshot(TestFunctional):
                     # Find the common paths between 'server' & the file
                     common_path = os.path.commonprefix([file_fullpath,
                                                         svr_fullpath])
-                    self.assertEquals(os.path.basename(common_path), "server")
+                    self.assertEqual(os.path.basename(common_path), "server")
             # Check 3: qstat_Bf.out exists
             qstat_bf_out = os.path.join(snap_obj.snapdir, QSTAT_BF_PATH)
             self.assertTrue(os.path.isfile(qstat_bf_out))
@@ -266,7 +266,7 @@ class TestPBSSnapshot(TestFunctional):
                         line = "".join(line.split())
                         # Split it up by '='
                         key_val = line.split("=")
-                        self.assertEquals(key_val[1], job_hist_duration)
+                        self.assertEqual(key_val[1], job_hist_duration)
 
         # Cleanup
         if os.path.isdir(snap_dir):
@@ -314,7 +314,7 @@ class TestPBSSnapshot(TestFunctional):
                 skip_list.extend([ETC_HOSTS, ETC_NSSWITCH_CONF, LSOF_PBS_OUT,
                                   VMSTAT_OUT, DF_H_OUT, DMESG_OUT])
             for item_info in all_info:
-                for key, info in item_info.iteritems():
+                for key, info in item_info.items():
                     info_path = info[0]
                     if info_path is None:
                         continue
@@ -646,8 +646,8 @@ pbs.logmsg(pbs.EVENT_DEBUG,"%s")
             self.skipTest("test requires atleast two moms as input, "
                           "use -p moms=<mom 1>:<mom 2>")
 
-        mom1 = self.moms.values()[0]
-        mom2 = self.moms.values()[1]
+        mom1 = list(self.moms.values())[0]
+        mom2 = list(self.moms.values())[1]
 
         host1 = mom1.shortname
         host2 = mom2.shortname
@@ -750,7 +750,7 @@ pbs.logmsg(pbs.EVENT_DEBUG,"%s")
         """
         # Skip test if there's no remote mom host available
         if len(self.moms) == 0 or \
-                self.du.is_localhost((self.moms.values()[0]).shortname):
+                self.du.is_localhost((list(self.moms.values())[0]).shortname):
             self.skipTest("test requires a remote mom host as input, "
                           "use -p moms=<mom host>")
 
@@ -771,8 +771,8 @@ pbs.logmsg(pbs.EVENT_DEBUG,"%s")
             self.skipTest("test requires atleast two moms as input, "
                           "use -p moms=<mom 1>:<mom 2>")
 
-        mom1 = self.moms.values()[0]
-        mom2 = self.moms.values()[1]
+        mom1 = list(self.moms.values())[0]
+        mom2 = list(self.moms.values())[1]
 
         host1 = mom1.shortname
         host2 = mom2.shortname
@@ -894,9 +894,9 @@ pbs.logmsg(pbs.EVENT_DEBUG,"%s")
                               " was not obfuscated. Real values:\n" +
                               str(real_values))
                 # Also make sure that no filenames contain the sensitive val
-                cmd = ["find", snap_dir, "-name",  "\'*" + str(val) + "*\'"]
+                cmd = ["find", snap_dir, "-name", "\'*" + str(val) + "*\'"]
                 ret = self.du.run_cmd(cmd=cmd, level=logging.DEBUG)
-                self.assertEquals(ret["rc"], 0, "find command failed!")
+                self.assertEqual(ret["rc"], 0, "find command failed!")
                 self.assertIn(ret["out"], ["", None, []], str(val) +
                               " was not obfuscated. Real values:\n" +
                               str(real_values))

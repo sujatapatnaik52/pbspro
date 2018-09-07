@@ -50,14 +50,14 @@ class TestVnodePool(TestFunctional):
         if not self.du.get_platform().startswith('cray'):
             self.skipTest("This test can only run on a cray")
         TestFunctional.setUp(self)
-        if len(self.moms.values()) < 2:
+        if len(list(self.moms.values())) < 2:
             self.skipTest("Provide at least 2 moms while invoking test")
 
         # The moms provided to the test may have unwanted vnodedef files.
-        if self.moms.values()[0].has_vnode_defs():
-            self.moms.values()[0].delete_vnode_defs()
-        if self.moms.values()[1].has_vnode_defs():
-            self.moms.values()[1].delete_vnode_defs()
+        if list(self.moms.values())[0].has_vnode_defs():
+            list(self.moms.values())[0].delete_vnode_defs()
+        if list(self.moms.values())[1].has_vnode_defs():
+            list(self.moms.values())[1].delete_vnode_defs()
 
         # Check if vnodes exist before deleting nodes.
         # Clean all default nodes because each test case will set up nodes.
@@ -71,8 +71,8 @@ class TestVnodePool(TestFunctional):
         """
         Invalid vnode_pool values shall result in errors.
         """
-        self.momA = self.moms.values()[0]
-        self.momB = self.moms.values()[1]
+        self.momA = list(self.moms.values())[0]
+        self.momB = list(self.moms.values())[1]
 
         self.hostA = self.momA.shortname
         self.hostB = self.momB.shortname
@@ -110,8 +110,8 @@ class TestVnodePool(TestFunctional):
         """
         self.server.manager(MGR_CMD_SET, SERVER, {"log_events": -1})
 
-        self.momA = self.moms.values()[0]
-        self.momB = self.moms.values()[1]
+        self.momA = list(self.moms.values())[0]
+        self.momB = list(self.moms.values())[1]
         self.hostA = self.momA.shortname
         self.hostB = self.momB.shortname
 
@@ -202,8 +202,8 @@ class TestVnodePool(TestFunctional):
         Differing vnode_pool for two moms shall result in both moms reporting
         inventory.
         """
-        self.momA = self.moms.values()[0]
-        self.momB = self.moms.values()[1]
+        self.momA = list(self.moms.values())[0]
+        self.momB = list(self.moms.values())[1]
         self.hostA = self.momA.shortname
         self.hostB = self.momB.shortname
 
@@ -238,7 +238,7 @@ class TestVnodePool(TestFunctional):
         Unsetting vnode_pool for an existing mom having a vnode_pool attribute
         shall not be allowable.
         """
-        self.momA = self.moms.values()[0]
+        self.momA = list(self.moms.values())[0]
         self.hostA = self.momA.shortname
         self.logger.info("hostA is %s." % self.hostA)
 
@@ -257,7 +257,7 @@ class TestVnodePool(TestFunctional):
                               max_attempts=5, starttime=start_time)
         self.logger.info("Found correct server log message")
 
-        self.momB = self.moms.values()[1]
+        self.momB = list(self.moms.values())[1]
         self.hostB = self.momB.shortname
 
         attr_1 = {'vnode_pool': '1'}

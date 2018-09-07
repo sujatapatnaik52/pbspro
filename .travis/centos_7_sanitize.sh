@@ -12,4 +12,4 @@ ${DOCKER_EXEC} /bin/bash -c 'CFLAGS="-g -O2 -Wall -Werror -fsanitize=address -fn
 ${DOCKER_EXEC} /bin/bash -c 'yum -y install /root/rpmbuild/RPMS/x86_64/pbspro-server-??.*.x86_64.rpm'
 ${DOCKER_EXEC} /bin/bash -c 'sed -i "s@PBS_START_MOM=0@PBS_START_MOM=1@" /etc/pbs.conf'
 ${DOCKER_EXEC} /etc/init.d/pbs start
-${DOCKER_EXEC} yum -y install python-pip sudo which net-tools man-db time.x86_64
+${DOCKER_EXEC} yum -y install python36-pip sudo which net-tools man-db time.x86_64

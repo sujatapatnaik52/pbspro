@@ -63,8 +63,8 @@ exit 1
              'Priority': 200}
         self.server.manager(MGR_CMD_CREATE, QUEUE, a, "expressq")
         if len(self.moms) == 2:
-            self.mom1 = self.moms.keys()[0]
-            self.mom2 = self.moms.keys()[1]
+            self.mom1 = list(self.moms.keys())[0]
+            self.mom2 = list(self.moms.keys())[1]
             # Since some tests need multi-node setup and majority don't,
             # delete the second node so that single node tests don't fail.
             # Tests needing multi-node setup will create the second node
@@ -91,7 +91,7 @@ exit 1
 
     def insert_checkpoint_script(self, chk_script):
         chk_file = self.du.create_temp_file(body=chk_script)
-        self.du.chmod(path=chk_file, mode=0755)
+        self.du.chmod(path=chk_file, mode=0o755)
         self.du.chown(path=chk_file, uid=0, gid=0, sudo=True)
         c = {'$action': 'checkpoint_abort 30 !' + chk_file + ' %sid'}
         self.mom.add_config(c)

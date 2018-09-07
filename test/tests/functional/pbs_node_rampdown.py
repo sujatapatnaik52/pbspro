@@ -55,6 +55,10 @@ def convert_time(fmt, tm, fixdate=False):
     return rv
 
 
+def cmp(a, b):
+    return (a > b) - (a < b)
+
+
 class TestPbsNodeRampDown(TestFunctional):
 
     """
@@ -285,9 +289,9 @@ class TestPbsNodeRampDown(TestFunctional):
 
         self.server.cleanup_jobs(extend="force")
 
-        self.momA = self.moms.values()[0]
-        self.momB = self.moms.values()[1]
-        self.momC = self.moms.values()[2]
+        self.momA = list(self.moms.values())[0]
+        self.momB = list(self.moms.values())[1]
+        self.momC = list(self.moms.values())[2]
 
         # Now start setting up and creating the vnodes
         self.server.manager(MGR_CMD_DELETE, NODE, None, "")
@@ -353,19 +357,19 @@ class TestPbsNodeRampDown(TestFunctional):
 
         FIB40 = os.path.join(self.server.pbs_conf['PBS_EXEC'], 'bin', '') + \
             'pbs_python -c "exec(\\\"def fib(i):\\n if i < 2:\\n  \
-return i\\n return fib(i-1) + fib(i-2)\\n\\nprint fib(40)\\\")"'
+return i\\n return fib(i-1) + fib(i-2)\\n\\nprint(fib(40))\\\")"'
 
         FIB45 = os.path.join(self.server.pbs_conf['PBS_EXEC'], 'bin', '') + \
             'pbs_python -c "exec(\\\"def fib(i):\\n if i < 2:\\n  \
-return i\\n return fib(i-1) + fib(i-2)\\n\\nprint fib(45)\\\")"'
+return i\\n return fib(i-1) + fib(i-2)\\n\\nprint(fib(45))\\\")"'
 
         FIB50 = os.path.join(self.server.pbs_conf['PBS_EXEC'], 'bin', '') + \
             'pbs_python -c "exec(\\\"def fib(i):\\n if i < 2:\\n  \
-return i\\n return fib(i-1) + fib(i-2)\\n\\nprint fib(50)\\\")"'
+return i\\n return fib(i-1) + fib(i-2)\\n\\nprint(fib(50))\\\")"'
 
         FIB400 = os.path.join(self.server.pbs_conf['PBS_EXEC'], 'bin', '') + \
             'pbs_python -c "exec(\\\"def fib(i):\\n if i < 2:\\n  \
-return i\\n return fib(i-1) + fib(i-2)\\n\\nprint fib(400)\\\")"'
+return i\\n return fib(i-1) + fib(i-2)\\n\\nprint(fib(400))\\\")"'
 
         # job submission arguments
         self.script = {}
@@ -6990,7 +6994,7 @@ pbs.logjobmsg(pbs.event().job.id, "epilogue hook executed")
             for key in self.server.pu.processes:
                 if ("fib" in key):
                     process = len(self.server.pu.processes[key])
-                    print "length of the process is %d " % (process,)
+                    print("length of the process is %d " % (process,))
         self.assertEqual(process, 2)
 
         # Mom logs only have message for job1 for node3

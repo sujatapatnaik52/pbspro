@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -3485,7 +3485,6 @@ class PBSService(PBSObject):
         self.pbs_env = {}
         self._is_local = True
         self.launcher = None
-        self.dyn_created_files = []
 
         PBSObject.__init__(self, name, attrs, defaults)
 
@@ -3880,8 +3879,8 @@ class PBSService(PBSObject):
         the service
         """
 
-    def log_lines(self, logtype, id=None, n=50, tail=True, starttime=None,
-                  endtime=None):
+    def log_lines(self, logtype, id=None, n=50, tail=True, day=None,
+                  starttime=None, endtime=None):
         """
         Return the last ``<n>`` lines of a PBS log file, which
         can be one of ``server``, ``scheduler``, ``MoM``, or
@@ -3909,12 +3908,9 @@ class PBSService(PBSObject):
                   ``Scheduler``, ``MoM or tracejob``
         """
         logval = None
-        lines = []
+        lines = None
         sudo = False
-        if endtime is None:
-            endtime = int(time.time())
-        if starttime is None:
-            starttime = self.ctime
+
         try:
             if logtype == 'tracejob':
                 if id is None:
@@ -3928,60 +3924,47 @@ class PBSService(PBSObject):
                 if n != 'ALL':
                     lines = lines[-n:]
             else:
-                daystart = time.strftime("%Y%m%d", time.localtime(starttime))
-                dayend = time.strftime("%Y%m%d", time.localtime(endtime))
-                firstday_obj = datetime.datetime.strptime(daystart, '%Y%m%d')
-                lastday_obj = datetime.datetime.strptime(dayend, '%Y%m%d')
+                if day is None:
+                    day = time.strftime("%Y%m%d", time.localtime(time.time()))
                 if logtype == 'accounting':
-                    logdir = os.path.join(self.pbs_conf['PBS_HOME'],
-                                          'server_priv', 'accounting')
+                    filename = os.path.join(self.pbs_conf['PBS_HOME'],
+                                            'server_priv', 'accounting', day)
                     sudo = True
-                elif (isinstance(self, Scheduler) and
-                        'sched_log' in self.attributes):
-                    # if setup is multi-sched then get logdir from
-                    # its attributes
-                    logdir = self.attributes['sched_log']
                 else:
-                    logval = self._instance_to_logpath(logtype)
-                    if logval is None:
-                        m = 'Invalid logtype'
-                        raise PtlLogMatchError(rv=False, rc=-1, msg=m)
-                    logdir = os.path.join(self.pbs_conf['PBS_HOME'], logval)
-                while firstday_obj <= lastday_obj:
-                    day = firstday_obj.strftime("%Y%m%d")
-                    filename = os.path.join(logdir, day)
-                    if n == 'ALL':
-                        if self._is_local and not sudo:
-                            with open(filename) as f:
-                                day_lines = f.readlines()
-                        else:
-                            day_lines = self.du.cat(
-                                self.hostname, filename, sudo=sudo,
-                                level=logging.DEBUG2)['out']
-                    elif self._is_local and not sudo:
-                        if tail:
-                            futils = FileUtils(filename, FILE_TAIL)
-                        else:
-                            futils = FileUtils(filename)
-                        day_lines = futils.next(n)
+                    if (isinstance(self, Scheduler) and
+                            'sched_log' in self.attributes):
+                        filename = os.path.join(
+                            self.attributes['sched_log'], day)
                     else:
-                        if tail:
-                            cmd = ['/usr/bin/tail']
-                        else:
-                            cmd = ['/usr/bin/head']
+                        logval = self._instance_to_logpath(logtype)
+                        if logval:
+                            filename = os.path.join(self.pbs_conf['PBS_HOME'],
+                                                    logval, day)
+                if n == 'ALL':
+                    if self._is_local and not sudo:
+                        lines = open(filename)
+                    else:
+                        lines = self.du.cat(self.hostname, filename, sudo=sudo,
+                                            level=logging.DEBUG2)['out']
+                elif self._is_local and not sudo:
+                    if tail:
+                        futils = FileUtils(filename, FILE_TAIL)
+                    else:
+                        futils = FileUtils(filename)
+                    lines = futils.next(n)
+                else:
+                    if tail:
+                        cmd = ['/usr/bin/tail']
+                    else:
+                        cmd = ['/usr/bin/head']
 
-                        cmd += ['-n']
-                        cmd += [str(n), filename]
-                        day_lines = self.du.run_cmd(
-                            self.hostname, cmd, sudo=sudo,
-                            level=logging.DEBUG2)['out']
-                    lines.extend(day_lines)
-                    firstday_obj = firstday_obj + datetime.timedelta(days=1)
-                    if n == 'ALL':
-                        continue
-                    n = n - len(day_lines)
-                    if n <= 0:
-                        break
+                    pyexec = os.path.join(self.pbs_conf['PBS_EXEC'], 'python',
+                                          'bin', 'python')
+                    osflav = self.du.get_platform(self.hostname, pyexec)
+                    cmd += ['-n']
+                    cmd += [str(n), filename]
+                    lines = self.du.run_cmd(self.hostname, cmd, sudo=sudo,
+                                            level=logging.DEBUG2)['out']
         except:
             self.logger.error('error in log_lines ')
             traceback.print_exc()
@@ -3990,7 +3973,7 @@ class PBSService(PBSObject):
         return lines
 
     def _log_match(self, logtype, msg, id=None, n=50, tail=True,
-                   allmatch=False, regexp=False, max_attempts=None,
+                   allmatch=False, regexp=False, day=None, max_attempts=None,
                    interval=None, starttime=None, endtime=None,
                    level=logging.INFO, existence=True):
         """
@@ -4020,6 +4003,8 @@ class PBSService(PBSObject):
         :param regexp: If true msg is a Python regular expression.
                        Defaults to False
         :type regexp: bool
+        :param day: Optional day in YYYMMDD format.
+        :type day: str
         :param max_attempts: the number of attempts to make to find
                              a matching entry
         :type max_attempts: int
@@ -4064,6 +4049,8 @@ class PBSService(PBSObject):
             max_attempts = 60
         if interval is None:
             interval = 0.5
+        if starttime is None and n != 'ALL':
+            starttime = self.ctime
         rv = (None, None)
         attempt = 1
         lines = None
@@ -4078,7 +4065,7 @@ class PBSService(PBSObject):
         while attempt <= max_attempts:
             if attempt > 1:
                 attemptmsg = ' - attempt ' + str(attempt)
-            lines = self.log_lines(logtype, id, n=n, tail=tail,
+            lines = self.log_lines(logtype, id, n=n, tail=tail, day=day,
                                    starttime=starttime, endtime=endtime)
             rv = self.logutils.match_msg(lines, msg, allmatch=allmatch,
                                          regexp=regexp, starttime=starttime,
@@ -4087,7 +4074,8 @@ class PBSService(PBSObject):
                 self.logger.log(level, infomsg + '... OK')
                 break
             else:
-                if n != 'ALL':
+                if ((starttime is not None or endtime is not None) and
+                        n != 'ALL'):
                     if attempt > max_attempts:
                         # We will do one last attempt to match in case the
                         # number of lines that were provided did not capture
@@ -4111,9 +4099,9 @@ class PBSService(PBSObject):
         return rv
 
     def accounting_match(self, msg, id=None, n=50, tail=True,
-                         allmatch=False, regexp=False, max_attempts=None,
-                         interval=None, starttime=None, endtime=None,
-                         level=logging.INFO, existence=True):
+                         allmatch=False, regexp=False, day=None,
+                         max_attempts=None, interval=None, starttime=None,
+                         endtime=None, level=logging.INFO, existence=True):
         """
         Match given ``msg`` in given ``n`` lines of accounting log
 
@@ -4136,6 +4124,8 @@ class PBSService(PBSObject):
         :param regexp: If true msg is a Python regular expression.
                        Defaults to False
         :type regexp: bool
+        :param day: Optional day in YYYMMDD format.
+        :type day: str
         :param max_attempts: the number of attempts to make to find
                              a matching entry
         :type max_attempts: int
@@ -4169,13 +4159,13 @@ class PBSService(PBSObject):
                   number, not the absolute line number in the file.
         """
         return self._log_match('accounting', msg, id, n, tail, allmatch,
-                               regexp, max_attempts, interval, starttime,
+                               regexp, day, max_attempts, interval, starttime,
                                endtime, level, existence)
 
     def tracejob_match(self, msg, id=None, n=50, tail=True,
-                       allmatch=False, regexp=False, max_attempts=None,
-                       interval=None, starttime=None, endtime=None,
-                       level=logging.INFO, existence=True):
+                       allmatch=False, regexp=False, day=None,
+                       max_attempts=None, interval=None, starttime=None,
+                       endtime=None, level=logging.INFO, existence=True):
         """
         Match given ``msg`` in given ``n`` lines of tracejob log
 
@@ -4197,6 +4187,8 @@ class PBSService(PBSObject):
         :param regexp: If true msg is a Python regular expression.
                        Defaults to False
         :type regexp: bool
+        :param day: Optional day in YYYMMDD format.
+        :type day: str
         :param max_attempts: the number of attempts to make to find
                              a matching entry
         :type max_attempts: int
@@ -4230,7 +4222,7 @@ class PBSService(PBSObject):
                   number, not the absolute line number in the file.
         """
         return self._log_match('tracejob', msg, id, n, tail, allmatch,
-                               regexp, max_attempts, interval, starttime,
+                               regexp, day, max_attempts, interval, starttime,
                                endtime, level, existence)
 
     def _save_config_file(self, dict_conf, fname):
@@ -4308,15 +4300,6 @@ class PBSService(PBSObject):
     def __repr__(self):
         return (self.__class__.__name__ + '/' + self.pbs_conf_file + '@' +
                 self.hostname)
-
-    def cleanup_files(self):
-        """
-        This function removes any dynamic resource files created by server/mom
-        objects
-        """
-        for dyn_files in self.dyn_created_files:
-            self.du.rm(path=dyn_files, sudo=True, force=True)
-        self.dyn_created_files = []
 
 
 class Comm(PBSService):
@@ -4450,7 +4433,7 @@ class Comm(PBSService):
         return self.start()
 
     def log_match(self, msg=None, id=None, n=50, tail=True, allmatch=False,
-                  regexp=False, max_attempts=None, interval=None,
+                  regexp=False, day=None, max_attempts=None, interval=None,
                   starttime=None, endtime=None, level=logging.INFO,
                   existence=True):
         """
@@ -4475,6 +4458,8 @@ class Comm(PBSService):
         :param regexp: If true msg is a Python regular expression.
                        Defaults to False
         :type regexp: bool
+        :param day: Optional day in YYYMMDD format.
+        :type day: str
         :param max_attempts: the number of attempts to make to find
                              a matching entry
         :type max_attempts: int
@@ -4508,7 +4493,7 @@ class Comm(PBSService):
                   number, not the absolute line number in the file.
         """
         return self._log_match(self, msg, id, n, tail, allmatch, regexp,
-                               max_attempts, interval, starttime, endtime,
+                               day, max_attempts, interval, starttime, endtime,
                                level=level, existence=existence)
 
 
@@ -4577,10 +4562,21 @@ class Server(PBSService):
     logger = logging.getLogger(__name__)
 
     dflt_attributes = {
+        ATTR_scheduling: "True",
         ATTR_dfltque: "workq",
-        ATTR_nodefailrq: "310",
-        ATTR_FlatUID: 'True',
+        ATTR_logevents: "511",
+        ATTR_mailfrom: "adm",
+        ATTR_queryother: "True",
+        ATTR_rescdflt + ".ncpus": "1",
         ATTR_DefaultChunk + ".ncpus": "1",
+        ATTR_schedit: "600",
+        ATTR_ResvEnable: "True",
+        ATTR_nodefailrq: "310",
+        ATTR_maxarraysize: "10000",
+        ATTR_license_linger: "3600",
+        ATTR_EligibleTimeEnable: "False",
+        ATTR_max_concurrent_prov: "5",
+        ATTR_FlatUID: 'True',
     }
 
     dflt_sched_name = 'default'
@@ -4613,7 +4609,6 @@ class Server(PBSService):
         self.last_error = []  # type: array. Set for CLI IFL errors. Not reset
         self.last_out = []  # type: array. Set for CLI IFL output. Not reset
         self.last_rc = None  # Set for CLI IFL return code. Not thread-safe
-        self.moms = {}
 
         # default timeout on connect/disconnect set to 60s to mimick the qsub
         # buffer introduced in PBS 11
@@ -4679,6 +4674,13 @@ class Server(PBSService):
                 self.default_queue = self.attributes[ATTR_dfltque]
 
             self.update_version_info()
+
+        self.retainables = {'resret' : [],
+                            'queueret' : [],
+                            'attrret' : [],
+                            'qattrret' : [],
+                            'hookret' : []
+                            }
 
     def update_version_info(self):
         """
@@ -4968,7 +4970,7 @@ class Server(PBSService):
         return self.start()
 
     def log_match(self, msg=None, id=None, n=50, tail=True, allmatch=False,
-                  regexp=False, max_attempts=None, interval=None,
+                  regexp=False, day=None, max_attempts=None, interval=None,
                   starttime=None, endtime=None, level=logging.INFO,
                   existence=True):
         """
@@ -4993,6 +4995,8 @@ class Server(PBSService):
         :param regexp: If true msg is a Python regular expression.
                        Defaults to False
         :type regexp: bool
+        :param day: Optional day in YYYMMDD format.
+        :type day: str
         :param max_attempts: the number of attempts to make to find
                              a matching entry
         :type max_attempts: int
@@ -5026,7 +5030,7 @@ class Server(PBSService):
                   number, not the absolute line number in the file.
         """
         return self._log_match(self, msg, id, n, tail, allmatch, regexp,
-                               max_attempts, interval, starttime, endtime,
+                               day, max_attempts, interval, starttime, endtime,
                                level=level, existence=existence)
 
     def revert_to_defaults(self, reverthooks=True, revertqueues=True,
@@ -5071,6 +5075,7 @@ class Server(PBSService):
         ignore_attrs += [ATTR_pbs_license_info,  ATTR_power_provisioning]
         unsetlist = []
         setdict = {}
+        attrret_list = self.retainables.get('attrret')
         self.logger.info(self.logprefix +
                          'reverting configuration to defaults')
         self.cleanup_jobs_and_reservations()
@@ -5090,6 +5095,10 @@ class Server(PBSService):
                 continue
             else:
                 unsetlist.append(k)
+        if len(attrret_list)>0:
+            for a in attrret_list:
+                if a in unsetlist:
+                    unsetlist.remove(a) 
         if len(unsetlist) != 0:
             self.manager(MGR_CMD_UNSET, MGR_OBJ_SERVER, unsetlist)
         for k in self.dflt_attributes.keys():
@@ -5105,12 +5114,22 @@ class Server(PBSService):
                 reverthooks = False
             hooks = self.status(HOOK, level=logging.DEBUG)
             hooks = [h['id'] for h in hooks]
+            hookret_list = self.retainables.get('hookret')
+            if len(hookret_list) > 0:
+                for h in hookret_list:
+                    if h in hooks:
+                        hooks.remove(h)
             if len(hooks) > 0:
-                self.manager(MGR_CMD_DELETE, HOOK, id=hooks)
+                self.manager(MGR_CMD_DELETE, HOOK, id=hooks, expect=True)
         if delqueues:
             revertqueues = False
             queues = self.status(QUEUE, level=logging.DEBUG)
             queues = [q['id'] for q in queues]
+            queueret_list = self.retainables.get('queueret')
+            if len(queueret_list) > 0:
+                for q in queueret_list:
+                    if q in queues:
+                        queues.remove(q)
             if len(queues) > 0:
                 try:
                     nodes = self.status(VNODE, logerr=False)
@@ -5120,11 +5139,11 @@ class Server(PBSService):
                                          node['id'])
                 except:
                     pass
-                self.manager(MGR_CMD_DELETE, QUEUE, id=queues)
+                self.manager(MGR_CMD_DELETE, QUEUE, id=queues, expect=True)
             a = {ATTR_qtype: 'Execution',
                  ATTR_enable: 'True',
                  ATTR_start: 'True'}
-            self.manager(MGR_CMD_CREATE, QUEUE, a, id='workq')
+            self.manager(MGR_CMD_CREATE, QUEUE, a, id='workq', expect=True)
             setdict.update({ATTR_dfltque: 'workq'})
         if delscheds:
             self.manager(MGR_CMD_LIST, SCHED)
@@ -5150,10 +5169,17 @@ class Server(PBSService):
                     self.signal('-HUP')
             hooks = self.status(HOOK, level=logging.DEBUG)
             hooks = [h['id'] for h in hooks]
+            hookret_list = self.retainables.get('hookret')
+            if len(hookret_list) > 0:
+                for h in hookret_list:
+                    if h in hooks:
+                        hooks.remove(h)
             a = {ATTR_enable: 'false'}
             if len(hooks) > 0:
-                self.manager(MGR_CMD_SET, MGR_OBJ_HOOK, a, hooks)
+                self.manager(MGR_CMD_SET, MGR_OBJ_HOOK, a, hooks,
+                             expect=True)
         if revertqueues:
+            queueret_list = self.retainables.get('queueret')
             self.status(QUEUE, level=logging.DEBUG)
             queues = []
             for (qname, qobj) in self.queues.items():
@@ -5162,23 +5188,31 @@ class Server(PBSService):
                 if (qname.startswith('R') or qname.startswith('S') or
                         qname == server_stat[ATTR_dfltque]):
                     continue
+                if len(queueret_list) > 0:
+                    if qname in queueret_list:
+                        continue
                 qobj.revert_to_defaults()
                 queues.append(qname)
                 a = {ATTR_enable: 'false'}
-                self.manager(MGR_CMD_SET, QUEUE, a, id=queues)
+                self.manager(MGR_CMD_SET, QUEUE, a, id=queues, expect=True)
             a = {ATTR_enable: 'True', ATTR_start: 'True'}
             self.manager(MGR_CMD_SET, MGR_OBJ_QUEUE, a,
-                         id=server_stat[ATTR_dfltque])
+                         id=server_stat[ATTR_dfltque], expect=True)
         if len(setdict) > 0:
             self.manager(MGR_CMD_SET, MGR_OBJ_SERVER, setdict)
         if revertresources:
             try:
                 rescs = self.status(RSC)
                 rescs = [r['id'] for r in rescs]
+                resret_list = self.retainables.get('resret')
+                if len(resret_list) > 0:
+                    for x in resret_list:
+                        if x in rescs:
+                            rescs.remove(x)
             except:
                 rescs = []
             if len(rescs) > 0:
-                self.manager(MGR_CMD_DELETE, RSC, id=rescs)
+                self.manager(MGR_CMD_DELETE, RSC, id=rescs, expect=True)
         return True
 
     def save_configuration(self, outfile, mode='a'):
@@ -6424,12 +6458,16 @@ class Server(PBSService):
         return bs
 
     def manager(self, cmd, obj_type, attrib=None, id=None, extend=None,
-                level=logging.INFO, sudo=None, runas=None, logerr=True):
+                expect=False, max_attempts=None, level=logging.INFO,
+                sudo=None, runas=None, logerr=True):
         """
         issue a management command to the server, e.g to set an
         attribute
 
-        Returns 0 for Success and non 0 number for Failure
+        Returns the return code of ``qmgr/pbs_manager()`` on
+        success, if expect is set to True, the return value is
+        that of the call to expect.Raises ``PbsManagerError`` on
+        error
 
         :param cmd: The command to issue,
                     ``MGR_CMD_[SET,UNSET, LIST,...]`` see pbs_ifl.h
@@ -6445,6 +6483,13 @@ class Server(PBSService):
         :param extend: Optional extension to the IFL call. see
                        pbs_ifl.h
         :type extend: str or None
+        :param expect: If set to True, query the server expecting
+                       the value to be\ accurately reflected.
+                       Defaults to False
+        :type expect: bool
+        :param max_attempts: Sets a maximum number of attempts to
+                             call expect with.
+        :type max_attempts: int
         :param level: logging level
         :param sudo: If True, run the manager command as super user.
                      Defaults to None. Some attribute settings
@@ -6460,6 +6505,11 @@ class Server(PBSService):
                        i.e. silent mode
         :type logerr: bool
         :raises: PbsManagerError
+
+        When expect is ``False``, return the value, ``0/!0``
+        returned by pbs_manager
+        When expect is ``True``, return the value, ``True/False``,
+        returned by expect
         """
 
         if isinstance(id, str):
@@ -6653,15 +6703,36 @@ class Server(PBSService):
         if c is not None:
             self._disconnect(c)
 
-        if cmd == MGR_CMD_SET and 'scheduling' in attrib:
-            if attrib['scheduling'] in PTL_FALSE:
-                if obj_type == SERVER:
-                    sname = 'default'
-                else:
-                    sname = id
-                # Default max cycle length is 1200 seconds (20m)
-                self.expect(SCHED, {'state': 'scheduling'}, op=NE, id=sname,
-                            interval=1, max_attempts=1200)
+        if expect:
+            offset = None
+            attrop = PTL_OR
+            if obj_type in (NODE, HOST):
+                obj_type = VNODE
+            if obj_type in (VNODE, QUEUE):
+                offset = 0.5
+            if cmd in PBS_CMD_TO_OP:
+                op = PBS_CMD_TO_OP[cmd]
+            else:
+                op = EQ
+
+            # If scheduling is set to false then check for
+            # 'server_state' to be 'Idle'
+            if attrib and isinstance(attrib,
+                                     dict) and 'scheduling' in attrib.keys():
+                if str(attrib['scheduling']) in PTL_FALSE:
+                    attrib['server_state'] = 'Idle'
+                    attrop = PTL_AND
+
+            if oid is None:
+                return self.expect(obj_type, attrib, oid, op=op,
+                                   max_attempts=max_attempts,
+                                   attrop=attrop, offset=offset)
+            for i in oid:
+                rc = self.expect(obj_type, attrib, i, op=op,
+                                 max_attempts=max_attempts,
+                                 attrop=attrop, offset=offset)
+                if not rc:
+                    break
         return rc
 
     def sigjob(self, jobid=None, signal=None, extend=None, runas=None,
@@ -8000,7 +8071,7 @@ class Server(PBSService):
         if c:
             self._disconnect(c)
 
-    def expect(self, obj_type, attrib=None, id=None, op=EQ, attrop=PTL_AND,
+    def expect(self, obj_type, attrib=None, id=None, op=EQ, attrop=PTL_OR,
                attempt=0, max_attempts=None, interval=None, count=None,
                extend=None, offset=0, runas=None, level=logging.INFO,
                msg=None):
@@ -8044,9 +8115,8 @@ class Server(PBSService):
                     PtlExpectError.
         :type msg: str or None
 
-        :returns: True if attributes are as expected
-
-        :raises: PtlExpectError if attributes are not as expected
+        :returns: True if attributes are as expected and False
+                  otherwise
         """
 
         if attempt == 0 and offset > 0:
@@ -8100,7 +8170,6 @@ class Server(PBSService):
 
         prefix = 'expect on ' + self.logprefix
         msg = []
-        attrs_to_ignore = []
         for k, v in attrib.items():
             args = None
             if isinstance(v, tuple):
@@ -8111,11 +8180,6 @@ class Server(PBSService):
             else:
                 operator = op
                 val = v
-            if operator not in PTL_OP_TO_STR:
-                self.logger.log(level, "Operator not supported by expect(), "
-                                "cannot verify change in " + str(k))
-                attrs_to_ignore.append(k)
-                continue
             msg += [k, PTL_OP_TO_STR[operator].strip()]
             if callable(val):
                 msg += ['callable(' + val.__name__ + ')']
@@ -8124,13 +8188,6 @@ class Server(PBSService):
             else:
                 msg += [str(val)]
             msg += [PTL_ATTROP_TO_STR[attrop]]
-
-        # Delete the attributes that we cannot verify
-        for k in attrs_to_ignore:
-            del(attrib[k])
-
-        if attrs_to_ignore and len(attrib) < 1 and op == SET:
-            return True
 
         # remove the last converted PTL_ATTROP_TO_STR
         if len(msg) > 1:
@@ -8166,8 +8223,8 @@ class Server(PBSService):
             except PbsStatusError:
                 statlist = []
 
-        if (statlist is None or len(statlist) == 0 or
-                statlist[0] is None or len(statlist[0]) == 0):
+        if (len(statlist) == 0 or statlist[0] is None or
+                len(statlist[0]) == 0):
             if op == UNSET or list(set(attrib.values())) == [0]:
                 self.logger.log(level, prefix + " ".join(msg) + ' ...  OK')
                 return True
@@ -8194,86 +8251,72 @@ class Server(PBSService):
                 v = v[1]
 
             for stat in statlist:
-                if k not in stat:
-                    if op == UNSET:
-                        continue
-
-                    # Sometimes users provide the wrong case for attributes
-                    # Convert to lowercase and compare
-                    attrs_lower = {
-                        ks.lower(): [ks, vs] for ks, vs in stat.iteritems()}
-                    k_lower = k.lower()
-                    if k_lower not in attrs_lower:
-                        self.logger.error("Attribute %s not found" % k)
-                        return False
-                    stat_v = attrs_lower[k_lower][1]
-                    stat_k = attrs_lower[k_lower][0]
-                else:
-                    stat_v = stat[k]
-                    stat_k = k
-
-                if stat_k == ATTR_version:
-                    m = self.version_tag.match(stat_v)
+                if k == ATTR_version and k in stat:
+                    m = self.version_tag.match(stat[k])
                     if m:
-                        stat_v = m.group('version')
+                        stat[k] = m.group('version')
                     else:
                         time.sleep(interval)
                         return self.expect(obj_type, attrib, id, op, attrop,
                                            attempt + 1, max_attempts, interval,
                                            count, extend, runas=runas,
                                            level=level, msg=" ".join(msg))
-
-                # functions/methods are invoked and their return value
-                # used on expect
-                if callable(v):
-                    if varargs is not None:
-                        rv = v(stat_v, *varargs)
-                    else:
-                        rv = v(stat_v)
-                    if isinstance(rv, bool):
-                        if op == NOT:
-                            if not rv:
+                if k not in stat:
+                    if op == UNSET:
+                        continue
+                else:
+                    # functions/methods are invoked and their return value
+                    # used on expect
+                    if callable(v):
+                        if varargs is not None:
+                            rv = v(stat[k], *varargs)
+                        else:
+                            rv = v(stat[k])
+                        if isinstance(rv, bool):
+                            if op == NOT:
+                                if not rv:
+                                    continue
+                            if rv:
                                 continue
-                        if rv:
+                        else:
+                            v = rv
+
+                    stat[k] = self.utils.decode_value(stat[k])
+                    v = self.utils.decode_value(v)
+
+                    if k == ATTR_version:
+                        stat[k] = LooseVersion(str(stat[k]))
+                        v = LooseVersion(str(v))
+
+                    if op == EQ and stat[k] == v:
+                        continue
+                    elif op == SET and count and stat[k] == v:
+                        continue
+                    elif op == SET and count in (False, None):
+                        continue
+                    elif op == NE and stat[k] != v:
+                        continue
+                    elif op == LT:
+                        if stat[k] < v:
                             continue
-                    else:
-                        v = rv
+                    elif op == GT:
+                        if stat[k] > v:
+                            continue
+                    elif op == LE:
+                        if stat[k] <= v:
+                            continue
+                    elif op == GE:
+                        if stat[k] >= v:
+                            continue
+                    elif op == MATCH_RE:
+                        if re.search(str(v), str(stat[k])):
+                            continue
+                    elif op == MATCH:
+                        if str(stat[k]).find(str(v)) != -1:
+                            continue
 
-                stat_v = self.utils.decode_value(stat_v)
-                v = self.utils.decode_value(str(v))
-
-                if stat_k == ATTR_version:
-                    stat_v = LooseVersion(str(stat_v))
-                    v = LooseVersion(str(v))
-
-                if op == EQ and stat_v == v:
-                    continue
-                elif op == SET and count and stat_v == v:
-                    continue
-                elif op == SET and count in (False, None):
-                    continue
-                elif op == NE and stat_v != v:
-                    continue
-                elif op == LT:
-                    if stat_v < v:
-                        continue
-                elif op == GT:
-                    if stat_v > v:
-                        continue
-                elif op == LE:
-                    if stat_v <= v:
-                        continue
-                elif op == GE:
-                    if stat_v >= v:
-                        continue
-                elif op == MATCH_RE:
-                    if re.search(str(v), str(stat_v)):
-                        continue
-                elif op == MATCH:
-                    if str(stat_v).find(str(v)) != -1:
-                        continue
-
-                msg += [' got: ' + stat_k + ' = ' + str(stat_v)]
+                if k in stat:
+                    msg += [' got: ' + str(k) + ' = ' + str(stat[k])]
                 self.logger.info(prefix + " ".join(msg))
                 time.sleep(interval)
 
@@ -8318,27 +8361,7 @@ class Server(PBSService):
             delete_xt += 'deletehist'
             select_xt = 'x'
         job_ids = self.select(extend=select_xt)
-
-        # Make sure the current user is a manager. Some tests might have
-        # unset the mangers attribute. Ignore 'Duplicate entry in the list'
-        # error if the current user was already a manager
-        current_user = pwd.getpwuid(os.getuid())[0]
-        a = {ATTR_managers: (INCR, current_user + '@*')}
-        try:
-            self.manager(MGR_CMD_SET, SERVER, a, sudo=True)
-        except PbsManagerError:
-            pass
-
-        # Turn off scheduling so jobs don't start when trying to
-        # delete. Restore the orignial scheduling state
-        # once jobs are deleted.
-        sched_state = self.status(SERVER, {'scheduling'})[0]['scheduling']
-        self.manager(MGR_CMD_SET, SERVER, {'scheduling': 'False'})
-        num_jobs = len(job_ids)
-        if num_jobs >= 100:
-            self._cleanup_large_num_jobs(job_ids, runas=runas)
-
-        if num_jobs > 0 and num_jobs < 100:
+        if len(job_ids) > 0:
             try:
                 self.deljob(id=job_ids, extend=delete_xt, runas=runas,
                             wait=True)
@@ -8347,9 +8370,6 @@ class Server(PBSService):
         rv = self.expect(JOB, {'job_state': 0}, count=True, op=SET)
         if not rv:
             return self.cleanup_jobs(extend=extend, runas=runas)
-
-        self.manager(MGR_CMD_SET, SERVER,
-                     {'scheduling': sched_state})
         return rv
 
     def cleanup_reservations(self, extend=None, runas=None):
@@ -8379,28 +8399,6 @@ class Server(PBSService):
         rv = self.cleanup_jobs(extend)
         self.cleanup_reservations()
         return rv
-
-    def _cleanup_large_num_jobs(self, job_ids=None, runas=None):
-        """
-        Helper function to cleanup large number of jobs.
-        Job processes are killed manually. Jobs are then deleted
-        using qdel -Wforce
-        """
-        status_list = self.status(JOB,
-                                  attrib=[{'job_state': 'R'}, ATTR_session])
-
-        for s in status_list:
-            if 'session_id' in s:
-                sess_id = s[ATTR_session]
-                self.logger.info('Killing pid [%s]' % sess_id)
-                cmd = 'kill -9 ' + sess_id
-                self.du.run_cmd(self.hostname, cmd, sudo=True,
-                                runas=runas)
-        # Delete jobs from server, if any
-        try:
-            self.delete(id=job_ids, extend='force', wait=True, runas=runas)
-        except PbsDeleteError:
-            pass
 
     def update_attributes(self, obj_type, bs):
         """
@@ -9441,7 +9439,7 @@ class Server(PBSService):
             self.logger.error('hook named ' + name + ' exists')
             return False
 
-        self.manager(MGR_CMD_SET, HOOK, attrs, id=name)
+        self.manager(MGR_CMD_SET, HOOK, attrs, id=name, expect=True)
         return True
 
     def import_hook(self, name, body):
@@ -9457,16 +9455,6 @@ class Server(PBSService):
         :returns: True on success.
         :raises: PbsManagerError
         """
-        # sync_mom_hookfiles_timeout is 15min by default
-        # Setting it to lower value to avoid the race condition at hook copy
-        srv_stat = self.status(SERVER, 'sync_mom_hookfiles_timeout')
-        try:
-            sync_val = srv_stat[0]['sync_mom_hookfiles_timeout']
-        except:
-            self.logger.info("Setting sync_mom_hookfiles_timeout to 15s")
-            self.manager(MGR_CMD_SET, SERVER,
-                         {"sync_mom_hookfiles_timeout": 15})
-
         fn = self.du.create_temp_file(body=body)
 
         if not self._is_local:
@@ -9506,10 +9494,6 @@ class Server(PBSService):
                           Defaults to True
         :returns: True on success and False otherwise
         """
-        # Check for log messages 20 seconds earlier, to account for
-        # server and mom system time differences
-        t = int(time.time()) - 20
-
         if 'event' not in attrs:
             self.logger.error('attrs must specify at least an event and key')
             return False
@@ -9533,42 +9517,7 @@ class Server(PBSService):
 
         # In 12.0 A MoM hook must be enabled and the event set prior to
         # importing, otherwise the MoM does not get the hook content
-        ret = self.import_hook(name, body)
-
-        # In case of mom hooks, make sure that the hook related files
-        # are successfully copied to the MoM
-        try:
-            if 'exec' in attrs['event']:
-                hook_py = name + '.PY'
-                hook_hk = name + '.HK'
-                pyfile = os.path.join(self.pbs_conf['PBS_HOME'],
-                                      "server_priv", "hooks", hook_py)
-                hfile = os.path.join(self.pbs_conf['PBS_HOME'],
-                                     "server_priv", "hooks", hook_hk)
-                logmsg = hook_py + ";copy hook-related file request received"
-
-                cmd = os.path.join(self.client_conf['PBS_EXEC'], 'bin',
-                                   'pbsnodes') + ' -a'
-                cmd_out = self.du.run_cmd(self.hostname, cmd, sudo=True)
-                if cmd_out['rc'] == 0:
-                    for i in cmd_out['out']:
-                        if re.match(r'\s+Mom = ', i):
-                            mom_names = i.split(' = ')[1].split(',')
-                            for m in mom_names:
-                                if m in self.moms:
-                                    self.log_match(
-                                        "successfully sent hook file %s to %s"
-                                        % (hfile, m), interval=1)
-                                    self.log_match(
-                                        "successfully sent hook file %s to %s"
-                                        % (pyfile, m), interval=1)
-                                    self.moms[m].log_match(logmsg, starttime=t)
-                else:
-                    return False
-        except PtlLogMatchError:
-            return False
-
-        return ret
+        return self.import_hook(name, body)
 
     def evaluate_formula(self, jobid=None, formula=None, full=True,
                          include_running_jobs=False, exclude_subjobs=True):
@@ -10532,6 +10481,7 @@ class Scheduler(PBSService):
         self.resource_group = None
         self.holidays_obj = None
         self.server = None
+        self.server_dyn_res = None
         self.logger = logging.getLogger(__name__)
         self.db_access = None
 
@@ -10709,7 +10659,7 @@ class Scheduler(PBSService):
         return self.start()
 
     def log_match(self, msg=None, id=None, n=50, tail=True, allmatch=False,
-                  regexp=False, max_attempts=None, interval=None,
+                  regexp=False, day=None, max_attempts=None, interval=None,
                   starttime=None, endtime=None, level=logging.INFO,
                   existence=True):
         """
@@ -10734,6 +10684,8 @@ class Scheduler(PBSService):
         :param regexp: If true msg is a Python regular expression.
                        Defaults to False
         :type regexp: bool
+        :param day: Optional day in YYYMMDD format.
+        :type day: str
         :param max_attempts: the number of attempts to make to find
                              a matching entry
         :type max_attempts: int
@@ -10766,7 +10718,7 @@ class Scheduler(PBSService):
         .. note:: The matching line number is relative to the record
                   number, not the absolute line number in the file.
         """
-        return self._log_match(self, msg, id, n, tail, allmatch, regexp,
+        return self._log_match(self, msg, id, n, tail, allmatch, regexp, day,
                                max_attempts, interval, starttime, endtime,
                                level=level, existence=existence)
 
@@ -11019,12 +10971,10 @@ class Scheduler(PBSService):
         return True
 
     def add_server_dyn_res(self, custom_resource, script_body=None,
-                           res_file=None, apply=True, validate=True,
-                           dirname=None, host=None, perm=0700,
-                           prefix='PtlPbsSvrDynRes', suffix='.scr'):
+                           res_file=None, apply=True, validate=True):
         """
-        Add a root owned server dynamic resource script or file to the
-        scheduler configuration.
+        Add a server dynamic resource script or file to the scheduler
+        configuration
 
         :param custom_resource: The name of the custom resource to
                                 define
@@ -11038,46 +10988,25 @@ class Scheduler(PBSService):
         :param validate: if True (the default), validate the
                          configuration settings.
         :type validate: bool
-        :param dirname: the file will be created in this directory
-        :type dirname: str or None
-        :param host: the hostname on which dyn res script is created
-        :type host: str or None
-        :param perm: perm to use while creating scripts
-                     (must be octal like 0777)
-        :param prefix: the file name will begin with this prefix
-        :type prefix: str
-        :param suffix: the file name will end with this suffix
-        :type suffix: str
-        :return Absolute path of the dynamic resource script
         """
         if res_file is not None:
-            with open(res_file) as f:
-                script_body = f.readlines()
-                self.du.chmod(hostname=host, path=res_file, mode=perm,
-                              sudo=True)
+            f = open(file)
+            script_body = f.readlines()
+            f.close()
         else:
-            if dirname is None:
-                dirname = self.pbs_conf['PBS_HOME']
-            tmp_file = self.du.create_temp_file(prefix=prefix, suffix=suffix,
-                                                body=script_body,
-                                                hostname=host)
-            res_file = os.path.join(dirname, tmp_file.split(os.path.sep)[-1])
-            self.du.run_copy(host, tmp_file, res_file, sudo=True,
-                             preserve_permission=False)
-            self.du.chown(hostname=host, path=res_file, uid=0, gid=0,
-                          sudo=True)
-            self.du.chmod(hostname=host, path=res_file, mode=perm, sudo=True)
-            if host is None:
-                self.dyn_created_files.append(res_file)
+            res_file = self.du.create_temp_file(prefix='PtlPbsSchedConfig',
+                                                body=script_body)
 
+        self.server_dyn_res = res_file
         self.logger.info(self.logprefix + "adding server dyn res " + res_file)
         self.logger.info("-" * 30)
         self.logger.info(script_body)
         self.logger.info("-" * 30)
 
+        self.du.chmod(self.hostname, path=res_file, mode=0755)
+
         a = {'server_dyn_res': '"' + custom_resource + ' !' + res_file + '"'}
         self.set_sched_config(a, apply=apply, validate=validate)
-        return res_file
 
     def unset_sched_config(self, name, apply=True):
         """
@@ -11129,6 +11058,10 @@ class Scheduler(PBSService):
                              self.resource_group_file,
                              preserve_permission=False,
                              sudo=True)
+        if self.server_dyn_res is not None:
+            self.du.rm(self.hostname, self.server_dyn_res, force=True,
+                       sudo=True)
+            self.server_dyn_res = None
         rc = self.holidays_revert_to_default()
         if self.du.cmp(self.hostname, self.dflt_sched_config_file,
                        self.sched_config_file, sudo=True) != 0:
@@ -12666,29 +12599,11 @@ class MoM(PBSService):
         self.version = None
         self._is_cpuset_mom = None
 
-    def isUp(self, max_attempts=20):
+    def isUp(self):
         """
         Check for PBS mom up
         """
-        # Poll for few seconds to see if mom is up and node is free
-        for _ in range(max_attempts):
-            rv = super(MoM, self)._isUp(self)
-            if rv:
-                break
-            time.sleep(1)
-        if rv:
-            try:
-                nodes = self.server.status(NODE, id=self.shortname)
-                if nodes:
-                    self.server.expect(NODE, {'state': 'free'},
-                                       id=self.shortname)
-            # Ignore PbsStatusError if mom daemon is up but there aren't
-            # any mom nodes
-            except PbsStatusError:
-                pass
-            except PtlExpectError:
-                rv = False
-        return rv
+        return super(MoM, self)._isUp(self)
 
     def signal(self, sig):
         """
@@ -12759,7 +12674,7 @@ class MoM(PBSService):
         return self.start()
 
     def log_match(self, msg=None, id=None, n=50, tail=True, allmatch=False,
-                  regexp=False, max_attempts=None, interval=None,
+                  regexp=False, day=None, max_attempts=None, interval=None,
                   starttime=None, endtime=None, level=logging.INFO,
                   existence=True):
         """
@@ -12784,6 +12699,8 @@ class MoM(PBSService):
         :param regexp: If true msg is a Python regular expression.
                        Defaults to False
         :type regexp: bool
+        :param day: Optional day in YYYMMDD format.
+        :type day: str
         :param max_attempts: the number of attempts to make to find
                              a matching entry
         :type max_attempts: int
@@ -12816,7 +12733,7 @@ class MoM(PBSService):
         .. note:: The matching line number is relative to the record
                   number, not the absolute line number in the file.
         """
-        return self._log_match(self, msg, id, n, tail, allmatch, regexp,
+        return self._log_match(self, msg, id, n, tail, allmatch, regexp, day,
                                max_attempts, interval, starttime, endtime,
                                level, existence)
 
@@ -13427,62 +13344,6 @@ class MoM(PBSService):
         """
         pass
 
-    def add_mom_dyn_res(self, custom_resource, script_body=None,
-                        res_file=None, dirname=None, host=None, perm=0700,
-                        prefix='PtlPbsMomDynRes', suffix='.scr'):
-        """
-        Add a root owned mom dynamic resource script or file to the mom
-        configuration
-
-        :param custom_resource: The name of the custom resource to
-                                define
-        :type custom_resource: str
-        :param script_body: The body of the mom dynamic resource
-        :param res_file: Alternatively to passing the script body, use
-                     the file instead
-        :type res_file: str or None
-        :param dirname: the file will be created in this directory
-        :type dirname: str or None
-        :param host: the hostname on which dyn res script is created
-        :type host: str or None
-        :param perm: perm to use while creating scripts
-                     (must be octal like 0777)
-        :param prefix: the file name will begin with this prefix
-        :type prefix: str
-        :param suffix: the file name will end with this suffix
-        :type suffix: str
-        :return Absolute path of the dynamic resource script
-        """
-        if res_file is not None:
-            with open(res_file) as f:
-                script_body = f.readlines()
-                self.du.chmod(host, path=res_file, mode=perm,
-                              sudo=True)
-        else:
-            if dirname is None:
-                dirname = self.pbs_conf['PBS_HOME']
-            tmp_file = self.du.create_temp_file(prefix=prefix, suffix=suffix,
-                                                body=script_body,
-                                                hostname=host)
-
-            res_file = os.path.join(dirname, tmp_file.split(os.path.sep)[-1])
-            self.du.run_copy(host, tmp_file, res_file, sudo=True,
-                             preserve_permission=False)
-            self.du.chown(hostname=host, path=res_file, uid=0, gid=0,
-                          sudo=True)
-            self.du.chmod(hostname=host, path=res_file, mode=perm, sudo=True)
-            if host is None:
-                self.dyn_created_files.append(res_file)
-
-        self.logger.info(self.logprefix + "adding mom dyn res " + res_file)
-        self.logger.info("-" * 30)
-        self.logger.info(script_body)
-        self.logger.info("-" * 30)
-
-        a = {custom_resource: '!' + res_file}
-        self.add_config(a)
-        return res_file
-
 
 class Hook(PBSObject):
 
@@ -13836,18 +13697,7 @@ class Job(ResourceResv):
         :returns: subjob id string
         """
         idx = job_array_id.find('[]')
-        return job_array_id[:idx + 1] + str(subjob_index) + \
-            job_array_id[idx + 1:]
-
-    def create_eatcpu_job(self, duration=None):
-        """
-        Create a job that eats cpu indefinitely or for the given
-        duration of time
-        """
-        script_dir = os.path.dirname(os.path.dirname(__file__))
-        script_path = os.path.join(script_dir, 'utils', 'jobs', 'eatcpu.py')
-        DshUtils().chmod(path=script_path, mode=0755)
-        self.set_execargs(script_path, duration)
+        return job_array_id[:idx+1] + str(subjob_index) + job_array_id[idx+1:]
 
 
 class Reservation(ResourceResv):

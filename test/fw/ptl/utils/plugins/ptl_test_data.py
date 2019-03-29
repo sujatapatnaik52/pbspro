@@ -56,7 +56,7 @@ class PTLTestData(Plugin):
     Save post analysis data on test cases failure or error
     """
     name = 'PTLTestData'
-    score = sys.maxint - 6
+    score = sys.maxsize - 6
     logger = logging.getLogger(__name__)
 
     def __init__(self):
@@ -119,7 +119,7 @@ class PTLTestData(Plugin):
             signal.alarm(0)
         self.logger.log(logging.DEBUG2, 'Saving post analysis data...')
         current_host = socket.gethostname().split('.')[0]
-        self.du.mkdir(current_host, path=datadir, mode=0755,
+        self.du.mkdir(current_host, path=datadir, mode=0o755,
                       parents=True, logerr=False, level=logging.DEBUG2)
         if err is not None:
             if isclass(err[0]) and issubclass(err[0], SkipTest):

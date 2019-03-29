@@ -1,4 +1,4 @@
 nose
-BeautifulSoup
+BeautifulSoup4
 pexpect
 defusedxml

@@ -1482,7 +1482,7 @@ class SmokeTest(PBSTestSuite):
         self.logger.info('Checking ' + str(fs4.usage) + " == 3")
         self.assertEqual(fs4.usage, 3)
 
-    '''@checkModule("pexpect")
+    @checkModule("pexpect")
     def test_interactive_job(self):
         """
         Submit an interactive job
@@ -1494,7 +1494,7 @@ class SmokeTest(PBSTestSuite):
         jid = self.server.submit(j)
         self.server.expect(JOB, {'job_state': 'R'}, id=jid)
         self.server.delete(jid)
-        self.server.expect(JOB, 'queue', op=UNSET, id=jid)'''
+        self.server.expect(JOB, 'queue', op=UNSET, id=jid)
 
     def test_man_pages(self):
         """

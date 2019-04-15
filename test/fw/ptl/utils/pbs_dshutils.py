@@ -320,7 +320,7 @@ class DshUtils(object):
             conf = self._parse_file(hostname, fin)
         else:
             conf = {}
-        conf = dict(list(conf.items()) + list(variables.items()))
+        conf = {**conf, **variables}
         if os.path.isfile(fout):
             fout_stat = os.stat(fout)
             user = fout_stat.st_uid
@@ -331,7 +331,7 @@ class DshUtils(object):
 
         try:
             fn = self.create_temp_file()
-            self.chmod(path=fn, mode="0644")
+            self.chmod(path=fn, mode=0o644)
             with open(fn, 'w') as fd:
                 for k, v in conf.items():
                     fd.write(str(k) + '=' + str(v) + '\n')
@@ -633,7 +633,7 @@ class DshUtils(object):
                 uid = _user.pw_uid
             rhost = os.path.join(home, '.rhosts')
             fn = self.create_temp_file(hostname)
-            self.chmod(hostname, fn, mode="0755")
+            self.chmod(hostname, fn, mode=0o755)
             with open(fn, 'w') as fd:
                 fd.write('#!/bin/bash\n')
                 fd.write('cd %s\n' % (home))
@@ -1180,7 +1180,7 @@ class DshUtils(object):
             dest = os.path.join(tmpdir, os.path.basename(fn))
             oldc = self.copy_cmd[:]
             self.set_copy_cmd('scp -p')
-            self.run_copy(hostname, fn, dest, mode=755, level=level)
+            self.run_copy(hostname, fn, dest, mode=0o755, level=level)
             self.set_copy_cmd(' '.join(oldc))
             self.rm(None, path=fn, force=True, logerr=False)
             cmd = dest
@@ -1434,6 +1434,7 @@ class DshUtils(object):
         cmd = [self.which(hostname, 'chmod', level=level)]
         if recursive:
             cmd += ['-R']
+        mode = '{:o}'.format(mode)
         cmd += [mode, path]
         ret = self.run_cmd(hostname, cmd=cmd, sudo=sudo, logerr=logerr,
                            runas=runas, level=level)
@@ -1895,7 +1896,7 @@ class DshUtils(object):
                 # by default mkstemp creates file with 0600 permission
                 # to create file as different user first change the file
                 # permission to 0644 so that other user has read permission
-                self.chmod(hostname, tmpfile, mode="0644")
+                self.chmod(hostname, tmpfile, mode=0o644)
                 # copy temp file created  on local host to remote host
                 # as different user
                 self.run_copy(hostname, tmpfile, tmpfile, runas=asuser,
@@ -1910,7 +1911,7 @@ class DshUtils(object):
             # by default mkstemp creates file with 0600 permission
             # to create file as different user first change the file
             # permission to 0644 so that other user has read permission
-            self.chmod(hostname, tmpfile, mode="0644")
+            self.chmod(hostname, tmpfile, mode=0o644)
             # since we need to create as differnt user than current user
             # create a temp file just to get temp file name with absolute path
             (_, tmpfile2) = tempfile.mkstemp(suffix, prefix, dirname, text)

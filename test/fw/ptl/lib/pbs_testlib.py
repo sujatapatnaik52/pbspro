@@ -951,13 +951,12 @@ class PbsTypeChunk(dict):
         :returns: Added chunk specification
         """
         if self.vnode == vnode:
-            self.resources = dict(list(self.resources.items()) + list(resources.items()))
+            self.resources = {**self.resources, **resources}
             return self
         elif len(self.vchunk) != 0:
             for chk in self.vchunk:
                 if chk.vnode == vnode:
-                    chk.resources = dict(list(self.resources.items()) +
-                                         list(resources.items()))
+                    chk.resources = {**self.resources, **resources}
                     return self
         chk = PbsTypeChunk(vnode, resources)
         self.vchunk.append(chk)
@@ -1365,7 +1364,7 @@ class BatchUtils(object):
         prev = None
         head = None
 
-        for k, v in list(d.items()):
+        for k, v in d.items():
             if isinstance(v, tuple):
                 op = v[0]
                 v = v[1]
@@ -4256,7 +4255,7 @@ class PBSService(PBSObject):
                 for ky in [MGR_OBJ_SERVER, MGR_OBJ_SCHED, MGR_OBJ_NODE]:
                     if ky not in conf:
                         conf[ky] = {}
-                    newconf = dict(list(newconf.items()) + list(conf[ky].items()))
+                    newconf = {**newconf, **conf[ky]}
                 conf = newconf
 
             for k, v in conf.items():
@@ -5154,7 +5153,7 @@ class Server(PBSService):
                 if self.du.cmp(self.hostname, self.dflt_mpp_hook,
                                self.mpp_hook, sudo=True) != 0:
                     self.du.run_copy(self.hostname, self.dflt_mpp_hook,
-                                     self.mpp_hook, mode=644, sudo=True)
+                                     self.mpp_hook, mode=0o644, sudo=True)
                     self.signal('-HUP')
             hooks = self.status(HOOK, level=logging.DEBUG)
             hooks = [h['id'] for h in hooks]
@@ -5885,7 +5884,7 @@ class Server(PBSService):
                                                   prefix='PtlPbsJobScript',
                                                   asuser=obj.username,
                                                   body=aprun_cmd)
-                    self.du.chmod(path=fn, mode="0755")
+                    self.du.chmod(path=fn, mode=0o755)
                     script = fn
             elif script is None and obj.script is not None:
                 script = obj.script
@@ -9665,8 +9664,8 @@ class Server(PBSService):
         # to split up the formula into keywords, first convert all possible
         # operators into spaces and split the string.
         # TODO: The list of operators may need to be expanded
-        T = string.maketrans('()%+*/-', ' ' * 7)
-        fres = string.translate(formula, T).split()
+        T = formula.maketrans('()%+*/-', ' ' * 7)
+        fres = formula.translate(T).split()
         if jobid:
             d = self.status(JOB, id=jobid, extend='t')
         else:
@@ -9683,6 +9682,7 @@ class Server(PBSService):
                 queue = self.status(JOB, 'queue', id=job['id'])[0]['queue']
                 d = self.status(QUEUE, 'Priority', id=queue)
                 if d and 'Priority' in d[0]:
+                    qprio = int(d[0]['Priority'])
                     qprio = int(d[0]['Priority'])
                     f_value['queue_priority'] = qprio
                 else:
@@ -11125,7 +11125,7 @@ class Scheduler(PBSService):
         """
         self.parse_sched_config()
         self.logger.info(self.logprefix + "config " + str(confs))
-        self.sched_config = dict(list(self.sched_config.items()) + list(confs.items()))
+        self.sched_config = {**self.sched_config, **confs}
         if apply:
             try:
                 self.apply_config(validate=validate)
@@ -11137,7 +11137,7 @@ class Scheduler(PBSService):
 
     def add_server_dyn_res(self, custom_resource, script_body=None,
                            res_file=None, apply=True, validate=True,
-                           dirname=None, host=None, perm="0700",
+                           dirname=None, host=None, perm=0o700,
                            prefix='PtlPbsSvrDynRes', suffix='.scr'):
         """
         Add a root owned server dynamic resource script or file to the
@@ -11160,7 +11160,7 @@ class Scheduler(PBSService):
         :param host: the hostname on which dyn res script is created
         :type host: str or None
         :param perm: perm to use while creating scripts
-                     (must be octal like 0777)
+                     (must be octal like 0o777)
         :param prefix: the file name will begin with this prefix
         :type prefix: str
         :param suffix: the file name will end with this suffix
@@ -11281,12 +11281,12 @@ class Scheduler(PBSService):
         if not os.path.exists(sched_priv_dir):
             self.du.mkdir(path=sched_priv_dir, sudo=True)
             self.du.run_copy(self.hostname, self.dflt_resource_group_file,
-                             self.resource_group_file, mode=644,
+                             self.resource_group_file, mode=0o644,
                              sudo=True)
             self.du.run_copy(self.hostname, self.dflt_holidays_file,
-                             self.holidays_file, mode=644, sudo=True)
+                             self.holidays_file, mode=0o644, sudo=True)
             self.du.run_copy(self.hostname, self.dflt_sched_config_file,
-                             self.sched_config_file, mode=644,
+                             self.sched_config_file, mode=0o644,
                              sudo=True)
 
         if not os.path.exists(sched_logs_dir):
@@ -12580,7 +12580,7 @@ class FairshareTree(object):
 
         .. note:: The name takes precedence over the id.
         """
-        for node in list(self.nodes.values()):
+        for node in self.nodes.values():
             if name is not None and node.name == name:
                 return node
             if id is not None and node.id == id:
@@ -13305,7 +13305,7 @@ class MoM(PBSService):
         :type hup: bool
         :returns: True on success and False otherwise.
         """
-        self.config = dict(list(self.config.items()) + list(conf.items()))
+        self.config = {**self.config, **conf}
         try:
             fn = self.du.create_temp_file()
             with open(fn, 'w+') as f:
@@ -13525,7 +13525,7 @@ class MoM(PBSService):
         if not ret:
             self.logger.error('error chowning pelog to root')
             return False
-        ret = self.du.chmod(self.hostname, path=pelog, mode="0755", sudo=True)
+        ret = self.du.chmod(self.hostname, path=pelog, mode=0o755, sudo=True)
         return ret
 
     def prologue(self, body=None, src=None):
@@ -13547,7 +13547,7 @@ class MoM(PBSService):
         pass
 
     def add_mom_dyn_res(self, custom_resource, script_body=None,
-                        res_file=None, dirname=None, host=None, perm=700,
+                        res_file=None, dirname=None, host=None, perm=0o700,
                         prefix='PtlPbsMomDynRes', suffix='.scr'):
         """
         Add a root owned mom dynamic resource script or file to the mom
@@ -13938,7 +13938,7 @@ class Job(ResourceResv):
         fn = self.du.create_temp_file(hostname, prefix='PtlPbsJobScript',
                                       asuser=asuser, body=body)
 
-        self.du.chmod(hostname, fn, mode="0755")
+        self.du.chmod(hostname, fn, mode=0o755)
         if not self.du.is_localhost(hostname):
             self.du.run_copy(hostname, fn, fn)
         self.script = fn
@@ -13965,7 +13965,7 @@ class Job(ResourceResv):
         """
         script_dir = os.path.dirname(os.path.dirname(__file__))
         script_path = os.path.join(script_dir, 'utils', 'jobs', 'eatcpu.py')
-        DshUtils().chmod(path=script_path, mode="0755")
+        DshUtils().chmod(path=script_path, mode=0o755)
         self.set_execargs(script_path, duration)
 
 
@@ -14115,7 +14115,7 @@ class InteractiveJob(threading.Thread):
             expstr += "(?P<jobid>\d+.[0-9A-Za-z-.]+) to start"
             _p.expect(expstr)
             if _p.match:
-                self.jobid = _p.match.group('jobid')
+                self.jobid = _p.match.group('jobid').decode()
             else:
                 _p.close()
                 self.job.interactive_handle = None

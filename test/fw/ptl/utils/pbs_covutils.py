@@ -315,7 +315,7 @@ class LcovUtils(object):
             newroot = urljoin(html_baseurl, newroot)
             if newroot[-1] != '/':
                 newroot += '/'
-            print((root, newroot))
+            print(root, newroot)
             for f in files:
                 if not f.endswith('.html'):
                     continue

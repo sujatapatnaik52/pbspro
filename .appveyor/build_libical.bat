@@ -80,7 +80,7 @@ if not exist "%BINARIESDIR%\libical-%LIBICAL_VERSION%" (
 mkdir "%BINARIESDIR%\libical-%LIBICAL_VERSION%\build"
 cd "%BINARIESDIR%\libical-%LIBICAL_VERSION%\build"
 
-call "%VS90COMNTOOLS%vsvars32.bat"
+call "%VS140COMNTOOLS%vsvars32.bat"
 
 "%CMAKE_BIN%" -DCMAKE_INSTALL_PREFIX="%BINARIESDIR%\%LIBICAL_DIR_NAME%" -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DUSE_32BIT_TIME_T=True ..
 if not %ERRORLEVEL% == 0 (

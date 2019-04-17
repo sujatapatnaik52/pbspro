@@ -59,10 +59,10 @@ if not defined CMAKE_BIN (
 if not defined __BINARIESDIR (
     set __BINARIESDIR=%CD%\binaries
 )
-if exist "%VS90COMNTOOLS%vsvars32.bat" (
-    call "%VS90COMNTOOLS%vsvars32.bat"
+if exist "%VS140COMNTOOLS%vsvars32.bat" (
+    call "%VS140COMNTOOLS%vsvars32.bat"
 ) else (
-    echo "Could not find %VS90COMNTOOLS%vsvars32.bat"
+    echo "Could not find %VS140COMNTOOLS%vsvars32.bat"
     exit 1
 )
 
@@ -89,13 +89,13 @@ if not defined LIBEDIT_VERSION (
     set LIBEDIT_VERSION=2.204
 )
 if not defined LIBICAL_VERSION (
-    set LIBICAL_VERSION=1.0.1
+    set LIBICAL_VERSION=2.0
 )
 if not defined PGSQL_VERSION (
     set PGSQL_VERSION=9.6.3
 )
 if not defined PYTHON_VERSION (
-    set PYTHON_VERSION=2.7.13
+    set PYTHON_VERSION=3.6
 )
 if not defined OPENSSL_VERSION (
     set OPENSSL_VERSION=1_1_0f

@@ -52,8 +52,8 @@ class TestMomHookSync(TestFunctional):
             self.skip_test(reason="need 2 mom hosts: -p moms=<m1>:<m2>")
         TestFunctional.setUp(self)
 
-        self.momA = self.moms.values()[0]
-        self.momB = self.moms.values()[1]
+        self.momA = list(self.moms.values())[0]
+        self.momB = list(self.moms.values())[1]
         self.momA.delete_vnode_defs()
         self.momB.delete_vnode_defs()
 

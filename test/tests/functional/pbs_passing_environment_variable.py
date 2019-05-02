@@ -100,7 +100,7 @@ class Test_passing_environment_variable_via_qsub(TestFunctional):
         self.server.expect(JOB, 'queue', op=UNSET, id=jid, offset=2)
         job_output = ""
         with open(job_outfile, 'r') as f:
-            job_output = f.read().strip()
+            job_output = f.read().strip(" ")
         match = 'foo=() {  if [ /bin/true ]; then\n echo hello;\n fi\n}\nhello'
         self.assertEqual(job_output, match,
                          msg="Environment variable foo content does "

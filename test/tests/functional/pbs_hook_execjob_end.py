@@ -186,8 +186,8 @@ class TestPbsExecjobEnd(TestFunctional):
         """
         if len(self.moms) != 2:
             self.skip_test(reason="need 2 mom hosts: -p moms=<m1>:<m2>")
-        self.momA = self.moms.values()[0]
-        self.momB = self.moms.values()[1]
+        self.momA = list(self.moms.values())[0]
+        self.momB = list(self.moms.values())[1]
         hook_name = "execjob_end_logmsg5"
         self.server.create_import_hook(hook_name, self.attr, self.hook_body)
         hook_name = "exechost_periodic_logmsg2"
@@ -203,7 +203,7 @@ class TestPbsExecjobEnd(TestFunctional):
         j.set_sleep_time(1)
         self.server.create_import_hook(hook_name, attr, hook_body)
         jid = self.server.submit(j)
-        for host, mom in self.moms.iteritems():
+        for host, mom in self.moms.items():
             (_, str1) = mom.log_match("Job;%s;executed execjob_end hook" %
                                       jid, n=100, max_attempts=10,
                                       interval=2)
@@ -236,8 +236,8 @@ class TestPbsExecjobEnd(TestFunctional):
         hook_name = "execjob_end_logmsg6"
         self.server.create_import_hook(hook_name, self.attr, self.hook_body)
         if len(self.moms) == 2:
-            self.momA = self.moms.values()[0]
-            self.momB = self.moms.values()[1]
+            self.momA = list(self.moms.values())[0]
+            self.momB = list(self.moms.values())[1]
             a = {'Resource_List.select':
                  '1:ncpus=1:host=%s+1:ncpus=1:host=%s' %
                  (self.momA.shortname, self.momB.shortname)}
@@ -248,7 +248,7 @@ class TestPbsExecjobEnd(TestFunctional):
         jid = self.server.submit(j)
         self.server.expect(JOB, {'job_state': 'R'}, id=jid)
         self.server.deljob(id=jid, wait=True, attr_W="force")
-        for host, mom in self.moms.iteritems():
+        for host, mom in self.moms.items():
             mom.log_match("Job;%s;executed execjob_end hook" %
                           jid, n=100, max_attempts=10,
                           interval=2)
@@ -266,8 +266,8 @@ class TestPbsExecjobEnd(TestFunctional):
 
         if len(self.moms) != 2:
             self.skip_test(reason="need 2 mom hosts: -p moms=<m1>:<m2>")
-        self.momA = self.moms.values()[0]
-        self.momB = self.moms.values()[1]
+        self.momA = list(self.moms.values())[0]
+        self.momB = list(self.moms.values())[1]
 
         # Create hook
         hook_name = "execjob_end_logmsg7"

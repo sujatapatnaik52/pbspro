@@ -215,7 +215,7 @@ class TestQsub_remove_files(TestFunctional):
                 self.server.expect(JOB, attribs,
                                    id=jid)
         except PbsAlterError as e:
-            print str(e)
+            print(str(e))
 
     def test_qalter_direct_write_error(self):
         """

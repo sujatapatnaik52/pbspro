@@ -242,7 +242,7 @@ class TestSoftWalltime(TestFunctional):
         self.server.alterjob(jid, {'Resource_List.soft_walltime': 240})
         try:
             self.server.alterjob(jid, {'Resource_List.walltime': 120})
-        except PbsAlterError:
+        except PbsAlterError as e:
             self.assertTrue(msg in e.msg[0])
 
         self.server.expect(JOB, 'Resource_List.walltime', op=UNSET, id=jid)
@@ -252,7 +252,7 @@ class TestSoftWalltime(TestFunctional):
         try:
             self.server.alterjob(jid, {'Resource_List.walltime': 120,
                                        'Resource_List.soft_walltime': 240})
-        except PbsAlterError:
+        except PbsAlterError as e:
             self.assertTrue(msg in e.msg[0])
 
         al = ['Resource_List.walltime', 'Resource_List.soft_walltime']

@@ -86,7 +86,7 @@ class TestBasilQuery(TestFunctional):
                             {'enabled': 'true', 'freq': 10},
                             id='PBS_alps_inventory_check')
 
-        momA = self.moms.values()[0]
+        momA = list(self.moms.values())[0]
         if not momA.is_cray():
             self.skipTest("%s: not a cray mom." % (momA.shortname))
         mom_config = momA.parse_config()
@@ -146,7 +146,7 @@ class TestBasilQuery(TestFunctional):
                              "Cray compute node %s doesn't exist on pbs server"
                              % (name))
 
-        for rsc, xval in vnode.iteritems():
+        for rsc, xval in vnode.items():
             if rsc != 'current_aoe':
                 resource = 'resources_available.' + rsc
             else:
@@ -217,7 +217,7 @@ class TestBasilQuery(TestFunctional):
         if len(kvnl) == 0:
             self.skipTest(reason='No KNL vnodes present')
         else:
-            klist = kvnl.values()[0]
+            klist = list(kvnl.values())[0]
             self.logger.info("KNL vnode list: %s" % (klist))
         return klist
 
@@ -226,8 +226,8 @@ class TestBasilQuery(TestFunctional):
         Set provisioning enabled and aoe resource on Xeon Phi nodes.
         """
         # Check for provisioning setup
-        momA = self.moms.values()[0].shortname
-        serverA = self.servers.values()[0].shortname
+        momA = list(self.moms.values())[0].shortname
+        serverA = list(self.servers.values())[0].shortname
         msg = ("Provide a mom not present on server host while invoking"
                " the test: -p moms=<m1>")
         if momA == serverA:
@@ -350,7 +350,7 @@ type=\"ENGINE\"/>" % (self.basil_version[1])
         # List of resources to be ignored while comparing.
         ignr_rsc = ['license', 'last_state_change_time']
 
-        for rsc, val in pbs_node.iteritems():
+        for rsc, val in pbs_node.items():
             if rsc in ignr_rsc:
                 continue
             self.assertTrue(rsc in cray_login_node,
@@ -385,9 +385,9 @@ type=\"ENGINE\"/>" % (self.basil_version[1])
 
         # Check that exec_vnode is a KNL vnode.`
         self.server.status(JOB, 'exec_vnode', id=job_id)
-        evnode = job.execvnode()[0].keys()[0]
+        evnode = list(job.execvnode()[0].keys())[0]
         nid = evnode.split('_')[1]
-        if nid in knl_vnodes.keys():
+        if nid in list(knl_vnodes.keys()):
             self.logger.info("exec_vnode %s is a KNL vnode." % (evnode))
             rv = 1
         else:

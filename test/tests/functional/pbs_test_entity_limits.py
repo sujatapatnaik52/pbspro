@@ -115,7 +115,7 @@ class TestEntityLimits(TestFunctional):
         try:
             j = Job(TST_USR, job_attr)
             self.server.submit(j)
-        except PbsSubmitError:
+        except PbsSubmitError as e:
             if e.msg[0] != exp_err:
                 raise self.failureException("rcvd unexpected err message: "
                                             + e.msg[0])
@@ -126,7 +126,7 @@ class TestEntityLimits(TestFunctional):
 
         try:
             self.server.submit(j)
-        except PbsSubmitError:
+        except PbsSubmitError as e:
             if e.msg[0] != exp_err:
                 raise self.failureException("rcvd unexpected err message: "
                                             + e.msg[0])

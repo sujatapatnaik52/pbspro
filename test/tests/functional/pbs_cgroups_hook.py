@@ -69,19 +69,19 @@ def systemd_escape(buf):
     Escape strings for usage in system unit names
     Some distros don't provide the systemd-escape command
     """
-    if not isinstance(buf, basestring):
+    if not isinstance(buf, str):
         raise ValueError('Not a basetype string')
     ret = ''
     for i, char in enumerate(buf):
         if i < 1 and char == '.':
-            ret += '\\x' + char.encode('hex')
+            ret += '\\x' + char.encode('utf-8').hex()
             continue
         if char.isalnum() or char in '_.':
             ret += char
         elif char == '/':
             ret += '-'
         else:
-            hexval = char.encode('hex')
+            hexval = char.encode('utf-8').hex()
             for j in range(0, len(hexval), 2):
                 ret += '\\x' + hexval[j:j + 2]
     return ret
@@ -108,7 +108,7 @@ class TestCgroupsHook(TestFunctional):
         self.hosts_list = []
         self.nodes_list = []
         for cnt in range(0, len(self.moms)):
-            mom = self.moms.values()[cnt]
+            mom = list(self.moms.values())[cnt]
             if mom.is_cray():
                 self.iscray = True
             host = mom.shortname
@@ -144,7 +144,7 @@ class TestCgroupsHook(TestFunctional):
         for host in self.hosts_list:
             self.server.manager(MGR_CMD_CREATE, NODE, id=host)
 
-        self.serverA = self.servers.values()[0].name
+        self.serverA = list(self.servers.values())[0].name
         self.paths = self.get_paths()
         if not (self.paths['cpuset'] and self.paths['memory']):
             self.skipTest('cpuset or memory cgroup subsystem not mounted')
@@ -856,8 +856,7 @@ if %s e.job.in_ms_mom():
         for _ in range(5):
             try:
                 self.server.create_import_hook(self.hook_name, a, script,
-                                               overwrite=True,
-                                               level=logging.DEBUG)
+                                               overwrite=True)
             except Exception:
                 time.sleep(2)
             else:
@@ -942,7 +941,7 @@ if %s e.job.in_ms_mom():
         self.tempfile.append(fn)
         ret = self.du.run_copy(hosts=host, src=fn,
                                dest=vntype_file, sudo=True, uid='root',
-                               gid='root', mode=0644)
+                               gid='root', mode=0o644)
         if ret['rc'] != 0:
             self.skipTest('pbs_cgroups_hook: failed to set vntype')
 
@@ -1539,7 +1538,7 @@ if %s e.job.in_ms_mom():
         fdir_pbs = os.path.join(fdir, 'PtlPbs')
         if not self.du.isdir(fdir_pbs):
             self.du.mkdir(hostname=self.hosts_list[0], path=fdir_pbs,
-                          mode=0755, sudo=True)
+                          mode=0o755, sudo=True)
         # Write a PID into the tasks file for the freezer cgroup
         task_file = os.path.join(fdir_pbs, 'tasks')
         success = False
@@ -1550,7 +1549,7 @@ if %s e.job.in_ms_mom():
             ret = self.du.run_copy(hosts=self.hosts_list[0], src=fn,
                                    dest=task_file, sudo=True,
                                    uid='root', gid='root',
-                                   mode=0644)
+                                   mode=0o644)
             if ret['rc'] == 0:
                 success = True
                 break
@@ -1569,7 +1568,7 @@ if %s e.job.in_ms_mom():
         ret = self.du.run_copy(self.hosts_list[0], src=fn,
                                dest=freezer_file, sudo=True,
                                uid='root', gid='root',
-                               mode=0644)
+                               mode=0o644)
         if ret['rc'] != 0:
             self.skipTest('pbs_cgroups_hook: Failed to copy '
                           'freezer state FROZEN')
@@ -1582,7 +1581,7 @@ if %s e.job.in_ms_mom():
         ret = self.du.run_copy(self.hosts_list[0], src=fn,
                                dest=freezer_file, sudo=True,
                                uid='root', gid='root',
-                               mode=0644)
+                               mode=0o644)
         if ret['rc'] != 0:
             self.skipTest('pbs_cgroups_hook: Failed to copy '
                           'freezer state THAWED')
@@ -1937,7 +1936,7 @@ if %s e.job.in_ms_mom():
         self.server.expect(NODE, {ATTR_NODE_state: 'free'},
                            id=self.nodes_list[0])
         self.server.create_vnodes('vnode', vn_attrs, 2,
-                                  self.moms.values()[0])
+                                  list(self.moms.values())[0])
         self.server.expect(NODE, {ATTR_NODE_state: 'free'},
                            id=self.nodes_list[0])
         a = {'Resource_List.select': '1:ncpus=1:mem=500mb'}
@@ -2781,7 +2780,7 @@ event.accept()
                             self.du.run_copy(hosts=self.hosts_list[0], src=fn,
                                              dest=freezer_file, sudo=True,
                                              uid='root', gid='root',
-                                             mode=0644)
+                                             mode=0o644)
                             self.du.rm(hostname=self.hosts_list[0], path=fn)
                             cmd = ['rmdir', jpath]
                             self.logger.info('deleting jobdir %s' % cmd)

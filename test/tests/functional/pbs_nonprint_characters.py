@@ -68,9 +68,9 @@ class TestNonprintingCharacters(TestFunctional):
         self.npch_asis = ['\x09', '\x0A']
 
         # Terminal control characters used in the tests
-        self.bold = u"\u001b[1m"
-        self.red = u"\u001b[31m"
-        self.reset = u"\u001b[0m"
+        self.bold = "\u001b[1m"
+        self.red = "\u001b[31m"
+        self.reset = "\u001b[0m"
         # Mapping of terminal control character to escaped representation
         self.bold_esc = "^[[1m"
         self.red_esc = "^[[31m"
@@ -89,7 +89,7 @@ unset -f foo
 exit 0
 """
         fn = self.du.create_temp_file(body=foo_scr)
-        self.du.chmod(path=fn, mode=0755)
+        self.du.chmod(path=fn, mode=0o755)
         foo_msg = 'Failed to run foo_scr'
         ret = self.du.run_cmd(self.server.hostname, cmd=fn)
         self.assertEqual(ret['rc'], 0, foo_msg)

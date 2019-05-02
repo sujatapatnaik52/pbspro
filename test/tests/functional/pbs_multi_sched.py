@@ -223,7 +223,7 @@ class TestMultipleSchedulers(TestFunctional):
         self.server.manager(MGR_CMD_SET, NODE, a, id='vnode[2]')
         self.server.manager(MGR_CMD_SET, SCHED,
                             {'scheduling': 'False'}, id="sc5")
-        for _ in xrange(500):
+        for _ in range(500):
             j = Job(TEST_USER1, attrs={ATTR_queue: 'wq3'})
             self.server.submit(j)
         self.server.manager(MGR_CMD_SET, SCHED,
@@ -1498,7 +1498,7 @@ class TestMultipleSchedulers(TestFunctional):
             a['partition'] = 'P2'
         if numnode is 11:
             a['partition'] = 'P2'
-        return dict(attrib.items() + a.items())
+        return dict(list(attrib.items()) + list(a.items()))
 
     def setup_placement_set(self):
         self.server.add_resource('switch', 'string_array', 'h')

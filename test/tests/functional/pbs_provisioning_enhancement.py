@@ -81,12 +81,12 @@ e.reject()
         # This test suite expects the the first mom given with "-p moms"
         # benchpress option to be remote mom. In case this assumption
         # is not true then it reverses the order in the setup.
-        if self.moms.values()[0].shortname == self.server.shortname:
-            self.momA = self.moms.values()[1]
-            self.momB = self.moms.values()[0]
+        if list(self.moms.values())[0].shortname == self.server.shortname:
+            self.momA = list(self.moms.values())[1]
+            self.momB = list(self.moms.values())[0]
         else:
-            self.momA = self.moms.values()[0]
-            self.momB = self.moms.values()[1]
+            self.momA = list(self.moms.values())[0]
+            self.momB = list(self.moms.values())[1]
 
         self.hostA = self.momA.shortname
         self.hostB = self.momB.shortname

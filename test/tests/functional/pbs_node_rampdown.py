@@ -285,9 +285,9 @@ class TestPbsNodeRampDown(TestFunctional):
 
         self.server.cleanup_jobs(extend="force")
 
-        self.momA = self.moms.values()[0]
-        self.momB = self.moms.values()[1]
-        self.momC = self.moms.values()[2]
+        self.momA = list(self.moms.values())[0]
+        self.momB = list(self.moms.values())[1]
+        self.momC = list(self.moms.values())[2]
 
         # Now start setting up and creating the vnodes
         self.server.manager(MGR_CMD_DELETE, NODE, None, "")
@@ -6990,7 +6990,7 @@ pbs.logjobmsg(pbs.event().job.id, "epilogue hook executed")
             for key in self.server.pu.processes:
                 if ("fib" in key):
                     process = len(self.server.pu.processes[key])
-                    print "length of the process is %d " % (process,)
+                    print("length of the process is %d " % (process,))
         self.assertEqual(process, 2)
 
         # Mom logs only have message for job1 for node3

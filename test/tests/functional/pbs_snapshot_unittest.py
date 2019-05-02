@@ -314,7 +314,7 @@ class TestPBSSnapshot(TestFunctional):
                 skip_list.extend([ETC_HOSTS, ETC_NSSWITCH_CONF, LSOF_PBS_OUT,
                                   VMSTAT_OUT, DF_H_OUT, DMESG_OUT])
             for item_info in all_info:
-                for key, info in item_info.iteritems():
+                for key, info in item_info.items():
                     info_path = info[0]
                     if info_path is None:
                         continue
@@ -461,7 +461,7 @@ class TestPBSSnapshot(TestFunctional):
             all_content = rstatfd.read()
             self.assertFalse(str(TEST_USER1) in all_content)
             self.assertFalse(str(TSTGRP0) in all_content)
-
+    
     def test_obfuscate_acct_bad(self):
         """
         Test that pbs_snapshot --obfuscate can work with bad accounting records
@@ -646,8 +646,8 @@ pbs.logmsg(pbs.EVENT_DEBUG,"%s")
             self.skipTest("test requires atleast two moms as input, "
                           "use -p moms=<mom 1>:<mom 2>")
 
-        mom1 = self.moms.values()[0]
-        mom2 = self.moms.values()[1]
+        mom1 = list(self.moms.values())[0]
+        mom2 = list(self.moms.values())[1]
 
         host1 = mom1.shortname
         host2 = mom2.shortname

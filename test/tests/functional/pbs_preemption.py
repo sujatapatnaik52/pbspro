@@ -137,7 +137,7 @@ kill $1
 exit 0
 """
         self.chk_file = self.du.create_temp_file(body=chk_script)
-        self.du.chmod(path=self.chk_file, mode=0755)
+        self.du.chmod(path=self.chk_file, mode=0o755)
         self.du.chown(path=self.chk_file, uid=0, gid=0, sudo=True)
         c = {'$action': 'checkpoint_abort 30 !' + self.chk_file + ' %sid'}
         self.mom.add_config(c)
@@ -214,7 +214,7 @@ exit 0
 exit 3
 """
         abort_file = self.du.create_temp_file(body=abort_script)
-        self.du.chmod(path=abort_file, mode=0755)
+        self.du.chmod(path=abort_file, mode=0o755)
         self.du.chown(path=abort_file, uid=0, gid=0, runas=ROOT_USER)
         c = {'$action': 'checkpoint_abort 30 !' + abort_file}
         self.mom.add_config(c)
@@ -250,7 +250,7 @@ kill -9 $1
 exit 0
 """
         abort_file = self.du.create_temp_file(body=abort_script)
-        self.du.chmod(path=abort_file, mode=0755)
+        self.du.chmod(path=abort_file, mode=0o755)
         self.du.chown(path=abort_file, uid=0, gid=0, runas=ROOT_USER)
         c = {'$action': 'checkpoint_abort 30 !' + abort_file + ' %sid'}
         self.mom.add_config(c)

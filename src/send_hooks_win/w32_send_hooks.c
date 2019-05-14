@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -187,7 +187,6 @@ pbs_list_head	svr_exechost_periodic_hooks;
 pbs_list_head	svr_exechost_startup_hooks;
 pbs_list_head	svr_execjob_attach_hooks;
 pbs_list_head	svr_execjob_resize_hooks;
-pbs_list_head	svr_execjob_abort_hooks;
 
 pbs_list_head	task_list_immed;
 pbs_list_head	task_list_timed;
@@ -254,7 +253,7 @@ main(int argc, char *argv[])
 	char		*param_name, *param_val;
 	int		rc;
 
-	PRINT_VERSION_AND_EXIT(argc, argv);
+	execution_mode(argc, argv);
 
 	if(set_msgdaemonname("PBS_send_hooks")) {
 		fprintf(stderr, "Out of memory\n");
@@ -281,9 +280,7 @@ main(int argc, char *argv[])
 		exit(-1);
 	}
 
-	if (winsock_init()) {
-		return 1;
-	}
+	winsock_init();
 
 	connection_init();
 

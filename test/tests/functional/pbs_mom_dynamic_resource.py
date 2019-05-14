@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -40,7 +40,7 @@ from tests.functional import *
 
 class TestMomDynRes(TestFunctional):
 
-    dirnames = []
+    filenames = []
 
     def create_mom_resources(self, resc_name, resc_type, resc_flag,
                              script_body):
@@ -55,30 +55,20 @@ class TestMomDynRes(TestFunctional):
                                         validate=True)
         self.scheduler.add_resource(resc_name_svr)
 
-        for i, name in enumerate(resc_name):
+        ln = len(resc_name)
+        for i in range(ln):
             attr = {"type": resc_type[i], "flag": resc_flag[i]}
-            self.server.manager(MGR_CMD_CREATE, RSC, attr, id=name)
+            self.server.manager(MGR_CMD_CREATE, RSC, attr,
+                                id=resc_name[i], expect=True)
 
-            dest_file = self.mom.add_mom_dyn_res(name, script_body[i],
-                                                 prefix="mom_resc",
-                                                 suffix=".scr")
-            fp_list.append(dest_file)
+            fp = self.du.create_temp_file(prefix="mom_resc", suffix=".scr",
+                                          body=script_body[i])
+            self.du.chmod(path=fp, mode=0755)
+            mom_config_str = "!" + fp
+            self.mom.add_config({resc_name[i]: mom_config_str})
+            fp_list.append(fp)
+            self.filenames.append(fp)
         return fp_list
-
-    def check_access_log(self, fp, exist=True):
-        """
-        Helper function to check if mom logged a file security
-        message.
-        """
-        # adding a second delay because log_match can then start from the
-        # correct log message and avoid false positives from previous
-        # logs
-        time.sleep(1)
-        match_from = int(time.time())
-        self.mom.signal('-HUP')
-        self.mom.log_match(fp + ' file has a non-secure file access',
-                           starttime=match_from, existence=exist,
-                           max_attempts=10)
 
     def test_res_string_incorrect_value(self):
         """
@@ -123,7 +113,7 @@ class TestMomDynRes(TestFunctional):
         jid = self.server.submit(j)
 
         # The job should run
-        self.server.expect(JOB, {'job_state': 'R'}, interval=1, id=jid)
+        self.server.expect(JOB, {'job_state': 'R'}, id=jid)
 
         # Submit a job that requests different mom dynamic resource
         # not return from script
@@ -167,7 +157,7 @@ class TestMomDynRes(TestFunctional):
         jid = self.server.submit(j)
 
         # The job should run
-        self.server.expect(JOB, {'job_state': 'R'}, interval=1, id=jid)
+        self.server.expect(JOB, {'job_state': 'R'}, id=jid)
 
     def test_res_string_correct_value(self):
         """
@@ -188,7 +178,7 @@ class TestMomDynRes(TestFunctional):
         jid = self.server.submit(j)
 
         # The job should run
-        self.server.expect(JOB, {'job_state': 'R'}, interval=1, id=jid)
+        self.server.expect(JOB, {'job_state': 'R'}, id=jid)
 
     def test_res_float_value(self):
         """
@@ -223,7 +213,7 @@ class TestMomDynRes(TestFunctional):
         # The job should run
         self.server.expect(JOB, {'job_state': 'R',
                            'Resource_List.'+resc_name[0]: '2'},
-                           id=jid, attrop=PTL_AND, interval=1)
+                           id=jid, attrop=PTL_AND)
 
     def test_multiple_res_valid_value(self):
         """
@@ -246,7 +236,7 @@ class TestMomDynRes(TestFunctional):
         jid = self.server.submit(j)
 
         # The job should run
-        self.server.expect(JOB, {'job_state': 'R'}, interval=1, id=jid)
+        self.server.expect(JOB, {'job_state': 'R'}, id=jid)
 
         # Submit a job that requests more value
         # than available for both mom resources.
@@ -306,7 +296,7 @@ class TestMomDynRes(TestFunctional):
         jid = self.server.submit(j)
 
         # The job should run
-        self.server.expect(JOB, {'job_state': 'R'}, interval=1, id=jid)
+        self.server.expect(JOB, {'job_state': 'R'}, id=jid)
 
         # Check for the expected error message throwing by PBS
         try:
@@ -325,19 +315,20 @@ class TestMomDynRes(TestFunctional):
         resc_flag = ["nh"]
         script_body = ["/bin/echo 3"]
 
-        self.create_mom_resources(resc_name, resc_type,
-                                  resc_flag, script_body)
+        filename = self.create_mom_resources(resc_name, resc_type,
+                                             resc_flag, script_body)
+
         # Submit a job that requests mom dynamic resource
         attr = {"Resource_List." + resc_name[0]: '2'}
         j = Job(TEST_USER, attrs=attr)
         jid = self.server.submit(j)
 
         # The job should run
-        self.server.expect(JOB, {'job_state': 'R'}, interval=1, id=jid)
+        self.server.expect(JOB, {'job_state': 'R'}, id=jid)
 
-        # Change script during job run
-        change_res = "/bin/echo 1"
-        self.mom.add_mom_dyn_res(resc_name[0], script_body=change_res)
+        with open(filename[0], "wb") as fd:
+            fd.truncate()
+            fd.write("echo 1")
 
         self.server.rerunjob(jobid=jid)
 
@@ -347,94 +338,8 @@ class TestMomDynRes(TestFunctional):
         self.server.expect(JOB, {'job_state': 'Q', 'comment': c},
                            id=jid, attrop=PTL_AND)
 
-    def test_mom_dyn_res_permissions(self):
-        """
-        Test whether mom rejects the mom dynamic resource script when the
-        permission of the script are open to write for others and group
-        """
-
-        attr = {"type": "long", "flag": "h"}
-        self.server.manager(MGR_CMD_CREATE, RSC, attr, id="foo")
-        scr_body = ['echo "10"', 'exit 0']
-        home_dir = os.path.expanduser("~")
-        fp = self.mom.add_mom_dyn_res("foo", script_body=scr_body,
-                                      dirname=home_dir)
-
-        self.scheduler.set_sched_config({'mom_resources': 'foo'},
-                                        validate=True)
-        self.scheduler.add_resource('foo')
-
-        # give write permission to group and others
-        self.du.chmod(path=fp, mode=0766, sudo=True)
-        self.check_access_log(fp)
-
-        # give write permission to group
-        self.du.chmod(path=fp, mode=0764, sudo=True)
-        self.check_access_log(fp)
-
-        # give write permission to others
-        self.du.chmod(path=fp, mode=0746, sudo=True)
-        self.check_access_log(fp)
-
-        # give write permission to user only
-        self.du.chmod(path=fp, mode=0744, sudo=True)
-        if os.getuid() != 0:
-                self.check_access_log(fp, exist=True)
-        else:
-                self.check_access_log(fp, exist=False)
-
-        # Create script in a directory which has more open privileges
-        # This should make loading of this file fail in all cases.
-        # Create the dirctory name with a space in it, to make sure PBS parses
-        # it correctly.
-        dir_temp = self.du.mkdtemp(mode=0766, dir=home_dir, suffix=' tmp')
-        fp = self.mom.add_mom_dyn_res("foo", script_body=scr_body,
-                                      dirname=dir_temp)
-
-        # Add to dirnames for cleanup
-        self.dirnames.append(dir_temp)
-
-        # give write permission to group and others
-        self.du.chmod(path=fp, mode=0766, sudo=True)
-        self.check_access_log(fp)
-
-        # give write permission to group
-        self.du.chmod(path=fp, mode=0764, sudo=True)
-        self.check_access_log(fp)
-
-        # give write permission to others
-        self.du.chmod(path=fp, mode=0746, sudo=True)
-        self.check_access_log(fp)
-
-        # give write permission to user only
-        self.du.chmod(path=fp, mode=0744, sudo=True)
-        self.check_access_log(fp)
-
-        # Create dynamic resource script in PBS_HOME directory and check
-        # file permissions
-        # self.mom.add_mom_dyn_res by default creates the script in PBS_HOME
-        # as root
-
-        # give write permission to group and others
-        fp = self.mom.add_mom_dyn_res("foo", script_body=scr_body, perm=0766)
-        self.check_access_log(fp)
-
-        # give write permission to group
-        self.du.chmod(path=fp, mode=0764, sudo=True)
-        self.check_access_log(fp)
-
-        # give write permission to others
-        self.du.chmod(path=fp, mode=0746, sudo=True)
-        self.check_access_log(fp)
-
-        # give write permission to user only
-        self.du.chmod(path=fp, mode=0744, sudo=True)
-        self.check_access_log(fp, exist=False)
-
     def tearDown(self):
-        # removing all files creating in test
-        if len(self.dirnames) != 0:
-            self.du.rm(path=self.dirnames, sudo=True, force=True,
-                       recursive=True)
-            self.dirnames[:] = []
-        TestFunctional.tearDown(self)
+        #removing all files creating in test
+        for i in self.filenames:
+            if os.path.isfile(i):
+                os.remove(i)

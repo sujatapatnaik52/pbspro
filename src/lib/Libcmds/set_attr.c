@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -61,13 +61,11 @@ static struct attrl* new_attr;
  * @param[in]     attrib_name - attribute name
  * @param[in]     attrib_value - attribute value
  *
- * @return	error code
- * @return	0	success
- * @return	1	error
+ * @return	Void
  *
  */
 
-int
+void
 set_attr(struct attrl **attrib, char *attrib_name, char *attrib_value)
 {
 	struct attrl *attr, *ap;
@@ -75,7 +73,7 @@ set_attr(struct attrl **attrib, char *attrib_name, char *attrib_value)
 	attr = new_attrl();
 	if (attr == NULL) {
 		fprintf(stderr, "Out of memory\n");
-		return 1;
+		exit(2);
 	}
 	if (attrib_name == NULL)
 		attr->name = NULL;
@@ -83,7 +81,7 @@ set_attr(struct attrl **attrib, char *attrib_name, char *attrib_value)
 		attr->name = (char *) malloc(strlen(attrib_name)+1);
 		if (attr->name == NULL) {
 			fprintf(stderr, "Out of memory\n");
-			return 1;
+			exit(2);
 		}
 		strcpy(attr->name, attrib_name);
 	}
@@ -93,7 +91,7 @@ set_attr(struct attrl **attrib, char *attrib_name, char *attrib_value)
 		attr->value = (char *) malloc(strlen(attrib_value)+1);
 		if (attr->name == NULL) {
 			fprintf(stderr, "Out of memory\n");
-			return 1;
+			exit(2);
 		}
 		strcpy(attr->value, attrib_value);
 	}
@@ -106,7 +104,7 @@ set_attr(struct attrl **attrib, char *attrib_name, char *attrib_value)
 		ap->next = attr;
 	}
 
-	return 0;
+	return;
 }
 
 /**
@@ -117,25 +115,22 @@ set_attr(struct attrl **attrib, char *attrib_name, char *attrib_value)
  * @param[in]     attrib_name - attribute name
  * @param[in]     attrib_value - attribute value
  *
- * @return	error code
- * @retval	0	success
- * @retval	1	failure
+ * @return      Void
+ *
  */
 
-int
+void
 set_attr_resc(struct attrl **attrib, char *attrib_name, char *attrib_resc, char *attrib_value)
 {
-	if (set_attr(attrib, attrib_name, attrib_value))
-		return 1;
-	
+	set_attr(attrib, attrib_name, attrib_value);
 	if (attrib_resc != NULL) {
 		new_attr->resource = (char *) malloc(strlen(attrib_resc)+1);
 		if (new_attr->resource == NULL) {
 			fprintf(stderr, "Out of memory\n");
-			return 1;
+			exit(2);
 		}
 		strcpy(new_attr->resource, attrib_resc);
 	}
-	return 0;
+	return;
 }
 

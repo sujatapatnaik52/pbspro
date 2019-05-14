@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -343,7 +343,7 @@ attrlist_create(char  *aname, char  *rname, int vsize)
 	else
 		rsz = strlen(rname) + 1;
 
-	pal = attrlist_alloc(asz, rsz, vsize + 1);
+	pal = attrlist_alloc(asz, rsz, vsize);
 	if (pal != NULL) {
 		strcpy(pal->al_name, aname);    /* copy name right after struct */
 		if (rsz)

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -337,8 +337,7 @@ static int first_compute_node = 1;
  */
 static int init_KNL_alps_req_buf(void);
 static void create_vnodes_KNL(basil_response_query_system_t *);
-static int exclude_from_KNL_processing(basil_system_element_t *,
- short int check_state);
+static int exclude_from_KNL_processing(basil_system_element_t *);
 static long *process_nodelist_KNL(char *, int *);
 static void store_nids(int, char *, long **, int *);
 static void free_basil_elements_KNL(basil_system_element_t *);
@@ -3536,14 +3535,9 @@ parse_nidlist_char_data(ud_t *d, const char *s, int len)
 
 	/*
 	 * Check if the current rangelist of Nodes is of type KNL and that such Nodes
-	 * are in "batch" mode.  Checking the state of the node while parsing the
-	 * system query for node list is not require, doing this will keep this
-	 * (KNL node(s) in down state) out of KNL node list we populate (which we
-	 * use in inventory_to_vnodes to skip these node while creating non KNL nodes)
-	 * and if this node comes up in the inventory query then this(KNL node) will
-	 * be created as non KNL node.
+	 * are in "batch" mode and in the "up" state.
 	 */
-	if (!exclude_from_KNL_processing(d->current_sys.node_group, 0)) {
+	if (!exclude_from_KNL_processing(d->current_sys.node_group)) {
 		/*
 		 * Accummulate KNL Nodes, extracted from each Node group, in a buffer
 		 * for later use. The KNL Nodes in this buffer will be excluded from vnode
@@ -6900,7 +6894,7 @@ create_vnodes_KNL(basil_response_query_system_t *sys_knl)
 		 * non-KNL Nodes. We are only interested in KNL nodes that are in
 		 * "batch" mode and in the "up" state.
 		 */
-		if (exclude_from_KNL_processing(node_group, 1))
+		if (exclude_from_KNL_processing(node_group))
 			continue;
 
 		/*
@@ -7017,7 +7011,6 @@ bad_vnl:
  *	  they pertain to KNL Nodes.
  *
  * @param[in] ptrNodeGrp Pointer to the current Node Group in the System XML Response.
- * @param[in] check_state Indicates wheather this function to look for the KNL node state.
  *
  * @return int
  * @retval 1 Indicates that the Node Group should not be considered.
@@ -7025,13 +7018,11 @@ bad_vnl:
  *
  */
 static int
-exclude_from_KNL_processing(basil_system_element_t *ptrNodeGrp,
-		short int check_state)
+exclude_from_KNL_processing(basil_system_element_t *ptrNodeGrp)
 {
 	if ((strcmp(ptrNodeGrp->role, BASIL_VAL_BATCH_SYS) != 0) ||
-	    (check_state ? (strcmp(ptrNodeGrp->state,
-			BASIL_VAL_UP_SYS) != 0) : 0) ||
-			((strcmp(ptrNodeGrp->numa_cfg, "") == 0) &&
+	    (strcmp(ptrNodeGrp->state, BASIL_VAL_UP_SYS) != 0) ||
+	    ((strcmp(ptrNodeGrp->numa_cfg, "") == 0) &&
 	     (strcmp(ptrNodeGrp->hbmsize, "") == 0) &&
 	     (strcmp(ptrNodeGrp->hbm_cfg, "") == 0)))
 		return 1;

@@ -1,6 +1,6 @@
 
 #
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -62,7 +62,6 @@ dist_unsupported_DATA = \
 	pbs_rescquery.3B \
 	run_pelog_shell.ini \
 	cray_readme \
-	ReliableJobStartup.py \
 	pbs_output.py
 
 pbs_rmget_CPPFLAGS = -I$(top_srcdir)/src/include \

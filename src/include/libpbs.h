@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -146,10 +146,6 @@ struct connect_handle {
 };
 extern struct connect_handle connection[];
 #define PBS_MAX_CONNECTIONS        5000  /* Max connections in the connections array */
-
-/* max number of preempt orderings */
-#define PREEMPT_ORDER_MAX 20
-
 /* PBS Batch Reply Structure		   */
 /* structures that make up the reply union */
 
@@ -182,13 +178,6 @@ struct brp_rescq {            /* reply to Resource Query Request */
 	int     *brq_down;
 };
 
-struct rq_preempt {
-	int			count;
-	preempt_job_info	*ppj_list;
-};
-
-typedef struct rq_preempt brp_preempt_jobs;
-
 /*
  * the following is the basic Batch Reply structure
  */
@@ -202,7 +191,6 @@ typedef struct rq_preempt brp_preempt_jobs;
 #define BATCH_REPLY_CHOICE_Text		7	/* text,   see brp_txt	  */
 #define BATCH_REPLY_CHOICE_Locate	8	/* locate, see brp_locate */
 #define BATCH_REPLY_CHOICE_RescQuery	9	/* Resource Query         */
-#define BATCH_REPLY_CHOICE_PreemptJobs	10	/* Preempt Job            */
 
 struct batch_reply {
 	int	brp_code;
@@ -219,7 +207,6 @@ struct batch_reply {
 		} brp_txt;		/* text and credential reply */
 		char	  brp_locate[PBS_MAXDEST+1];
 		struct brp_rescq brp_rescq;	/* query resource reply */
-		brp_preempt_jobs brp_preempt_jobs;	/* preempt jobs reply */
 	} brp_un;
 };
 
@@ -295,7 +282,6 @@ struct batch_reply {
 #define PBS_BATCH_RelnodesJob	90
 #define PBS_BATCH_ModifyResv	91
 #define PBS_BATCH_ResvOccurEnd	92
-#define PBS_BATCH_PreemptJobs	93
 
 #define PBS_BATCH_FileOpt_Default	0
 #define PBS_BATCH_FileOpt_OFlg		1
@@ -354,7 +340,6 @@ struct batch_reply *PBSD_rdrpyRPP(int stream);
 extern void PBSD_FreeReply(struct batch_reply *);
 extern struct batch_status *PBSD_status(int c, int function,
 	char *objid, struct attrl *attrib, char *extend);
-extern preempt_job_info *PBSD_preempt_jobs(int c, char **preempt_jobs_list);
 
 extern struct batch_status *PBSD_status_get(int c);
 extern char * PBSD_queuejob(int c, char *j, char *d,
@@ -392,7 +377,6 @@ extern int encode_DIS_attrl(int socket, struct attrl *);
 extern int encode_DIS_attropl(int socket, struct attropl *);
 extern int encode_DIS_CopyHookFile(int, int, char *, int, char *);
 extern int encode_DIS_DelHookFile(int, char *);
-extern int encode_DIS_PreemptJobs(int socket, char **preempt_jobs_list);
 
 extern char *PBSD_submit_resv(int connect, char *resv_id,
 	struct attropl *attrib, char *extend);

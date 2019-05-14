@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -101,9 +101,12 @@ class TestProvisioningJob(TestFunctional):
         self.server.manager(MGR_CMD_CREATE, NODE, id=self.hostA)
 
         a = {'provision_enable': 'true'}
-        self.server.manager(MGR_CMD_SET, NODE, a, id=self.hostA)
+        self.server.manager(
+            MGR_CMD_SET, NODE, a, id=self.hostA, expect=True)
 
-        self.server.manager(MGR_CMD_SET, SERVER, {'log_events': 2047})
+        self.server.manager(
+            MGR_CMD_SET, SERVER, {
+                'log_events': 2047}, expect=True)
         self.server.expect(NODE, {'state': 'free'}, id=self.hostA)
 
         a = {'event': 'execjob_begin', 'enabled': 'True'}
@@ -121,7 +124,8 @@ class TestProvisioningJob(TestFunctional):
             Test the execjob_begin hook is seen by OS provisioned job.
         """
         a = {'resources_available.aoe': 'osimage1'}
-        self.server.manager(MGR_CMD_SET, NODE, a, id=self.hostA)
+        self.server.manager(
+            MGR_CMD_SET, NODE, a, id=self.hostA, expect=True)
 
         job = Job(TEST_USER1, attrs={ATTR_l: 'aoe=osimage1'})
         job.set_sleep_time(1)
@@ -161,7 +165,8 @@ class TestProvisioningJob(TestFunctional):
         Test application provisioning
         """
         a = {'resources_available.aoe': 'App1'}
-        self.server.manager(MGR_CMD_SET, NODE, a, id=self.hostA)
+        self.server.manager(
+            MGR_CMD_SET, NODE, a, id=self.hostA, expect=True)
 
         job = Job(TEST_USER1, attrs={ATTR_l: 'aoe=App1'})
         job.set_sleep_time(1)

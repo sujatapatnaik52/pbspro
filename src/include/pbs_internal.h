@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -86,6 +86,7 @@ extern "C" {
 #define ND_LIC_TYPE_locked	'l'
 #define ND_LIC_TYPE_float 	'f'
 #define ND_LIC_TYPE_unlic	'u'
+#define ND_LIC_TYPE_cloud	'c'
 
 /* Defines for type of Attribute based on data type 			*/
 /* currently limited to 4 bits (max number 15)				*/
@@ -179,18 +180,6 @@ extern "C" {
 
 /* Default value of Node fail requeue (ATTR_nodefailrq)*/
 #define PBS_NODE_FAIL_REQUEUE_DEFAULT	310
-
-/* Default value of preempt_queue_prio */
-#define PBS_PREEMPT_QUEUE_PRIO_DEFAULT	150
-
-/* Default value of preempt_prio */
-#define PBS_PREEMPT_PRIO_DEFAULT	"express_queue, normal_jobs"
-
-/* Default value of preempt_order */
-#define PBS_PREEMPT_ORDER_DEFAULT	"SCR"
-
-/* Default value of preempt_sort */
-#define PBS_PREEMPT_SORT_DEFAULT	"min_time_since_start"
 
 struct pbs_config
 {
@@ -440,9 +429,13 @@ DECLDIR char *
 pbs_submit_with_cred(int, struct attropl *, char *,
 	char *, char *, int, size_t, char *);
 
+DECLDIR int pbs_loadconf(int);
+
 DECLDIR char *pbs_get_tmpdir(void);
 
 DECLDIR char *pbs_strsep(char **, const char *);
+
+DECLDIR int pbs_confirmresv(int, char *, char *, unsigned long, char *);
 
 DECLDIR int pbs_defschreply(int, int, char *, int, char *, char *);
 
@@ -467,8 +460,7 @@ DECLDIR int      parse_depend_list(char *, char **, int);
 DECLDIR int      parse_stage_list(char *);
 DECLDIR int      prepare_path(char *, char*);
 DECLDIR void     prt_job_err(char *, int, char *);
-DECLDIR int		 set_attr(struct attrl **, char *, char *);
-DECLDIR int      set_attr_resc(struct attrl **, char *, char *, char *);
+DECLDIR void     set_attr(struct attrl **, char *, char *);
 DECLDIR int      set_resources(struct attrl **, char *, int, char **);
 DECLDIR int      cnt2server(char *);
 DECLDIR int      cnt2server_extend(char *, char *);
@@ -495,6 +487,9 @@ extern int pbs_decrypt_pwd(char *, int, size_t, char **);
 extern char *pbs_submit_with_cred(int, struct attropl *, char *,
 	char *, char *, int, size_t , char *);
 
+
+extern int pbs_loadconf(int);
+
 extern int pbs_query_max_connections(void);
 
 extern char *pbs_get_tmpdir(void);
@@ -506,6 +501,8 @@ extern int pbs_pkill(FILE *, int);
 extern int pbs_pclose(FILE *);
 
 extern char* pbs_strsep(char **, const char *);
+
+extern int pbs_confirmresv(int, char *, char *, unsigned long, char *);
 
 extern int pbs_defschreply(int, int, char *, int, char *, char *);
 
@@ -547,7 +544,7 @@ extern int      parse_destination_id(char *, char **, char **);
 extern int      parse_stage_list(char *);
 extern int      prepare_path(char *, char*);
 extern void     prt_job_err(char *, int, char *);
-extern int     set_attr(struct attrl **, char *, char *);
+extern void     set_attr(struct attrl **, char *, char *);
 extern char*    pbs_get_dataservice_usr(char *, int);
 extern char*	get_attr(struct attrl *, char *, char *);
 extern int      set_resources(struct attrl **, char *, int, char **);

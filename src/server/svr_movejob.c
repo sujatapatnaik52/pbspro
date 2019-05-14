@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -526,10 +526,7 @@ send_job_exec(job *jobp, pbs_net_t hostaddr, int port, struct batch_request *req
 	char *msgid = NULL;
 	char *dup_msgid = NULL;
 	struct work_task *ptask = NULL;
-	int save_resc_access_perm;
 
-	/* saving resc_access_perm global variable as backup */
-	save_resc_access_perm = resc_access_perm;
 	pbs_errno = PBSE_NONE;
 
 	stream = svr_connect(hostaddr, port, NULL, ToServerDIS, rpp);
@@ -630,7 +627,7 @@ send_job_exec(job *jobp, pbs_net_t hostaddr, int port, struct batch_request *req
 		goto send_err;
 
 	free(dup_msgid); /* free this as it is not part of any work task */
-	resc_access_perm = save_resc_access_perm; /* reset back to it's old value */
+
 	return 2;
 
 send_err:
@@ -650,7 +647,6 @@ send_err:
 
 	sprintf(log_buffer, "send of job to %s failed error = %d", destin, pbs_errno);
 	log_event(PBSEVENT_JOB, PBS_EVENTCLASS_JOB, LOG_INFO, jobp->ji_qs.ji_jobid, log_buffer);
-	resc_access_perm = save_resc_access_perm; /* reset back to it's old value */
 	return (-1);
 }
 

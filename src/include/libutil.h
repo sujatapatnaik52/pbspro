@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -49,9 +49,6 @@ extern "C" {
 
 /* replace - Replace sub-string  with new pattern in string */
 void replace(char *, char *, char *, char *);
-
-/* show_nonprint_chars - show non-printable characters in string */
-char *show_nonprint_chars(char *);
 
 /*	char_in_set - is the char c in the tokenset */
 int char_in_set(char c, const char *tokset);
@@ -293,12 +290,6 @@ char * get_mem_info(void);
  *
  */
 void convert_duration_to_str(time_t duration, char* buf, int bufsize);
-
-/**
- * deduce the preemption ordering to be used for a job
- */
-struct preempt_ordering *
-get_preemption_order(struct preempt_ordering *porder, int req, int used);
 
 #ifdef  __cplusplus
 }

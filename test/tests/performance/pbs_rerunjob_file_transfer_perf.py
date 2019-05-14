@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -62,9 +62,11 @@ class JobRerunFileTransferPerf(TestPerformance):
         self.hostA = self.momA.shortname
         self.hostB = self.momB.shortname
 
-        self.server.manager(MGR_CMD_SET, SERVER, {'log_events': 4095})
+        self.server.manager(MGR_CMD_SET, SERVER,
+                            {'log_events': 4095}, expect=True)
 
-        self.server.manager(MGR_CMD_SET, SERVER, {'job_requeue_timeout': 1000})
+        self.server.manager(MGR_CMD_SET, SERVER,
+                            {'job_requeue_timeout': 1000}, expect=True)
 
     @timeout(600)
     def test_huge_job_file(self):

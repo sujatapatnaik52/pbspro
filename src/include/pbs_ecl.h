@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -101,10 +101,6 @@ int verify_datatype_long_long(struct attropl *, char **);
 int verify_value_resc(int, int, int, struct attropl *, char **);
 int verify_value_select(int, int, int, struct attropl *, char **);
 int verify_value_preempt_targets(int , int, int, struct attropl *, char **);
-int verify_value_preempt_queue_prio(int , int, int, struct attropl *, char **);
-int verify_value_preempt_prio(int , int, int, struct attropl *, char **);
-int verify_value_preempt_order(int , int, int, struct attropl *, char **);
-int verify_value_preempt_sort(int , int, int, struct attropl *, char **);
 int verify_value_dependlist(int, int, int, struct attropl *, char **);
 int verify_value_user_list(int, int, int, struct attropl *, char **);
 int verify_value_authorized_users(int, int, int, struct attropl *, char **);

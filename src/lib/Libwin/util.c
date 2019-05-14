@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -130,6 +130,7 @@ ErrorMessage(char *str)
 	buf[len-1] = '\0';
 
 	fprintf(stderr, "%s: %s\n", str, buf);
+	exit(1);
 }
 
 /**
@@ -587,11 +588,11 @@ win_freopen(const char *path, const char *mode, FILE *stream)
  * @brief	Create and initilize AVL tree for environment variables
  *			in global variable called "env_avltree"
  *
- * @return	error code
- * @retval	1	Failure
- * @retval	0	Success
+ * @return	void
+ *
+ * @retval	None
  */
-int
+void
 create_env_avltree()
 {
 	int i = 0;
@@ -603,8 +604,7 @@ create_env_avltree()
 
 	if (env_avltree == NULL) {
 		if ((env_avltree = malloc(sizeof(AVL_IX_DESC))) != NULL) {
-			if (avl_create_index(env_avltree, AVL_NO_DUP_KEYS, 0))
-				return 1;
+			avl_create_index(env_avltree, AVL_NO_DUP_KEYS, 0);
 		}
 	}
 
@@ -622,7 +622,6 @@ create_env_avltree()
 			}
 		}
 	}
-	return 0;
 }
 
 /**

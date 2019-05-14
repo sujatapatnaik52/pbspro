@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -190,7 +190,7 @@ parse_stage_list(char *list)
 
 	if ((l = (char *)malloc(strlen(list)+1)) == NULL) {
 		fprintf(stderr, "Out of memory.\n");
-		return 1;
+		exit(1);
 	}
 	memset(l, 0, strlen(list)+1);
 	strcpy(l, list);

@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -135,8 +135,7 @@ exit 0
         a job is preempted via checkpoint. It does so by submitting a job
         in express queue which preempts a running job in the default queue.
         """
-        self.server.manager(MGR_CMD_SET, SCHED, {'preempt_order': 'C'},
-                            runas=ROOT_USER)
+        self.scheduler.set_sched_config({'preempt_order': 'C'})
         a = {'queue_type': 'execution',
              'started': 'True',
              'enabled': 'True',

@@ -1,6 +1,6 @@
 
 #
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -38,12 +38,13 @@
 
 ACLOCAL_AMFLAGS = -I m4
 
-SUBDIRS = buildutils src doc test
+#removed test directory from subdirs as ptl is not yet in Py3
+SUBDIRS = buildutils src doc
 EXTRA_DIST = \
 	COPYRIGHT \
 	INSTALL \
 	LICENSE \
-	README.md \
+	README \
 	autogen.sh \
 	pbspro-rpmlintrc \
 	pbspro.spec

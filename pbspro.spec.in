@@ -1,6 +1,6 @@
 
 #
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -63,11 +63,10 @@
 %define pbs_client client
 %define pbs_execution execution
 %define pbs_server server
-%define pbs_devel devel
 %define pbs_dist %{pbs_name}-%{pbs_version}.tar.gz
 
 %if !%{defined _unitdir}
-%define _unitdir @_unitdir@
+%define _unitdir /usr/lib/systemd/system
 %endif
 %if %{_vendor} == debian && %(test -f /etc/os-release && echo 1 || echo 0)
 %define _vendor_ver %(cat /etc/os-release | awk -F[=\\".] '/^VERSION_ID=/ {print \$3}')
@@ -105,10 +104,10 @@ BuildRequires: libedit-devel
 BuildRequires: libical-devel
 BuildRequires: ncurses-devel
 BuildRequires: perl
-BuildRequires: postgresql-devel >= 9.1
-BuildRequires: postgresql-contrib >= 9.1
-BuildRequires: python-devel >= 2.6
-BuildRequires: python-devel < 3.0
+BuildRequires: postgresql-devel
+BuildRequires: postgresql-contrib
+BuildRequires: python-devel >= 3.6
+BuildRequires: python-devel < 3.7
 BuildRequires: tcl-devel
 BuildRequires: tk-devel
 BuildRequires: swig
@@ -151,10 +150,10 @@ Conflicts: pbs-mom
 Conflicts: pbs-cmds
 Requires: bash
 Requires: expat
-Requires: postgresql-server >= 9.1
-Requires: postgresql-contrib >= 9.1
-Requires: python >= 2.6
-Requires: python < 3.0
+Requires: postgresql-server
+Requires: postgresql-contrib
+Requires: python >= 3.6
+Requires: python < 3.7
 Requires: tcl
 Requires: tk
 %if %{defined suse_version}
@@ -188,8 +187,8 @@ Conflicts: pbs-mom
 Conflicts: pbs-cmds
 Requires: bash
 Requires: expat
-Requires: python >= 2.6
-Requires: python < 3.0
+Requires: python >= 3.6
+Requires: python < 3.7
 %if 0%{?suse_version} >= 1500
 Requires: hostname
 %endif
@@ -217,8 +216,8 @@ Conflicts: pbs
 Conflicts: pbs-mom
 Conflicts: pbs-cmds
 Requires: bash
-Requires: python >= 2.6
-Requires: python < 3.0
+Requires: python >= 3.6
+Requires: python < 3.7
 Autoreq: 1
 
 %description %{pbs_client}
@@ -229,18 +228,6 @@ HPC clusters, clouds and supercomputers.
 
 This package is intended for a client host and provides
 the PBS Professional user commands.
-
-
-%package %{pbs_devel}
-Summary: PBS Professional Development Package
-Group: Development/System
-
-%description %{pbs_devel}
-PBS Professional® is a fast, powerful workload manager and
-job scheduler designed to improve productivity, optimize
-utilization & efficiency, and simplify administration for
-HPC clusters, clouds and supercomputers.
-
 
 %if %{with ptl}
 
@@ -255,7 +242,7 @@ Summary: PBS Test Lab for testing PBS Professional
 Group: System Environment/Base
 Requires: python-nose
 Requires: python-beautifulsoup
-%if 0%{?rhel}
+%if 0%{?rhel} 
 Requires: pexpect
 %else
 Requires: python-pexpect
@@ -306,11 +293,8 @@ cd build
 %install
 cd build
 %make_install
-mandir=$(find %{buildroot} -type d -name man)
-[ -d "$mandir" ] && find $mandir -type f -exec gzip -9 -n {} \;
 
 %post %{pbs_server}
-ldconfig %{_libdir}
 # do not run pbs_postinstall when the CLE is greater than or equal to 6
 imps=0
 cle_release_version=0
@@ -327,7 +311,6 @@ else
 fi
 
 %post %{pbs_execution}
-ldconfig %{_libdir}
 # do not run pbs_postinstall when the CLE is greater than or equal to 6
 imps=0
 cle_release_version=0
@@ -344,7 +327,6 @@ else
 fi
 
 %post %{pbs_client}
-ldconfig %{_libdir}
 # do not run pbs_postinstall when the CLE is greater than or equal to 6
 imps=0
 cle_release_version=0
@@ -356,10 +338,9 @@ fi
 if [ $imps -eq 0 ]; then
 ${RPM_INSTALL_PREFIX:=%{pbs_prefix}}/libexec/pbs_postinstall client \
 	%{version} ${RPM_INSTALL_PREFIX:=%{pbs_prefix}}
+else
+        install -D %{pbs_prefix}/libexec/pbs_init.d /etc/init.d/pbs
 fi
-
-%post %{pbs_devel}
-ldconfig %{_libdir}
 
 %preun %{pbs_server}
 if [ "$1" != "1" ]; then
@@ -376,8 +357,6 @@ if [ "$1" != "1" ]; then
 	fi
 	rm -f /etc/init.d/pbs
 	rm -f /opt/modulefiles/pbs/%{version}
-	rm -f /var/tmp/pbs_boot_check
-	rm -f /var/tmp/pbs_bootcheck.py
 	%if %{defined have_systemd}
 		systemctl disable pbs
 		rm -f /usr/lib/systemd/system-preset/95-pbs.preset
@@ -399,8 +378,6 @@ if [ "$1" != "1" ]; then
 	fi
 	rm -f /etc/init.d/pbs
 	rm -f /opt/modulefiles/pbs/%{version}
-	rm -f /var/tmp/pbs_boot_check
-	rm -f /var/tmp/pbs_bootcheck.py
 	%if %{defined have_systemd}
 		systemctl disable pbs
 		rm -f /usr/lib/systemd/system-preset/95-pbs.preset
@@ -423,7 +400,6 @@ fi
 %postun %{pbs_server}
 if [ "$1" != "1" ]; then
 	# This is an uninstall, not an upgrade.
-	ldconfig %{_libdir}
 	echo
 	echo "NOTE: /etc/pbs.conf and the PBS_HOME directory must be deleted manually"
 	echo
@@ -432,7 +408,6 @@ fi
 %postun %{pbs_execution}
 if [ "$1" != "1" ]; then
 	# This is an uninstall, not an upgrade.
-	ldconfig %{_libdir}
 	echo
 	echo "NOTE: /etc/pbs.conf and the PBS_HOME directory must be deleted manually"
 	echo
@@ -441,14 +416,10 @@ fi
 %postun %{pbs_client}
 if [ "$1" != "1" ]; then
 	# This is an uninstall, not an upgrade.
-	ldconfig %{_libdir}
 	echo
 	echo "NOTE: /etc/pbs.conf must be deleted manually"
 	echo
 fi
-
-%postun %{pbs_devel}
-ldconfig %{_libdir}
 
 %posttrans %{pbs_server}
 # The %preun section of 14.x unconditially removes /etc/init.d/pbs
@@ -472,7 +443,6 @@ fi
 %{pbs_prefix}/*
 %attr(4755, root, root) %{pbs_prefix}/sbin/pbs_rcp
 %attr(4755, root, root) %{pbs_prefix}/sbin/pbs_iff
-%attr(644, root, root) %{pbs_prefix}/lib/libpbs.la
 %{_sysconfdir}/profile.d/pbs.csh
 %{_sysconfdir}/profile.d/pbs.sh
 %config(noreplace) %{_sysconfdir}/profile.d/*
@@ -483,10 +453,6 @@ fi
 %endif
 %exclude %{pbs_prefix}/unsupported/*.pyc
 %exclude %{pbs_prefix}/unsupported/*.pyo
-%exclude %{pbs_prefix}/lib/*.a
-%exclude %{pbs_prefix}/include/*
-%doc README.md
-%license LICENSE
 
 %files %{pbs_execution}
 %defattr(-,root,root, -)
@@ -494,7 +460,6 @@ fi
 %{pbs_prefix}/*
 %attr(4755, root, root) %{pbs_prefix}/sbin/pbs_rcp
 %attr(4755, root, root) %{pbs_prefix}/sbin/pbs_iff
-%attr(644, root, root) %{pbs_prefix}/lib/libpbs.la
 %{_sysconfdir}/profile.d/pbs.csh
 %{_sysconfdir}/profile.d/pbs.sh
 %config(noreplace) %{_sysconfdir}/profile.d/*
@@ -505,7 +470,6 @@ fi
 %endif
 %exclude %{pbs_prefix}/bin/printjob_svr.bin
 %exclude %{pbs_prefix}/etc/pbs_db_schema.sql
-%exclude %{pbs_prefix}/libexec/pbs_schema_upgrade
 %exclude %{pbs_prefix}/etc/pbs_dedicated
 %exclude %{pbs_prefix}/etc/pbs_holidays*
 %exclude %{pbs_prefix}/etc/pbs_resource_group
@@ -524,17 +488,12 @@ fi
 %exclude %{pbs_prefix}/sbin/pbsfs
 %exclude %{pbs_prefix}/unsupported/*.pyc
 %exclude %{pbs_prefix}/unsupported/*.pyo
-%exclude %{pbs_prefix}/lib/*.a
-%exclude %{pbs_prefix}/include/*
-%doc README.md
-%license LICENSE
 
 %files %{pbs_client}
 %defattr(-,root,root, -)
 %dir %{pbs_prefix}
 %{pbs_prefix}/*
 %attr(4755, root, root) %{pbs_prefix}/sbin/pbs_iff
-%attr(644, root, root) %{pbs_prefix}/lib/libpbs.la
 %{_sysconfdir}/profile.d/pbs.csh
 %{_sysconfdir}/profile.d/pbs.sh
 %config(noreplace) %{_sysconfdir}/profile.d/*
@@ -554,7 +513,6 @@ fi
 %exclude %{pbs_prefix}/lib*/python/pbs_bootcheck*
 %exclude %{pbs_prefix}/libexec/install_db
 %exclude %{pbs_prefix}/libexec/pbs_habitat
-%exclude %{pbs_prefix}/libexec/pbs_schema_upgrade
 %exclude %{pbs_prefix}/libexec/pbs_init.d
 %exclude %{pbs_prefix}/sbin/pbs_comm
 %exclude %{pbs_prefix}/sbin/pbs_demux
@@ -573,17 +531,6 @@ fi
 %exclude %{pbs_prefix}/unsupported/*.pyc
 %exclude %{pbs_prefix}/unsupported/*.pyo
 %exclude %{_unitdir}/pbs.service
-%exclude %{pbs_prefix}/lib/*.a
-%exclude %{pbs_prefix}/include/*
-%doc README.md
-%license LICENSE
-
-%files %{pbs_devel}
-%defattr(-,root,root, -)
-%{pbs_prefix}/lib/*.a
-%{pbs_prefix}/include/*
-%doc README.md
-%license LICENSE
 
 %if %{with ptl}
 %files %{pbs_ptl}
@@ -595,8 +542,6 @@ fi
 %endif
 
 %changelog
-* Wed Mar 20 2019 Minghui Liu <mliu@altair.com> - 1.27
-- Add pbspro-devel package
 * Thu Dec 13 2018 Michael Karo <mike0042@gmail.com> - 1.26
 - Remove pbspro-rpmlintrc from source list
 - Updates to conditional build of pbspro-ptl package
@@ -652,3 +597,4 @@ fi
 - Change to make sure that unsupported hook files are not compiled and packaged.
 * Thu May 12 2016 Hiren Vadalia <hiren.vadalia@altair.com> - 1.0
 - Initial commit of pbspro
+

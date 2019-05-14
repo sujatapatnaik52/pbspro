@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -80,7 +80,8 @@ class TestHookTimeout(TestFunctional):
         Test when the server doesn't receive an ACK from a mom for
         sending hooks he resends them
         """
-        self.server.manager(MGR_CMD_SET, SERVER, {'log_events': 2047})
+        self.server.manager(MGR_CMD_SET, SERVER, {'log_events': 2047},
+                            expect=True)
         timeout_max_attempt = 7
 
         # Make momB unresponsive

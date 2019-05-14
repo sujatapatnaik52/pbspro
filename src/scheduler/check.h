@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -130,14 +130,10 @@ sch_resource_t find_counts_elm(counts *cts_list, char *name, char *res);
 
 
 /*
- *      check_nodes - check to see if there is sufficient nodes available to
- *                    run a job/resv.
+ *      check_nodes - check to see if there is suficient nodes available to
+ *                    run a job.
  */
 nspec **check_nodes(status *policy, server_info *sinfo, queue_info *qinfo, resource_resv *resresv, unsigned int flags, schd_error *err);
-
-/* Normal node searching algorithm */
-nspec **
-check_normal_node_path(status *policy, server_info *sinfo, queue_info *qinfo, resource_resv *resresv, unsigned int flags, schd_error *err);
 
 
 /*

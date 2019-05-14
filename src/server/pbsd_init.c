@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -253,7 +253,6 @@ init_server_attrs()
 	resource        *presc = NULL;
 	attribute	attrib;
 	int 		i = 0;
-	char		dflt_log_event[22];
 
 
 	for (i = 0; i < SRV_ATR_LAST; i++)
@@ -318,15 +317,6 @@ init_server_attrs()
 	attr_jobscript_max_size.at_type  |= ATR_TYPE_SIZE;  /* get_bytes_from_attr() is checking for at_type */
 	set_size(&attr_jobscript_max_size,&attrib,SET);
 
-	snprintf(dflt_log_event, sizeof(dflt_log_event), "%d", SVR_LOG_DFLT);
-	set_attr_svr(&(server.sv_attr[(int)SRV_ATR_log_events]), &svr_attr_def[(int) SRV_ATR_log_events], dflt_log_event);
-
-	set_attr_svr(&(server.sv_attr[(int)SRV_ATR_mailfrom]), &svr_attr_def[(int) SRV_ATR_mailfrom], PBS_DEFAULT_MAIL);
-
-	set_attr_svr(&(server.sv_attr[(int)SRV_ATR_query_others]), &svr_attr_def[(int) SRV_ATR_query_others], ATR_TRUE);
-
-	set_attr_svr(&(server.sv_attr[(int)SRV_ATR_scheduling]), &svr_attr_def[(int) SRV_ATR_scheduling], ATR_TRUE);
-
 	/* an update_to FLicenses()  and pbs_float_lic must already exist */
 	pbs_float_lic = &server.sv_attr[(int)SVR_ATR_FLicenses];
 
@@ -344,15 +334,6 @@ init_server_attrs()
 				&server.sv_attr[(int)SVR_ATR_DefaultChunk],
 				(void *)&server, ATR_ACTION_NEW);
 		}
-		presc = add_resource_entry(&server.sv_attr[SRV_ATR_resource_deflt], prdef);
-		if (presc) {
-			presc->rs_value.at_val.at_long = 1;
-			presc->rs_value.at_flags =
-				ATR_VFLAG_DEFLT|ATR_VFLAG_SET|ATR_VFLAG_MODCACHE;
-			server.sv_attr[(int)SRV_ATR_resource_deflt].at_flags =
-				ATR_VFLAG_DEFLT|ATR_VFLAG_SET|ATR_VFLAG_MODCACHE;
-		}
-
 	}
 }
 
@@ -732,7 +713,7 @@ pbsd_init(int type)
 			/* No Schedulers found in DB */
 			/* Create and save default to DB*/
 			dflt_scheduler = sched_alloc(PBS_DFLT_SCHED_NAME);
-			set_sched_default(dflt_scheduler, 0, 0);
+			set_sched_default(dflt_scheduler, 0);
 			(void)sched_save_db(dflt_scheduler, SVR_SAVE_NEW);
 		} else {
 			while ((rc = pbs_db_cursor_next(conn, state, &obj)) == 0) {
@@ -782,7 +763,7 @@ pbsd_init(int type)
 		}
 		svr_save_db(&server, SVR_SAVE_NEW);
 		dflt_scheduler = sched_alloc(PBS_DFLT_SCHED_NAME);
-		set_sched_default(dflt_scheduler, 0, 0);
+		set_sched_default(dflt_scheduler, 0);
 		(void)sched_save_db(dflt_scheduler, SVR_SAVE_NEW);
 	}
 

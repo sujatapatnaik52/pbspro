@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -69,12 +69,10 @@ main(int argc, char **argv, char **envp)
 
 	/*test for real deal or just version and exit*/
 
-	PRINT_VERSION_AND_EXIT(argc, argv);
+	execution_mode(argc, argv);
 
 #ifdef WIN32
-	if (winsock_init()) {
-		return 1;
-	}
+	winsock_init();
 #endif
 
 	if (argc != 3) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -683,10 +683,6 @@ dis_request_read(int sfds, struct batch_request *request)
 
 		case PBS_BATCH_ModifyResv:
 			decode_DIS_ModifyResv(sfds, request);
-			break;
-
-		case PBS_BATCH_PreemptJobs:
-			decode_DIS_PreemptJobs(sfds, request);
 			break;
 
 #else	/* yes PBS_MOM */

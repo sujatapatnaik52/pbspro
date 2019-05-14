@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -251,7 +251,7 @@ read_attr(int fd)
 		printf(".%s", pal->al_resc);
 	printf(" = ");
 	if (pal->al_value)
-		printf("%s", show_nonprint_chars(pal->al_value));
+		printf("%s", pal->al_value);
 	printf("\n");
 
 	free(pal);
@@ -417,13 +417,14 @@ print_db_job(char *id, int no_attributes)
 			int i;
 			printf("--attributes--\n");
 			for (i=0; i< dbjob.attr_list.attr_count; i++) {
-				printf("%s", attrs[i].attr_name);
-				if (attrs[i].attr_resc && attrs[i].attr_resc[0] != 0)
-					printf(".%s", attrs[i].attr_resc);
+				printf("%s", attrs->attr_name);
+				if (attrs->attr_resc && attrs->attr_resc[0] != 0)
+					printf(".%s", attrs->attr_resc);
 				printf(" = ");
-				if (attrs[i].attr_value)
-					printf("%s", show_nonprint_chars(attrs[i].attr_value));
+				if (attrs->attr_value)
+					printf("%s", attrs->attr_value);
 				printf("\n");
+
 			}
 
 		}
@@ -483,7 +484,7 @@ char *argv[];
 	}
 
 	/*the real deal or output pbs_version and exit?*/
-	PRINT_VERSION_AND_EXIT(argc, argv);
+	execution_mode(argc, argv);
 	opterr = 0;
 	while ((f = getopt(argc, argv, "as")) != EOF) {
 		switch (f) {
@@ -516,9 +517,7 @@ char *argv[];
 	}
 
 #if defined(PRINTJOBSVR) && defined(WIN32)
-	if (winsock_init()) {
-		return 1;
-	}
+	winsock_init();
 #endif
 
 	for (f=optind; f<argc; ++f) {

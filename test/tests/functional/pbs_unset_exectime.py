@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -60,7 +60,8 @@ else:
 """
         a = {'event': 'queuejob', 'enabled': 'True'}
         self.server.create_import_hook(hook_name, a, hook_body)
-        self.server.manager(MGR_CMD_SET, SERVER, {'log_events': 2047})
+        self.server.manager(MGR_CMD_SET, SERVER, {'log_events': 2047},
+                            expect=True)
         j = Job(TEST_USER)
         self.server.submit(j)
         msg = "Error evaluating Python script, "

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -68,6 +68,7 @@
 #define PREEMPT_PRIORITY_HIGH 100000
 #define PREEMPT_PRIORITY_STEP 1000
 
+/* max number of preempt orderings */
 #define PREEMPT_ORDER_MAX 20
 
 /* name of root node in the fairshare tree */

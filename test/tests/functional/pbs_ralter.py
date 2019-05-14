@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -70,7 +70,8 @@ class TestPbsResvAlter(TestFunctional):
         self.server.create_vnodes('vnode', a, num=2, mom=self.mom,
                                   usenatvnode=True)
 
-        self.server.manager(MGR_CMD_SET, SERVER, {'log_events': 4095})
+        self.server.manager(MGR_CMD_SET, SERVER, {
+            'log_events': 4095}, expect=True)
 
     def submit_and_confirm_reservation(self, offset, duration, standing=False,
                                        select="1:ncpus=4",

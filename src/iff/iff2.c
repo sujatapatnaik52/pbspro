@@ -35,7 +35,7 @@
  *		The parent_connection_port is required unless -t (for test) is given.
  */
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -98,7 +98,7 @@ main(int argc, char *argv[], char *envp[])
 	char *cln_hostaddr = NULL;
 
 	/*the real deal or output pbs_version and exit?*/
-	PRINT_VERSION_AND_EXIT(argc, argv);
+	execution_mode(argc, argv);
 
 	cln_hostaddr = getenv(PBS_IFF_CLIENT_ADDR);
 
@@ -157,9 +157,7 @@ main(int argc, char *argv[], char *envp[])
 	}
 
 #ifdef WIN32
-		if (winsock_init()) {
-		return 1;
-	}
+	winsock_init();
 #endif
 
 	/* first, make sure we have a valid server (host), and ports */

@@ -1,6 +1,6 @@
 
 #
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -73,7 +73,7 @@ dist_sysprofile_DATA = \
 	pbs.csh \
 	pbs.sh
 
-unitfiledir = @_unitdir@
+unitfiledir = /usr/lib/systemd/system
 
 dist_unitfile_DATA = \
 	pbs.service

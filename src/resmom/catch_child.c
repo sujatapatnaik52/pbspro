@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -342,7 +342,7 @@ json_loads(char *value, char *msg, size_t msg_len)
 		msg[0] = '\0';
 	}
 
-	py_name = PyString_FromString("json");
+	py_name = PyUnicode_FromString("json");
 	if (py_name == NULL) {
 		if (msg != NULL) {
 			snprintf(msg, msg_len, "failed to construct json name");
@@ -400,9 +400,9 @@ json_loads(char *value, char *msg, size_t msg_len)
 			/* get the exception */
 			if ((exc_type != NULL) &&
 				((exc_string = PyObject_Str(exc_type)) != NULL) &&
-				(PyString_Check(exc_string))) {
+				(PyUnicode_Check(exc_string))) {
 				snprintf(msg, msg_len, "%s",
-					PyString_AsString(exc_string));
+					PyUnicode_AsUTF8(exc_string));
 			}
 			Py_XDECREF(exc_string);
 			Py_XDECREF(exc_type);
@@ -477,7 +477,7 @@ json_dumps(PyObject *py_val, char *msg, size_t msg_len)
 		msg[0] = '\0';
 	}
 
-	py_name = PyString_FromString("json");
+	py_name = PyUnicode_FromString("json");
 	if (py_name == NULL) {
 		if (msg != NULL) {
 			snprintf(msg, msg_len, "failed to construct json name");
@@ -534,9 +534,9 @@ json_dumps(PyObject *py_val, char *msg, size_t msg_len)
 			/* get the exception */
 			if ((exc_type != NULL) &&
 				((exc_string = PyObject_Str(exc_type)) != NULL) &&
-				(PyString_Check(exc_string))) {
+				(PyUnicode_Check(exc_string))) {
 				snprintf(msg, msg_len, "%s",
-					PyString_AsString(exc_string));
+					PyUnicode_AsUTF8(exc_string));
 			}
 			Py_XDECREF(exc_string);
 			Py_XDECREF(exc_type);
@@ -549,7 +549,7 @@ json_dumps(PyObject *py_val, char *msg, size_t msg_len)
 #endif
 		}
 		goto json_dumps_fail;
-	} else if (!PyString_Check(py_result)) {
+	} else if (!PyUnicode_Check(py_result)) {
 		if (msg != NULL) {
 			snprintf(msg, msg_len, "value is not a string");
 		}
@@ -560,10 +560,10 @@ json_dumps(PyObject *py_val, char *msg, size_t msg_len)
 	Py_XDECREF(py_name);
 	Py_XDECREF(py_module);
 
-	tmp_str = PyString_AsString(py_result);
+	tmp_str = PyUnicode_AsUTF8(py_result);
 	/* returned tmp_str points to an internal buffer of 'py_result' */
 	if (tmp_str == NULL) {
-		snprintf(msg, msg_len, "PyString_AsString failed");
+		snprintf(msg, msg_len, "PyUnicode_AsUTF8 failed");
 		Py_XDECREF(py_result);
 		return NULL;
 	}
@@ -2500,7 +2500,7 @@ del_job_hw(job *pjob)
  * @return Void
  *
  */
-void
+static void
 del_job_resc(job *pjob)
 {
 	/*
@@ -2638,99 +2638,6 @@ mom_deljob_wait(job *pjob)
 }
 
 /**
- *
- * @brief
- *  The wrapper to "mom_deljob_wait()".
- * @par
- *  This will call mom_deljob_wait based on MOM_ALPS macro and
- *  reply to the batch request.
- *
- * @param[in] pjob - pointer to job structure
- *
- * @return void
- */
-void
-mom_deljob_wait2(job *pjob)
-{
-#if MOM_ALPS
-	(void)mom_deljob_wait(pjob);
-
-	/*
-	* The delete job request from Server will have been
-	* or will be replied to and freed by the
-	* alps_cancel_reservation code in the sequence of
-	* functions started with the above call to
-	* mom_deljob_wait().  Set preq to NULL here so we
-	* don't try, mistakenly, to use it again.
-	*/
-	pjob->ji_preq = NULL;
-#else
-	int  		numnodes;
-	struct 	batch_request *preq;
-	/*
-	 * save number of nodes in sisterhood in case
-	 * job is deleted in mom_deljob_wait()
-	 */
-	numnodes = pjob->ji_numnodes;
-
-	preq = pjob->ji_preq;
-	pjob->ji_preq = NULL;
-	if (mom_deljob_wait(pjob) > 0) {
-		/* wait till sisters respond */
-		pjob->ji_preq = preq;
-	} else if (numnodes > 1) {
-		/*
-		* no messages sent, but there are sisters
-		* must be all down
-		*/
-		req_reject(PBSE_SISCOMM, 0, preq); /* all sis down */
-	} else {
-		reply_ack(preq);	/* no sisters, reply now  */
-	}
-#endif
-}
-
-/**
- * @brief
- * send_sisters_deljob_wait	- 
- * 	Job entry is not deleted until the sisters have replied or are down
- *	This version DOES wait for the Sisters to reply, see processing of
- *	IM_DELETE_JOB_REPLY in mom_comm.c
- *	It should only be called for a job for which this is Mother Superior.
- *
- * @param[in] pjob - pointer to job structure
- *
- * @return int
- * @retval the number of sisters to whom the request was sent
- *
- */
-int
-send_sisters_deljob_wait(job *pjob)
-{
-	int	i;
-
-	if (pjob->ji_qs.ji_svrflags & JOB_SVFLG_HERE) {	/* MS */
-		pjob->ji_qs.ji_substate = JOB_SUBSTATE_DELJOB;
-		pjob->ji_sampletim = time_now;
-		/*
-		 * The SISTER_KILLDONE flag needs to be reset so
-		 * we can talk to the sisterhood and know when they reply.
-		 */
-		for (i = 0; i < pjob->ji_numnodes; i++) {
-			hnodent		*np = &pjob->ji_hosts[i];
-
-			if (np->hn_node == pjob->ji_nodeid)	/* me */
-				continue;
-
-			if (np->hn_sister == SISTER_KILLDONE)
-				np->hn_sister = SISTER_OKAY;
-		}
-		return (send_sisters(pjob, IM_DELETE_JOB_REPLY, NULL));
-	} else
-		return 0;
-
-}
-/**
  * @brief
  * 	rid_job - rid mom of a job that the server says no longer exists
  *
@@ -2745,7 +2652,7 @@ rid_job(char *jobid)
 	job	*pjob;
 
 	pjob = find_job(jobid);
-	if (pjob && !pjob->ji_hook_running_bg_on)
+	if (pjob)
 		mom_deljob(pjob);
 }
 

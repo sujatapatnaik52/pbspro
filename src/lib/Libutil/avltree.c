@@ -29,7 +29,7 @@
  **
  */
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -143,6 +143,7 @@ avl_init_tls(void)
 {
 	if (pthread_key_create(&avl_tls_key, NULL) != 0) {
 		fprintf(stderr, "avl tls key creation failed\n");
+		exit(1);
 	}
 }
 
@@ -165,7 +166,7 @@ get_avl_tls(void)
 		p_avl_tls = (avl_tls_t *) calloc(1, sizeof(avl_tls_t));
 		if (!p_avl_tls) {
 			fprintf(stderr, "Out of memory creating avl_tls\n");
-			return NULL;
+			exit(1);
 		}
 		p_avl_tls->__node_overhead = sizeof(node)-AVL_DEFAULTKEYLEN;
 		pthread_setspecific(avl_tls_key, (void *) p_avl_tls);
@@ -281,18 +282,14 @@ copydata(rectype *r1, rectype *r2)
  * @brief
  *	check for duplicate records.
  *
- * @return	error code
- * @retval	1	True
- * @retval	0	False
  */
-static int
+static void
 duprec(rectype *r)
 {
 	if (r->count++==UINT_MAX) {
 		fprintf(stderr, "avltrees: repeat count exceeded\n");
-		return 1;
+		exit(1);
 	}
-	return 0;
 }
 
 /**
@@ -310,7 +307,7 @@ allocnode()
 	node *n=(node *)malloc(size+node_overhead);
 	if (n==NULL) {
 		fprintf(stderr, "avltrees: out of memory\n");
-		return NULL;
+		exit(1);
 	}
 	if (ix_dupkeys != AVL_NO_DUP_KEYS)
 		n->data.count=1;
@@ -665,12 +662,10 @@ avltree_clear(node **tt)
  * @param[in] dup - value indicating whether to allow dup records.
  * @param[in] keylength - key length
  *
- * @return	error code
- * @retval	1	error
- * @retval	0	success
+ * @return	Void
  *
  */
-int
+void
 avl_create_index(AVL_IX_DESC *pix, int dup, int keylength)
 {
 	if (dup != AVL_NO_DUP_KEYS  &&
@@ -678,19 +673,18 @@ avl_create_index(AVL_IX_DESC *pix, int dup, int keylength)
 		dup != AVL_COUNT_DUPS) {
 		fprintf(stderr,
 			"create_index 'dup'=%d: programming error\n", dup);
-		return 1;
+		exit(1);
 	}
 	if (keylength < 0) {
 		fprintf(stderr,
 			"create_index 'keylength'=%d: programming error\n",
 			keylength);
-		return 1;
+		exit(1);
 	}
 	pix->root = NULL;
 	pix->keylength = keylength;
 	pix->dup_keys=dup;
 
-	return 0;
 }
 
 /**
@@ -995,9 +989,7 @@ create_tree(int dups, int keylen)
 	if (AVL_p == NULL)
 		return NULL;
 
-	if (avl_create_index(AVL_p, dups, keylen))
-		return NULL;
-
+	avl_create_index(AVL_p, dups, keylen);
 	return AVL_p;
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -140,7 +140,6 @@ extern void spool_filename(job *pjob, char *namebuf, char *suffix);
 extern enum failover_state are_we_primary(void);
 extern void license_more_nodes(void);
 extern void reset_svr_sequence_window(void);
-extern void reply_preempt_jobs_request(int code, int aux, struct batch_request *local_preq);
 
 #ifdef	_PROVISION_H
 extern int find_prov_vnode_list(job *pjob, exec_vnode_listtype *prov_vnodes, char **aoe_name);
@@ -168,7 +167,6 @@ extern  int  fix_indirect_resc_targets(struct pbsnode *, resource *, int, int);
 extern int   assign_hosts(job *, char *, int);
 extern void  clear_exec_on_run_fail(job *jobp);
 extern void  discard_job(job *pjob, char *txt, int noack);
-extern void  post_rerun(struct work_task *pwt);
 extern void  force_reque(job *);
 extern void  set_resc_assigned(void *, int, enum batch_op);
 extern int   is_ts_node(char * nodestr);

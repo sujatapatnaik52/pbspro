@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -6897,6 +6897,7 @@ unset_jobscript_max_size(void)
 	log_event(PBSEVENT_ADMIN, PBS_EVENTCLASS_SERVER,
 		LOG_NOTICE, msg_daemonname, log_buffer);
 }
+
 
 /**
  * @brief

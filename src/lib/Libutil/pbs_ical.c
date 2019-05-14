@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -624,8 +624,7 @@ test_it(char *rrule, time_t dtstart, char *tz)
  * @param[in] argv - argument list
  *
  * @return	int
- * @retval	0	success
- * #retval	1	failure
+ * @retval	1	success
  *
  */
 int
@@ -638,7 +637,7 @@ test_main(int argc, char *argv[])
 
 	if (argc < 2) {
 		printf("Usage: test_it <rrule>");
-		return 1;
+		exit(2);
 	}
 
 	tz = getenv("PBS_TZID");
@@ -651,6 +650,6 @@ test_main(int argc, char *argv[])
 	printf("check_rrule returned %d\n", check_rrule(rrule, dtstart, 0, tz, &err_code));
 	printf("get_num_occurrences = %d\n", get_num_occurrences(rrule, dtstart, tz));
 
-	return 0;
+	return 1;
 }
 #endif

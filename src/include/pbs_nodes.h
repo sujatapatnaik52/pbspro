@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -454,7 +454,7 @@ extern	int	node_pcpu_action(attribute *, void *, int);
 struct prop 	*init_prop(char *pname);
 extern	void	set_node_license(void);
 extern  int	set_node_topology(attribute*, void*, int);
-extern	void	unset_node_license(struct pbsnode *);
+extern  int     validate_sign(char *, struct pbsnode *);
 extern  mominfo_t *tfind2(const unsigned long, const unsigned long, struct tree **);
 extern	int	set_node_host_name(attribute *, void *, int);
 extern	int	set_node_hook_action(attribute *, void *, int);

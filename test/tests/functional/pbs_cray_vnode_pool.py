@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -249,7 +249,7 @@ class TestVnodePool(TestFunctional):
         attr_2 = {'vnode_pool': '2'}
         try:
             self.server.manager(
-                MGR_CMD_SET, NODE, id=self.hostA, attrib=attr_2)
+                MGR_CMD_SET, NODE, id=self.hostA, attrib=attr_2, expect=False)
         except PbsManagerError as e:
             self.assertTrue("Invalid request" in e.msg[0])
 
@@ -269,7 +269,7 @@ class TestVnodePool(TestFunctional):
         attr_2 = {'vnode_pool': '2'}
         try:
             self.server.manager(MGR_CMD_SET, NODE, id=self.hostB,
-                                attrib=attr_2)
+                                attrib=attr_2, expect=False)
         except PbsManagerError as e:
             self.assertTrue("Invalid request" in e.msg[0])
 
@@ -277,6 +277,6 @@ class TestVnodePool(TestFunctional):
                               max_attempts=5, starttime=start_time)
         try:
             self.server.manager(MGR_CMD_UNSET, NODE, id=self.hostB,
-                                attrib='vnode_pool')
+                                attrib='vnode_pool', expect=False)
         except PbsManagerError as e:
             self.assertTrue("Illegal value for node vnode_pool" in e.msg[0])

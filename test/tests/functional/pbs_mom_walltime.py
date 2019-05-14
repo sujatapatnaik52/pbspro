@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -137,9 +137,9 @@ class TestMomWalltime(TestFunctional):
         # Make sure the sched cycle is completed before reading
         # the walltime
         self.server.manager(MGR_CMD_SET, MGR_OBJ_SERVER,
-                            {'scheduling': 'True'})
+                            {'scheduling': 'True'}, expect=True)
         self.server.manager(MGR_CMD_SET, MGR_OBJ_SERVER,
-                            {'scheduling': 'False'})
+                            {'scheduling': 'False'}, expect=True)
 
         jstat = self.server.status(JOB, id=jid1,
                                    attrib=['resources_used.walltime'])

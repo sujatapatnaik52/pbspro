@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -56,7 +56,8 @@ class TestEntityLimits(TestFunctional):
         TestFunctional.setUp(self)
 
         a = {'resources_available.ncpus': 1}
-        self.server.manager(MGR_CMD_SET, NODE, a, self.mom.shortname)
+        self.server.manager(MGR_CMD_SET, NODE, a, self.mom.shortname,
+                            expect=True)
 
     def common_limit_test(self, server, entstr, job_attr={}, queued=False,
                           exp_err=''):

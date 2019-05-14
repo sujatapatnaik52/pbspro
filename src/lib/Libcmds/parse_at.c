@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -163,7 +163,7 @@ parse_at_list(char *list, int use_count, int abs_path)
 
 	if ((list_dup = strdup(list)) == NULL) {
 		fprintf(stderr, "Out of memory.\n");
-		return 1;
+		exit(1);
 	}
 
 	for (c = list_dup; *c != '\0'; rc = 0) {
@@ -211,7 +211,7 @@ parse_at_list(char *list, int use_count, int abs_path)
 			nh = (struct hostlist *) malloc(sizeof(struct hostlist));
 			if (nh == NULL) {
 				fprintf(stderr, "Out of memory\n");
-				return 1;
+				exit(1);
 			}
 			nh->next = hostlist;
 			strcpy(nh->host, host);

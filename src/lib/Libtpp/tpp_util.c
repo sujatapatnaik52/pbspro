@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -375,11 +375,8 @@ tpp_cr_thrd(void *(*start_routine)(void*), pthread_t *id, void *data)
  *
  * @par MT-safe: Yes
  *
- * @return error code
- * @retval	1 failure
- * @retval	0	success
  */
-int
+void
 tpp_init_lock(pthread_mutex_t *lock)
 {
 	pthread_mutexattr_t attr;
@@ -387,7 +384,7 @@ tpp_init_lock(pthread_mutex_t *lock)
 
 	if (pthread_mutexattr_init(&attr) != 0) {
 		tpp_log_func(LOG_CRIT, __func__, "Failed to initialize mutex attr");
-		return 1;
+		exit(1);
 	}
 #if defined (linux)
 	type = PTHREAD_MUTEX_RECURSIVE_NP;
@@ -396,15 +393,13 @@ tpp_init_lock(pthread_mutex_t *lock)
 #endif
 	if (pthread_mutexattr_settype(&attr, type)) {
 		tpp_log_func(LOG_CRIT, __func__, "Failed to set mutex type");
-		return 1;
+		exit(1);
 	}
 
 	if (pthread_mutex_init(lock, &attr) != 0) {
 		tpp_log_func(LOG_CRIT, __func__, "Failed to initialize mutex");
-		return 1;
+		exit(1);
 	}
-
-	return 0;
 }
 
 /**
@@ -418,18 +413,14 @@ tpp_init_lock(pthread_mutex_t *lock)
  *
  * @par MT-safe: Yes
  *
- * @return 	error code
- * @retval	1	failure
- * @retval	0	success
  */
-int
+void
 tpp_destroy_lock(pthread_mutex_t *lock)
 {
 	if (pthread_mutex_destroy(lock) != 0) {
 		tpp_log_func(LOG_CRIT, __func__, "Failed to destroy mutex");
-		return 1;
+		exit(1);
 	}
-	return 0;
 }
 
 /**
@@ -443,18 +434,14 @@ tpp_destroy_lock(pthread_mutex_t *lock)
  *
  * @par MT-safe: Yes
  *
- * @return	error code
- * @retval	1	failure
- * @retval	0	success
  */
-int
+void
 tpp_lock(pthread_mutex_t *lock)
 {
 	if (pthread_mutex_lock(lock) != 0) {
 		tpp_log_func(LOG_CRIT, __func__, "Failed to lock mutex");
-		return 1;
+		exit(1);
 	}
-	return 0;
 }
 
 /**
@@ -468,18 +455,14 @@ tpp_lock(pthread_mutex_t *lock)
  *
  * @par MT-safe: Yes
  *
- * @return	error code
- * @retval	1	failure
- * @retval	0	success
  */
-int
+void
 tpp_unlock(pthread_mutex_t *lock)
 {
 	if (pthread_mutex_unlock(lock) != 0) {
 		tpp_log_func(LOG_CRIT, __func__, "Failed to unlock mutex");
-		return 1;
+		exit(1);
 	}
-	return 0;
 }
 
 /**
@@ -493,18 +476,14 @@ tpp_unlock(pthread_mutex_t *lock)
  *
  * @par MT-safe: Yes
  *
- * @return	error code
- * @retval	1	failure
- * @retval	0	success
  */
-int
+void
 tpp_init_rwlock(void *lock)
 {
 	if (pthread_rwlock_init(lock, NULL) != 0) {
 		tpp_log_func(LOG_CRIT, __func__, "Failed to initialize rw lock");
-		return 1;
+		exit(1);
 	}
-	return 0;
 }
 
 /**
@@ -517,19 +496,15 @@ tpp_init_rwlock(void *lock)
  *	None
  *
  * @par MT-safe: Yes
- * 
- * @return	error code
- * @retval	1	failure
- * @retval	0	success
+ *
  */
-int
+void
 tpp_rdlock_rwlock(void *lock)
 {
 	if (pthread_rwlock_rdlock(lock) != 0) {
 		tpp_log_func(LOG_CRIT, __func__, "Failed in rdlock");
-		return 1;
+		exit(1);
 	}
-	return 0;
 }
 
 /**
@@ -544,14 +519,13 @@ tpp_rdlock_rwlock(void *lock)
  * @par MT-safe: Yes
  *
  */
-int
+void
 tpp_wrlock_rwlock(void *lock)
 {
 	if (pthread_rwlock_wrlock(lock) != 0) {
 		tpp_log_func(LOG_CRIT, __func__, "Failed to wrlock");
-		return 1;
+		exit(1);
 	}
-	return 0;
 }
 
 /**
@@ -564,19 +538,15 @@ tpp_wrlock_rwlock(void *lock)
  *	None
  *
  * @par MT-safe: Yes
- * 
- * @return	error code
- * @retval	1	failure
- * @retval	0	success
+ *
  */
-int
+void
 tpp_unlock_rwlock(void *lock)
 {
 	if (pthread_rwlock_unlock(lock) != 0) {
 		tpp_log_func(LOG_CRIT, __func__, "Failed to unlock rw lock");
-		return 1;
+		exit(1);
 	}
-	return 0;
 }
 
 /**
@@ -589,19 +559,15 @@ tpp_unlock_rwlock(void *lock)
  *	None
  *
  * @par MT-safe: Yes
- * 
- * * @return	error code
- * @retval	1	failure
- * @retval	0	success
+ *
  */
-int
+void
 tpp_destroy_rwlock(void *lock)
 {
 	if (pthread_rwlock_destroy(lock) != 0) {
 		tpp_log_func(LOG_CRIT, __func__, "Failed to destroy rw lock");
-		return 1;
+		exit(1);
 	}
-	return 0;
 }
 
 /**
@@ -950,6 +916,7 @@ tpp_init_tls_key_once()
 {
 	if (pthread_key_create(&tpp_key_tls, NULL) != 0) {
 		fprintf(stderr, "Failed to initialize TLS key\n");
+		exit(1);
 	}
 }
 
@@ -1010,7 +977,7 @@ tpp_get_tls()
  * @brief
  *	Get the log buffer address from the thread TLS
  *
- * @return	Address of the log buffer from TLS or NULL if error occurred
+ * @return	Address of the log buffer from TLS
  *
  * @par Side Effects:
  *	Exits if not fails
@@ -1026,7 +993,7 @@ tpp_get_logbuf()
 	ptr = tpp_get_tls();
 	if (!ptr) {
 		fprintf(stderr, "Out of memory\n");
-		return NULL;
+		exit(1);
 	}
 
 	return ptr->tpplogbuf;
@@ -1637,7 +1604,7 @@ tpp_netaddr(tpp_addr_t *ap)
 	ptr = tpp_get_tls();
 	if (!ptr) {
 		fprintf(stderr, "Out of memory\n");
-		return "unknown";
+		exit(1);
 	}
 
 	ptr->tppstaticbuf[0] = '\0';
@@ -1707,7 +1674,7 @@ tpp_netaddr_sa(struct sockaddr *sa)
 	ptr = tpp_get_tls();
 	if (!ptr) {
 		fprintf(stderr, "Out of memory\n");
-		return NULL;
+		exit(1);
 	}
 	ptr->tppstaticbuf[0] = '\0';
 

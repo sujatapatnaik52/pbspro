@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -81,9 +81,7 @@ main(int argc, char *argv[])
 	ZeroMemory(&si, sizeof(si));
 	si.cb = sizeof(si);
 
-	if (winsock_init()) {
-		return 1;
-	}
+	winsock_init();
 
 	/* connect to remote host's IPC$ */
 	if (!connect_remote_resource(demux_hostname, "IPC$", TRUE)) {

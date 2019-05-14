@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -575,8 +575,6 @@ extern int action_sched_user(attribute *pattr, void *pobj, int actmode);
 extern int action_sched_port(attribute *pattr, void *pobj, int actmode);
 extern int action_sched_host(attribute *pattr, void *pobj, int actmode);
 extern int action_sched_partition(attribute *pattr, void *pobj, int actmode);
-extern int action_sched_preempt_order(attribute *pattr, void *pobj, int actmode);
-extern int action_sched_preempt_common(attribute *pattr, void *pobj, int actmode);
 /* Extern functions from queue_attr_def */
 extern int decode_null(attribute *patr, char *name, char *rn, char *val);
 extern int set_null(attribute *patr, attribute *new, enum batch_op op);
@@ -593,9 +591,6 @@ extern int decode_attr_db(void *parent, pbs_db_attr_list_t *attr_list,
 	struct attribute_def *padef, struct attribute *pattr, int limit, int unknown);
 
 extern int is_attr(int, char *, int);
-
-extern int set_attr(struct attrl **attrib, char *attrib_name, char *attrib_value);
-extern int set_attr_resc(struct attrl **attrib, char *attrib_name, char *attrib_resc, char *attrib_value);
 
 /* "type" to pass to acl_check() */
 #define ACL_Host  1

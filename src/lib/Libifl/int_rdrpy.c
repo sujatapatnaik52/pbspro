@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -208,8 +208,6 @@ struct batch_reply *reply;
 		(void)free(reply->brp_un.brp_rescq.brq_alloc);
 		(void)free(reply->brp_un.brp_rescq.brq_resvd);
 		(void)free(reply->brp_un.brp_rescq.brq_down);
-	} else if (reply->brp_choice == BATCH_REPLY_CHOICE_PreemptJobs) {
-		(void)free(reply->brp_un.brp_preempt_jobs.ppj_list);
 	}
 
 	(void)free(reply);

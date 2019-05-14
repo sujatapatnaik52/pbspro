@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -150,7 +150,7 @@ main(int argc, char *argv[])
 	int unknw_job = 0;
 
 	/*the real deal or output pbs_version and exit?*/
-	PRINT_VERSION_AND_EXIT(argc, argv);
+	execution_mode(argc, argv);
 
 #if defined(FILTER_EXCESSIVE)
 	filter_excessive = 1;
@@ -729,7 +729,7 @@ line_wrap(char *line, int start, int end)
 	start_index = 0;
 
 	if (end == 0)
-		printf("%s\n", show_nonprint_chars(line));
+		printf("%s\n", line);
 	else {
 		while (start_index < total_size) {
 			if (start_index + wrap_at < total_size) {
@@ -751,9 +751,9 @@ line_wrap(char *line, int start, int end)
 
 			/* first line, don't indent */
 			if (start_ptr == line)
-				printf("%s\n", show_nonprint_chars(start_ptr));
+				printf("%s\n", start_ptr);
 			else
-				printf("%*s%s\n", start, " ", show_nonprint_chars(start_ptr));
+				printf("%*s%s\n", start, " ", start_ptr);
 
 			start_ptr = cur_ptr + 1;
 			start_index = cur_ptr - line;

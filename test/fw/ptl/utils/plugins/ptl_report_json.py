@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -118,7 +118,7 @@ class PTLJsonData(object):
             'end_time': str(data['end_time']),
             'measurements': []
         }
-        tcshort['requirements'] = data['requirements']
+        tcshort['requirements'] = {}
         if 'measurements' in data:
             tcshort['results']['measurements'] = data['measurements']
         data_json['testsuites'][tsname]['testcases'][tcname] = tcshort

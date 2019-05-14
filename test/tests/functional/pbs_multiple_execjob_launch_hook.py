@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -69,7 +69,8 @@ pbs.logmsg(pbs.LOG_DEBUG, "environment var from execjob_hook2 is %s" % (e.env))
 
     def setUp(self):
         TestFunctional.setUp(self)
-        self.server.manager(MGR_CMD_SET, SERVER, {'log_events': 2047})
+        self.server.manager(MGR_CMD_SET, SERVER, {'log_events': 2047},
+                            expect=True)
 
     def test_multi_execjob_hook(self):
         """

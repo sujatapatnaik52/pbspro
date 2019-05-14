@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -48,7 +48,7 @@ class TestTrillionJobid(TestFunctional):
 . ${PBS_EXEC}/libexec/pbs_pgsql_env.sh
 
 DATA_PORT=${PBS_DATA_SERVICE_PORT}
-if [ -z ${DATA_PORT} ]; then
+if [ -z $DATA_PORT ]; then
     DATA_PORT=15007
 fi
 
@@ -82,7 +82,7 @@ if [ $? -ne 0 ]; then
 fi
 
 args="-U ${DATA_USER} -p ${DATA_PORT} -d pbs_datastore"
-PGPASSWORD=test ${PGSQL_BIN}/psql ${args} <<-EOF
+PGPASSWORD=test psql ${args} <<-EOF
     UPDATE pbs.server SET sv_jobidnumber = %d;
 EOF
 
@@ -213,7 +213,7 @@ exit 0
         :type  resv_msg : string
 
         """
-        resv_start = int(time.time()) + 2
+        resv_start = int(time.time())
         a = {'reserve_start': int(resv_start),
              'reserve_duration': int(resv_dur)
              }
@@ -243,7 +243,12 @@ exit 0
             self.assertTrue('Unauthorized Request' in e.msg[0])
 
         # Set as Admin User and also check the value after server restart
-        self.server.manager(MGR_CMD_SET, SERVER, seq_id, runas=ROOT_USER)
+        self.server.manager(
+            MGR_CMD_SET,
+            SERVER,
+            seq_id,
+            runas=ROOT_USER,
+            expect=True)
         self.server.expect(SERVER, seq_id)
         self.server.log_match('svr_max_job_sequence_id set to '
                               'val %d' % (seq_id[ATTR_max_job_sequence_id]),
@@ -266,8 +271,12 @@ exit 0
             self.assertTrue('Unauthorized Request' in e.msg[0])
 
         # Unset as Admin user
-        self.server.manager(MGR_CMD_UNSET, SERVER, 'max_job_sequence_id',
-                            runas=ROOT_USER)
+        self.server.manager(
+            MGR_CMD_UNSET,
+            SERVER,
+            'max_job_sequence_id',
+            runas=ROOT_USER,
+            expect=True)
         self.server.log_match('svr_max_job_sequence_id reverting back '
                               'to default val 9999999',
                               starttime=self.server.ctime)
@@ -302,7 +311,12 @@ exit 0
         valid_values = [9999999, 123456789, 100000000000, 999999999999]
         for val in valid_values:
             seq_id = {ATTR_max_job_sequence_id: val}
-            self.server.manager(MGR_CMD_SET, SERVER, seq_id, runas=ROOT_USER)
+            self.server.manager(
+                MGR_CMD_SET,
+                SERVER,
+                seq_id,
+                runas=ROOT_USER,
+                expect=True)
 
     def test_max_job_sequence_id_wrap(self):
         """
@@ -325,7 +339,12 @@ exit 0
         # Check max limit (999999999999) and wrap it 0
         sv_jobidnumber = 999999999999  # max limit
         seq_id = {ATTR_max_job_sequence_id: sv_jobidnumber}
-        self.server.manager(MGR_CMD_SET, SERVER, seq_id, runas=ROOT_USER)
+        self.server.manager(
+            MGR_CMD_SET,
+            SERVER,
+            seq_id,
+            runas=ROOT_USER,
+            expect=True)
         self.server.expect(SERVER, seq_id)
         self.submit_job(verify=True)
         self.submit_job(lower=1, upper=2, verify=True)
@@ -340,7 +359,12 @@ exit 0
         # wrap it 0
         sv_jobidnumber = 1234567890
         seq_id = {ATTR_max_job_sequence_id: sv_jobidnumber}
-        self.server.manager(MGR_CMD_SET, SERVER, seq_id, runas=ROOT_USER)
+        self.server.manager(
+            MGR_CMD_SET,
+            SERVER,
+            seq_id,
+            runas=ROOT_USER,
+            expect=True)
         self.server.expect(SERVER, seq_id)
         sv_jobidnumber = 123456789
         self.set_svr_sv_jobidnumber(sv_jobidnumber)
@@ -350,7 +374,12 @@ exit 0
         # Set smaller(12345678) than current jobid(123456790)
         sv_jobidnumber = 12345678
         seq_id = {ATTR_max_job_sequence_id: sv_jobidnumber}
-        self.server.manager(MGR_CMD_SET, SERVER, seq_id, runas=ROOT_USER)
+        self.server.manager(
+            MGR_CMD_SET,
+            SERVER,
+            seq_id,
+            runas=ROOT_USER,
+            expect=True)
         self.server.expect(SERVER, seq_id)
         self.submit_job(job_id='0', verify=True)  # wrap it to zero
         self.submit_job(lower=1, upper=2, job_id='1[]', verify=True)
@@ -398,7 +427,12 @@ exit 0
                 jobs with the same id's are still running
         """
         seq_id = {ATTR_max_job_sequence_id: 99999999}
-        self.server.manager(MGR_CMD_SET, SERVER, seq_id, runas=ROOT_USER)
+        self.server.manager(
+            MGR_CMD_SET,
+            SERVER,
+            seq_id,
+            runas=ROOT_USER,
+            expect=True)
         self.set_svr_sv_jobidnumber(0)
         self.submit_job(sleep=1000, job_id='0')
         self.submit_job(sleep=1000, lower=1, upper=2, job_id='1[]')

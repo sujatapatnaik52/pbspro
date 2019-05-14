@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -1928,7 +1928,7 @@ getdefgrpname(char *user)
 		NetApiBufferFree(groups);
 
 		strcpy(c_data_[0], group);
-		cache_data(__func__, user, (char *)c_data_, 1, GNLEN+1);
+		cache_data(__func__, user, (char *)c_data_, 1, GNLEN);
 
 		return (group);
 	}
@@ -1939,7 +1939,7 @@ getdefgrpname(char *user)
 		NetApiBufferFree(groups);
 
 		strcpy(c_data_[0], group);
-		cache_data(__func__, user, (char *)c_data_, 1, GNLEN+1);
+		cache_data(__func__, user, (char *)c_data_, 1, GNLEN);
 
 		return (group);
 	}
@@ -1947,7 +1947,7 @@ getdefgrpname(char *user)
 	(void)free(group);
 
 	strcpy(c_data_[0], "Everyone");
-	cache_data(__func__, user, (char *)c_data_, 1, GNLEN+1);
+	cache_data(__func__, user, (char *)c_data_, 1, GNLEN);
 
 	return (strdup("Everyone"));
 }
@@ -2302,7 +2302,7 @@ getgids(char *user, SID *grp[], DWORD rids[])
 		NetApiBufferFree(groups);
 		groups = NULL;
 	}
-	cache_data(__func__, user, (char *)c_data_, j, GNLEN+1);
+	cache_data(__func__, user, (char *)c_data_, j, GNLEN);
 
 	return (j);
 }

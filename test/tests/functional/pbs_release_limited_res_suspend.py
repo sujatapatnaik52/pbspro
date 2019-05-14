@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -63,7 +63,7 @@ class TestReleaseLimitedResOnSuspend(TestFunctional):
 
         # Set restrict_res_to_release_on_suspend server attribute
         a = {ATTR_restrict_res_to_release_on_suspend: 'ncpus'}
-        self.server.manager(MGR_CMD_SET, SERVER, a)
+        self.server.manager(MGR_CMD_SET, SERVER, a, expect=True)
 
         # Submit a low priority job
         j1 = Job(TEST_USER)
@@ -100,7 +100,7 @@ class TestReleaseLimitedResOnSuspend(TestFunctional):
 
         # Set restrict_res_to_release_on_suspend server attribute
         a = {ATTR_restrict_res_to_release_on_suspend: 'ncpus'}
-        self.server.manager(MGR_CMD_SET, SERVER, a)
+        self.server.manager(MGR_CMD_SET, SERVER, a, expect=True)
 
         # Submit a low priority job
         j1 = Job(TEST_USER)
@@ -133,7 +133,7 @@ class TestReleaseLimitedResOnSuspend(TestFunctional):
 
         # Set restrict_res_to_release_on_suspend server attribute
         a = {ATTR_restrict_res_to_release_on_suspend: 'ncpus'}
-        self.server.manager(MGR_CMD_SET, SERVER, a)
+        self.server.manager(MGR_CMD_SET, SERVER, a, expect=True)
 
         # Submit a low priority job
         j1 = Job(TEST_USER)
@@ -152,7 +152,7 @@ class TestReleaseLimitedResOnSuspend(TestFunctional):
 
         # Change restrict_res_to_release_on_suspend server attribute
         a = {ATTR_restrict_res_to_release_on_suspend: 'mem'}
-        self.server.manager(MGR_CMD_SET, SERVER, a)
+        self.server.manager(MGR_CMD_SET, SERVER, a, expect=True)
 
         rc = 0
         try:
@@ -181,7 +181,7 @@ class TestReleaseLimitedResOnSuspend(TestFunctional):
 
         # Set restrict_res_to_release_on_suspend server attribute
         a = {ATTR_restrict_res_to_release_on_suspend: 'ncpus'}
-        self.server.manager(MGR_CMD_SET, SERVER, a)
+        self.server.manager(MGR_CMD_SET, SERVER, a, expect=True)
 
         # Submit a low priority job
         j1 = Job(TEST_USER)
@@ -212,7 +212,7 @@ class TestReleaseLimitedResOnSuspend(TestFunctional):
 
         # Set restrict_res_to_release_on_suspend server attribute
         a = {ATTR_restrict_res_to_release_on_suspend: 'ncpus'}
-        self.server.manager(MGR_CMD_SET, SERVER, a)
+        self.server.manager(MGR_CMD_SET, SERVER, a, expect=True)
 
         vn_attrs = {ATTR_rescavail + '.ncpus': 8,
                     ATTR_rescavail + '.mem': '1024mb'}
@@ -255,7 +255,7 @@ class TestReleaseLimitedResOnSuspend(TestFunctional):
 
         # Set restrict_res_to_release_on_suspend server attribute
         a = {ATTR_restrict_res_to_release_on_suspend: 'ncpus'}
-        self.server.manager(MGR_CMD_SET, SERVER, a)
+        self.server.manager(MGR_CMD_SET, SERVER, a, expect=True)
 
         # Submit a low priority job
         j1 = Job(TEST_USER)
@@ -290,7 +290,7 @@ class TestReleaseLimitedResOnSuspend(TestFunctional):
 
         # Set restrict_res_to_release_on_suspend server attribute
         a = {ATTR_restrict_res_to_release_on_suspend: 'ncpus,mem'}
-        self.server.manager(MGR_CMD_SET, SERVER, a)
+        self.server.manager(MGR_CMD_SET, SERVER, a, expect=True)
 
         # Submit a low priority job
         j1 = Job(TEST_USER)
@@ -326,7 +326,7 @@ class TestReleaseLimitedResOnSuspend(TestFunctional):
 
         # Set restrict_res_to_release_on_suspend server attribute
         a = {ATTR_restrict_res_to_release_on_suspend: 'ncpus,mem'}
-        self.server.manager(MGR_CMD_SET, SERVER, a)
+        self.server.manager(MGR_CMD_SET, SERVER, a, expect=True)
 
         # Submit a low priority job
         j1 = Job(TEST_USER)
@@ -358,7 +358,7 @@ class TestReleaseLimitedResOnSuspend(TestFunctional):
 
         # Set restrict_res_to_release_on_suspend server attribute
         a = {ATTR_restrict_res_to_release_on_suspend: 'ncpus,mem'}
-        self.server.manager(MGR_CMD_SET, SERVER, a)
+        self.server.manager(MGR_CMD_SET, SERVER, a, expect=True)
 
         vn_attrs = {ATTR_rescavail + '.ncpus': 8,
                     ATTR_rescavail + '.mem': '1024mb'}
@@ -401,7 +401,7 @@ class TestReleaseLimitedResOnSuspend(TestFunctional):
 
         # Set restrict_res_to_release_on_suspend server attribute
         a = {ATTR_restrict_res_to_release_on_suspend: 'ncpus'}
-        self.server.manager(MGR_CMD_SET, SERVER, a)
+        self.server.manager(MGR_CMD_SET, SERVER, a, expect=True)
 
         # Submit a low priority job
         j1 = Job(TEST_USER)
@@ -946,8 +946,7 @@ class TestReleaseLimitedResOnSuspend(TestFunctional):
         a = {ATTR_restrict_res_to_release_on_suspend: 'mem'}
         self.server.manager(MGR_CMD_SET, SERVER, a)
 
-        self.server.manager(MGR_CMD_SET, SCHED,
-                            {'preempt_order': preempt_method}, runas=ROOT_USER)
+        self.scheduler.set_sched_config({'preempt_order': preempt_method})
 
         # Set 1gb mem available on the node
         a = {ATTR_rescavail + '.ncpus': "2"}
@@ -988,9 +987,7 @@ class TestReleaseLimitedResOnSuspend(TestFunctional):
                 kill $1
                 exit 0
                 """
-        pbs_home = self.server.pbs_conf['PBS_HOME']
-        self.chk_file = self.du.create_temp_file(body=chk_script,
-                                                 dirname=pbs_home)
+        self.chk_file = self.du.create_temp_file(body=chk_script)
         self.du.chmod(path=self.chk_file, mode=0o755)
         self.du.chown(path=self.chk_file, uid=0, gid=0, sudo=True)
         c = {'$action': 'checkpoint_abort 30 !' + self.chk_file + ' %sid'}

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -2111,6 +2111,16 @@ node_np_action(attribute *new, void *pobj, int actmode)
 			return (err);
 	}
 
+	/* If changing lic_signature, check sign */
+	prdef = find_resc_def(svr_resc_def, ND_RESC_LicSignature, svr_resc_size);
+	presc = find_resc_entry(new, prdef);
+	if (presc && (presc->rs_value.at_flags & ATR_VFLAG_MODIFY)) {
+		if ((err = validate_sign(presc->rs_value.at_val.at_str, (pbsnode *) pobj)) != PBSE_NONE)
+			return (err);
+		presc->rs_value.at_flags &= ~ATR_VFLAG_DEFLT;
+	}
+
+
 	/* 3. check each entry that is modified to see if it is now   */
 	/*    becoming an indirect reference or was one and now isn't */
 	/*    This first pass just validates the changes...	      */
@@ -2594,6 +2604,9 @@ set_node_topology(attribute *new, void *pobj, int op)
 
 		case ATR_ACTION_NEW:
 		case ATR_ACTION_ALTER:
+
+			if ((ppnl->at_flags & ATR_VFLAG_SET) && (ppnl->at_val.at_char == ND_LIC_TYPE_cloud))
+				return PBSE_NONE;
 
 			valstr = new->at_val.at_str;
 

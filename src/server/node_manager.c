@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -827,12 +827,6 @@ post_discard_job(job *pjob, mominfo_t *pmom, int newstate)
 		sprintf(log_buffer, nddown, downmom);
 		log_event(PBSEVENT_JOB, PBS_EVENTCLASS_JOB, LOG_INFO,
 			pjob->ji_qs.ji_jobid, log_buffer);
-		return;
-	}
-
-	if ((pjob->ji_qs.ji_state == JOB_STATE_HELD) && (pjob->ji_qs.ji_substate == JOB_SUBSTATE_HELD)) {
-		log_event(PBSEVENT_JOB, PBS_EVENTCLASS_JOB, LOG_INFO,
-			pjob->ji_qs.ji_jobid, "Leaving job in held state");
 		return;
 	}
 
@@ -2726,9 +2720,8 @@ discard_job(job *pjob, char *txt, int noack)
 		/* must be already discarding */
 		log_event(PBSEVENT_DEBUG2, PBS_EVENTCLASS_JOB, LOG_DEBUG,
 			pjob->ji_qs.ji_jobid,
-			"cancel previous discard_job tracking for new discard_job request");
-		free(pjob->ji_discard);
-		pjob->ji_discard = NULL;
+			"in discard_job and has ji_discard");
+		return;
 	}
 
 	/* first count up number of vnodes in exec_vnode to size the	*/
@@ -4441,13 +4434,13 @@ mom_running_jobs(int stream)
 				if (substate == JOB_SUBSTATE_RUNNING) {
 
 					/* tell Mom to suspend job */
-					(void)issue_signal(pjob, "SIG_SUSPEND", release_req, 0, NULL);
+					(void)issue_signal(pjob, "SIG_SUSPEND", release_req, 0);
 				}
 			} else if (pjob->ji_qs.ji_substate ==JOB_SUBSTATE_RUNNING) {
 				if (substate == JOB_SUBSTATE_SUSPEND) {
 
 					/* tell Mom to resume job */
-					(void)issue_signal(pjob, "SIG_RESUME", release_req, 0, NULL);
+					(void)issue_signal(pjob, "SIG_RESUME", release_req, 0);
 				}
 
 			} else if ((pjob->ji_qs.ji_state != JOB_STATE_EXITING) &&
@@ -6765,12 +6758,9 @@ build_execvnode(job *pjob, char *nds)
 		pc = parse_plus_spec(NULL, &rc);
 	}
 
-	*outbuf = '\0';
-
        /* 
-        * if the number of nodes identified for ndarray (nnodes) are not equal
-        * to the number of nodes identified by parse_plus_spec, then
-        * the vnode specification is invalid.
+        * if the number of nodes defined above in ndarray is not equal
+        * to the number of nodes identified, then skip the below loop
         */
 
 	if (rc || i != nnodes)
@@ -6779,6 +6769,7 @@ build_execvnode(job *pjob, char *nds)
 	/* now loop breaking up the select spec into separate chunks */
 	/* and determining how many times each chunk is to be used   */
 
+	*outbuf = '\0';
 	i  = 0;
 	pc = parse_plus_spec(selspec, &rc);
 	while (pc) {
@@ -7037,9 +7028,6 @@ set_nodes(void *pobj, int objtype, char *execvnod_in, char **execvnod_out, char 
 		}
 		if (execvnod == NULL)
 			return PBSE_BADNODESPEC;
-
-		if (!strlen(execvnod))
-                        return PBSE_UNKNODE;
 
 		/* are we to allocate the nodes "excl" ? */
 		prsdef = find_resc_def(svr_resc_def, "place", svr_resc_size);

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -69,10 +69,10 @@ char *scan(char *str, char target);
 
 /*
  * sort compare function for preempt status's
- * sort by decending number of bits in the bitfields (most number of preempt
+ * sort by decending number of bits in the bitfields (most number of prempt
  * statuses at the top) and then priorities
  */
-int preempt_cmp(const void *p1, const void *p2);
+int premept_cmp(const void *p1, const void *p2);
 
 /*
  *      preempt_bit_field - take list of preempt names seperated by +'s and
@@ -94,6 +94,7 @@ int valid_config(void);
 
 /* Check if string is a valid special case sorting string */
 int is_speccase_sort(char *sort_res, int sort_type);
+
 
 #ifdef	__cplusplus
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -121,7 +121,7 @@ que_alloc(char *name)
 	CLEAR_HEAD(pq->qu_jobs);
 	CLEAR_LINK(pq->qu_link);
 
-	snprintf(pq->qu_qs.qu_name, sizeof(pq->qu_qs.qu_name), "%s", name);
+	snprintf(pq->qu_qs.qu_name, PBS_MAXQUEUENAME, "%s", name);
 	append_link(&svr_queues, &pq->qu_link, pq);
 	server.sv_qs.sv_numque++;
 

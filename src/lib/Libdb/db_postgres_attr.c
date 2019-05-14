@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -101,13 +101,7 @@ convert_array_to_db_attr_list(char *raw_array, pbs_db_attr_list_t *attr_list)
 	struct pg_array *array = (struct pg_array *) raw_array;
 	struct str_data *val = (struct str_data *)(raw_array + sizeof(struct pg_array));
 
-	if (ntohl(array->ndim) == 0) {
-		attr_list->attributes = attrs;
-		attr_list->attr_count = 0;
-		return 0;
-	}
-
-	if (ntohl(array->ndim) > 1 || ntohl(array->elemtype) != TEXTOID) {
+	if (ntohl(array->ndim) != 1 || ntohl(array->elemtype) != TEXTOID) {
 		return -1;
 	}
 

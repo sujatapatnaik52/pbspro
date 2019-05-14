@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -114,7 +114,6 @@
 #include "check.h"
 #include "fifo.h"
 #include "range.h"
-#include "simulate.h"
 
 
 /**
@@ -1271,9 +1270,6 @@ update_resresv_on_end(resource_resv *resresv, char *job_state)
 	int ret;
 	int i;
 
-	/* used for calendar correction */
-	timed_event *te;
-
 	if (resresv == NULL)
 		return;
 
@@ -1317,12 +1313,6 @@ update_resresv_on_end(resource_resv *resresv, char *job_state)
 			}
 			free_selspec(resresv->execselect);
 			resresv->execselect = NULL;
-		}
-		/* We need to correct our calendar */
-		if (resresv->server->calendar != NULL) {
-			te = find_timed_event(resresv->server->calendar->events, 0, resresv->name, TIMED_END_EVENT, 0);
-			if (te != NULL)
-				set_timed_event_disabled(te, 1);
 		}
 	}
 	else if (resresv->is_resv && resresv->resv !=NULL) {
@@ -1479,8 +1469,6 @@ remove_resresv_from_array(resource_resv **resresv_arr,
  *
  * @param[in]	resresv_arr	-	job array to add job to
  * @param[in]	resresv	-	job to add to array
- * @param[in]	flags -
- *			    SET_RESRESV_INDEX - set resresv_ind of the job/resv
  *
  * @return	array (changed from realloc)
  * @retval	NULL	: on error
@@ -1488,7 +1476,7 @@ remove_resresv_from_array(resource_resv **resresv_arr,
  */
 resource_resv **
 add_resresv_to_array(resource_resv **resresv_arr,
-	resource_resv *resresv, int flags)
+	resource_resv *resresv)
 {
 	int size;
 	resource_resv **new_arr;
@@ -1502,8 +1490,6 @@ add_resresv_to_array(resource_resv **resresv_arr,
 			return NULL;
 		new_arr[0] = resresv;
 		new_arr[1] = NULL;
-		if (flags & SET_RESRESV_INDEX)
-		    resresv->resresv_ind = 0;
 		return new_arr;
 	}
 
@@ -1515,8 +1501,6 @@ add_resresv_to_array(resource_resv **resresv_arr,
 	if (new_arr != NULL) {
 		new_arr[size] = resresv;
 		new_arr[size+1] = NULL;
-		if (flags & SET_RESRESV_INDEX)
-		    resresv->resresv_ind = size;
 	}
 	else {
 		log_err(errno, "add_resresv_to_array", MEM_ERR_MSG);

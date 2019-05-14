@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -69,6 +69,8 @@
 
 #ifdef PYTHON
 #include <Python.h>
+#include <pythonrun.h>
+#include <wchar.h>
 #endif
 
 #include <stdio.h>
@@ -170,13 +172,10 @@ schedinit(void)
 	else
 		init_non_prime_time(&cstat, NULL);
 
-	if (conf.holiday_year != 0) {
-		tmptr = localtime(&cstat.current_time);
-		if ((tmptr != NULL) && ((tmptr->tm_year + 1900) > conf.holiday_year))
-			schdlog(PBSEVENT_ADMIN, PBS_EVENTCLASS_FILE, LOG_NOTICE,
-			HOLIDAYS_FILE,
-					"The holiday file is out of date; please update it.");
-	}
+	tmptr = localtime(&cstat.current_time);
+	if ((tmptr != NULL) && ((tmptr->tm_year + 1900) > conf.holiday_year))
+		schdlog(PBSEVENT_ADMIN, PBS_EVENTCLASS_FILE, LOG_NOTICE,
+			HOLIDAYS_FILE, "The holiday file is out of date; please update it.");
 
 	parse_ded_file(DEDTIME_FILE);
 
@@ -205,24 +204,41 @@ schedinit(void)
 #ifdef PYTHON
 	Py_NoSiteFlag = 1;
 	Py_FrozenFlag = 1;
+
+	/* Setting PYTHONHOME */
+	Py_IgnoreEnvironmentFlag = 1;
+        char pbs_python_home[MAXPATHLEN+1];
+        memset((char *)pbs_python_home, '\0', MAXPATHLEN+1);
+        snprintf(pbs_python_home, MAXPATHLEN, "%s/python",
+                pbs_conf.pbs_exec_path);
+        if (file_exists(pbs_python_home)) {
+                wchar_t tmp_pbs_python_home[MAXPATHLEN+1];
+                wmemset((wchar_t *)tmp_pbs_python_home, '\0', MAXPATHLEN+1);
+                mbstowcs(tmp_pbs_python_home, pbs_python_home, MAXPATHLEN+1);
+                Py_SetPythonHome(tmp_pbs_python_home);
+        }
+
 	Py_Initialize();
 
 	path = PySys_GetObject("path");
 
-	snprintf(buf, sizeof(buf), "%s/python/lib/python2.7", pbs_conf.pbs_exec_path);
-	PyList_Append(path, PyString_FromString(buf));
+	snprintf(buf, sizeof(buf), "%s/python/lib/python3.6", pbs_conf.pbs_exec_path);
+	PyList_Append(path, PyUnicode_FromString(buf));
+	//PyList_Insert(path, 0, PyUnicode_FromString(buf));
 
-	snprintf(buf, sizeof(buf), "%s/python/lib/python2.7/lib-dynload", pbs_conf.pbs_exec_path);
-	PyList_Append(path, PyString_FromString(buf));
+	snprintf(buf, sizeof(buf), "%s/python/lib/python3.6/lib-dynload", pbs_conf.pbs_exec_path);
+	PyList_Append(path, PyUnicode_FromString(buf));
+	//PyList_Insert(path, 1, PyUnicode_FromString(buf));
 
 	PySys_SetObject("path", path);
+
 
 	PyRun_SimpleString(
 		"_err =\"\"\n"
 		"ex = None\n"
 		"try:\n"
 			"\tfrom math import *\n"
-		"except ImportError, ex:\n"
+		"except ImportError as ex:\n"
 			"\t_err = str(ex)");
 
 	module = PyImport_AddModule("__main__");
@@ -231,7 +247,7 @@ schedinit(void)
 	errstr = NULL;
 	obj = PyMapping_GetItemString(dict, "_err");
 	if (obj != NULL) {
-		errstr = PyString_AsString(obj);
+		errstr = PyUnicode_AsUTF8(obj);
 		if (errstr != NULL) {
 			if (strlen(errstr) > 0) {
 				snprintf(errMsg, sizeof(errMsg), " %s. Python is unlikely to work properly.", errstr);
@@ -302,13 +318,10 @@ update_cycle_status(struct status *policy, time_t current_time)
 	else if (prime == NON_PRIME && policy->is_prime)
 		init_non_prime_time(policy, NULL);
 
-	if (conf.holiday_year != 0) {
-		tmptr = localtime(&policy->current_time);
-		if ((tmptr != NULL) && ((tmptr->tm_year + 1900) > conf.holiday_year))
-			schdlog(PBSEVENT_ADMIN, PBS_EVENTCLASS_FILE, LOG_NOTICE,
-			HOLIDAYS_FILE,
-					"The holiday file is out of date; please update it.");
-	}
+	tmptr = localtime(&policy->current_time);
+	if ((tmptr != NULL ) && ((tmptr->tm_year + 1900) > conf.holiday_year))
+		schdlog(PBSEVENT_ADMIN, PBS_EVENTCLASS_FILE, LOG_NOTICE,
+		       HOLIDAYS_FILE, "The holiday file is out of date; please update it.");
 	policy->prime_status_end = end_prime_status(policy->current_time);
 
 	if (policy->prime_status_end == SCHD_INFINITY)
@@ -1071,10 +1084,6 @@ main_sched_loop(status *policy, int sd, server_info *sinfo, schd_error **rerr)
 				set_schd_error_arg(err, SPECMSG, "Job would conflict with starving job");
 				update_jobs_cant_run(sd, sinfo->jobs, NULL, err, START_WITH_JOB);
 			}
-			else if (policy->backfill && policy->strict_ordering && qinfo->backfill_depth == 0) {
-				set_schd_error_codes(err, NOT_RUN, STRICT_ORDERING);
-				update_jobs_cant_run(sd, qinfo->jobs, NULL, err, START_WITH_JOB);
-			}
 		}
 
 		time(&cur_time);
@@ -1677,8 +1686,10 @@ run_update_resresv(status *policy, int pbs_sd, server_info *sinfo,
 		}
 
 		update_queue_on_run(qinfo, rr, &old_state);
-
-		sinfo->pset_metadata_stale = 1;
+		if (flags & NO_ALLPART)
+			update_all_nodepart(policy, sinfo, rr, NO_ALLPART);
+		else
+			update_all_nodepart(policy, sinfo, rr, NO_FLAGS);
 
 		update_server_on_run(policy, sinfo, qinfo, rr, &old_state);
 
@@ -1899,7 +1910,7 @@ add_job_to_calendar(int pbs_sd, status *policy, server_info *sinfo,
 		 * Note: We only ever look from now into the future
 		 */
 		nexte = get_next_event(sinfo->calendar);
-		if (find_timed_event(nexte, IGNORE_DISABLED_EVENTS, topjob->name, TIMED_NOEVENT, 0) != NULL)
+		if (find_timed_event(nexte, topjob->name, TIMED_NOEVENT, 0) != NULL)
 			return 1;
 	}
 	if ((nsinfo = dup_server_info(sinfo)) == NULL)
@@ -1975,7 +1986,6 @@ add_job_to_calendar(int pbs_sd, status *policy, server_info *sinfo,
 					create_node_array_from_nspec(bjob->nspec_arr);
 				selectspec = create_select_from_nspec(bjob->nspec_arr);
 				if (selectspec != NULL) {
-					free_selspec(bjob->execselect);
 					bjob->execselect = parse_selspec(selectspec);
 					free(selectspec);
 				}
@@ -2055,9 +2065,14 @@ add_job_to_calendar(int pbs_sd, status *policy, server_info *sinfo,
 		schdlog(PBSEVENT_DEBUG, PBS_EVENTCLASS_JOB, LOG_DEBUG,
 			bjob->name, log_buf);
 	} else if (start_time == 0) {
+		/* In the case where start_time = 0, we don't want mark the job as
+		 * can_never_run because there are transient cases (like node state)
+		 * that we don't handle in our simulation that can fix themselves in
+		 * real life.  Reconsider this decision once the simulation is more
+		 * robust
+		 */
 		schdlog(PBSEVENT_SCHED, PBS_EVENTCLASS_JOB, LOG_WARNING, topjob->name,
 			"Error in calculation of start time of top job");
-		return 0;
 	}
 	free_server(nsinfo, 1);
 	
@@ -2421,9 +2436,8 @@ sched_settings_frm_svr(struct batch_status *status)
 
 	attr = status->attribs;
 
-	/* resetting the following before fetching from batch_status. */
+	 /* resetting the following before fetching from batch_status. */
 	while (attr != NULL) {
-
 		if (attr->name != NULL && attr->value != NULL) {
 			if (!strcmp(attr->name, ATTR_sched_priv)) {
 				if ((tmp_priv_dir = string_dup(attr->value)) == NULL)
@@ -2438,6 +2452,7 @@ sched_settings_frm_svr(struct batch_status *status)
 		}
 		attr = attr->next;
 	}
+
 	if (!dflt_sched) {
 		int err;
 		int priv_dir_update_fail = 0;
@@ -2642,20 +2657,20 @@ cleanup:
 int
 update_svr_schedobj(int connector, int cmd, int alarm_time)
 {
-	char tempstr[128];
+	char timestr[128];
 	char port_str[MAX_INT_LEN];
-	static int svr_knows_me = 0;
-	int err;
-	struct attropl*attribs, *patt;
-	struct batch_status *ss = NULL;
+	static	int svr_knows_me = 0;
+	int	err;
+	struct	attropl	*attribs, *patt;
 	struct batch_status *all_ss = NULL; /* all scheduler objects */
+	struct batch_status *ss = NULL;
 	char sched_host[PBS_MAXHOSTNAME + 1];
 
 	/* This command is only sent on restart of the server */
 	if (cmd == SCH_SCHEDULE_FIRST)
 		svr_knows_me = 0;
 
-	if ((cmd != SCH_SCHEDULE_NULL && cmd != SCH_ATTRS_CONFIGURE && svr_knows_me) || cmd == SCH_ERROR || connector < 0)
+	if ((cmd != SCH_SCHEDULE_NULL && svr_knows_me) || cmd == SCH_ERROR || connector < 0)
 		return 1;
 
 	/* Stat the scheduler to get details of sched */
@@ -2698,13 +2713,13 @@ update_svr_schedobj(int connector, int cmd, int alarm_time)
 	patt->next = patt + 1;
 	patt++;
 	patt->name = ATTR_version;
-	patt->value = PBS_VERSION;
+	patt->value = pbs_version;
 	if (alarm_time) {
 		patt->next = patt + 1;
 		patt++;
 		patt->name = ATTR_sched_cycle_len;
-		snprintf(tempstr, sizeof(tempstr), "%d", alarm_time);
-		patt->value = tempstr;
+		snprintf(timestr, sizeof(timestr), "%d", alarm_time);
+		patt->value = timestr;
 	}
 	patt->next = NULL;
 
@@ -2715,5 +2730,8 @@ update_svr_schedobj(int connector, int cmd, int alarm_time)
 		svr_knows_me = 1;
 
 	free(attribs);
+
 	return 1;
 }
+
+

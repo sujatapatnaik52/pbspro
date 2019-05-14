@@ -1,7 +1,7 @@
 
 """
 
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -52,8 +52,8 @@ pbsexec = _pbs_conf("PBS_EXEC")
 if pbsexec is None:
     raise BackendError("PBS_EXEC not found")
 
-sys.path.append(os.path.join(pbsexec, "python", "lib", "python2.7"))
-sys.path.append(os.path.join(pbsexec, "python", "lib", "python2.7",
+sys.path.append(os.path.join(pbsexec, "python", "lib", "python3.6"))
+sys.path.append(os.path.join(pbsexec, "python", "lib", "python3.6",
                 "lib-dynload"))
 import encodings
 

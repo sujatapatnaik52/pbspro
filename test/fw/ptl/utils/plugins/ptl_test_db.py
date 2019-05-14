@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -43,14 +43,12 @@ import logging
 import platform
 import traceback
 import time
-import datetime
 import json
 import ptl.utils.pbs_logutils as lu
 from ptl.lib.pbs_testlib import PbsTypeDuration
 from ptl.utils.plugins.ptl_test_tags import TAGKEY
 from ptl.utils.pbs_dshutils import DshUtils
 from ptl.utils.plugins.ptl_report_json import PTLJsonData
-from ptl.utils.pbs_testsuite import default_requirements
 
 # Following dance require because PTLTestDb().process_output() from this file
 # is used in pbs_loganalyzer script which is shipped with PBS package
@@ -1712,7 +1710,6 @@ class PTLTestDb(Plugin):
             return {}
         testdata = {}
         data = {}
-        cur_time = datetime.datetime.now()
         if (hasattr(_test, 'server') and
                 (getattr(_test, 'server', None) is not None)):
             testdata['pbs_version'] = _test.server.attributes['pbs_version']
@@ -1728,12 +1725,10 @@ class PTLTestDb(Plugin):
         testdata['module'] = _test.__module__
         testdata['testcase'] = getattr(_test, '_testMethodName', '<unknown>')
         testdata['testdoc'] = getattr(_test, '_testMethodDoc', '<unknown>')
-        testdata['start_time'] = getattr(test, 'start_time', cur_time)
-        testdata['end_time'] = getattr(test, 'end_time', cur_time)
+        testdata['start_time'] = getattr(test, 'start_time', 0)
+        testdata['end_time'] = getattr(test, 'end_time', 0)
         testdata['duration'] = getattr(test, 'duration', 0)
         testdata['tags'] = getattr(_test, TAGKEY, [])
-        testdata['requirements'] = getattr(_test, 'requirements',
-                                           default_requirements)
         measurements_dic = getattr(_test, 'measurements', {})
         if measurements_dic:
             testdata['measurements'] = measurements_dic

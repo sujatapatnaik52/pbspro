@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -215,7 +215,7 @@ parse_depend_list(char *list, char **rtn_list, int rtn_size)
 
 	if ((lc = (char *)malloc(strlen(list)+1)) == NULL) {
 		fprintf(stderr, "Out of memory.\n");
-		return 1;
+		exit(1);
 	}
 	strcpy(lc, list);
 	c = lc;

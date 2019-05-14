@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -42,10 +42,6 @@
  * An example would be to share a constant between the server and the scheduler
  */
 
-#ifndef PBS_SHARE
-#define PBS_SHARE
-
-#include "pbs_ifl.h"
 
 /* Formula special case constants */
 
@@ -105,12 +101,3 @@
 
 #define MAX_INT_LEN 10
 
-struct preempt_ordering
-{
-	unsigned high_range;            /* high end of the walltime range */
-	unsigned low_range;             /* low end of the walltime range */
-
-	enum preempt_method order[PREEMPT_METHOD_HIGH];/* the order to preempt jobs */
-};
-
-#endif

@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -134,17 +134,6 @@ REGRESSION = 'regression'
 NUMNODES = 'numnodes'
 TIMEOUT_KEY = '__testcase_timeout__'
 MINIMUM_TESTCASE_TIMEOUT = 600
-REQUIREMENTS_KEY = '__PTL_REQS_LIST__'
-
-default_requirements = {
-    'num_servers': 1,
-    'num_moms': 1,
-    'num_comms': 1,
-    'num_clients': 1,
-    'no_mom_on_server': False,
-    'no_comm_on_server': False,
-    'no_comm_on_mom': True
-}
 
 
 def skip(reason="Skipped test execution"):
@@ -232,20 +221,6 @@ def skipOnCpuSet(function):
     wrapper.__doc__ = function.__doc__
     wrapper.__name__ = function.__name__
     return wrapper
-
-
-def requirements(*args, **kwargs):
-    """
-    Decorator to provide the cluster information required for a particular
-    testcase.
-    """
-    def wrap_obj(obj):
-        getreq = getattr(obj, REQUIREMENTS_KEY, {})
-        for name, value in kwargs.iteritems():
-            getreq[name] = value
-        setattr(obj, REQUIREMENTS_KEY, getreq)
-        return obj
-    return wrap_obj
 
 
 class PBSServiceInstanceWrapper(dict):
@@ -455,7 +430,7 @@ class PBSTestSuite(unittest.TestCase):
     comm = None
     servers = None
     schedulers = {}
-    scheds = {}
+    scheds = None
     moms = None
     comms = None
 
@@ -477,11 +452,11 @@ class PBSTestSuite(unittest.TestCase):
             return
         self.log_enter_setup()
         self.init_proc_mon()
+        self.revert_pbsconf()
         self.revert_servers()
-        self.revert_moms()
         self.revert_comms()
         self.revert_schedulers()
-        self.revert_pbsconf()
+        self.revert_moms()
         self.log_end_setup()
         self.measurements = []
 
@@ -1239,7 +1214,8 @@ class PBSTestSuite(unittest.TestCase):
         current_user = pwd.getpwuid(os.getuid())[0]
         try:
             # Unset managers list
-            server.manager(MGR_CMD_UNSET, SERVER, 'managers', sudo=True)
+            server.manager(MGR_CMD_UNSET, SERVER, 'managers', sudo=True,
+                           expect=True)
         except PbsManagerError as e:
             self.logger.error(e.msg)
         a = {ATTR_managers: (INCR, current_user + '@*')}
@@ -1468,18 +1444,7 @@ class PBSTestSuite(unittest.TestCase):
         if 'skip-teardown' in self.conf:
             return
         self.log_enter_teardown()
-        self.server.cleanup_jobs(runas=ROOT_USER)
         self.stop_proc_monitor()
-
-        for server in self.servers.values():
-            server.cleanup_files()
-
-        for mom in self.moms.values():
-            mom.cleanup_files()
-
-        for sched in self.scheds:
-            self.scheds[sched].cleanup_files()
-
         self.log_end_teardown()
 
     @classmethod

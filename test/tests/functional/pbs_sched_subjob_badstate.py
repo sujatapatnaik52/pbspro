@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -57,10 +57,11 @@ class TestSchedSubjobBadstate(TestFunctional):
         self.mom.signal('-KILL')
 
         attr = {'state': 'free', 'resources_available.ncpus': '2'}
-        self.server.manager(MGR_CMD_SET, NODE, attr, self.mom.shortname)
+        self.server.manager(MGR_CMD_SET, NODE, attr, self.mom.shortname,
+                            expect=True)
 
         attr = {'scheduling': 'False'}
-        self.server.manager(MGR_CMD_SET, SERVER, attr)
+        self.server.manager(MGR_CMD_SET, SERVER, attr, expect=True)
 
         j1 = Job(TEST_USER)
         j1.set_attributes({'Resource_List.ncpus': '2', ATTR_J: '1-3'})
@@ -69,7 +70,7 @@ class TestSchedSubjobBadstate(TestFunctional):
         now = time.time()
 
         attr = {'scheduling': 'True'}
-        self.server.manager(MGR_CMD_SET, SERVER, attr)
+        self.server.manager(MGR_CMD_SET, SERVER, attr, expect=True)
 
         self.scheduler.log_match("Leaving Scheduling Cycle",
                                  starttime=now,

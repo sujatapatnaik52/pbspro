@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -72,7 +72,7 @@ class TestPbsInitScript(TestFunctional):
         self.assertIn("PBS mom", output)
 
     def tearDown(self):
+        TestFunctional.tearDown(self)
         # Above test leaves system in unusable state for PTL and PBS.
         # Hence restarting PBS explicitly
         PBSInitServices().restart()
-        TestFunctional.tearDown(self)

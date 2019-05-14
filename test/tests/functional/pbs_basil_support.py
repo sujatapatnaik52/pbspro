@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -84,7 +84,7 @@ class TestBasilQuery(TestFunctional):
 
         self.server.manager(MGR_CMD_SET, PBS_HOOK,
                             {'enabled': 'true', 'freq': 10},
-                            id='PBS_alps_inventory_check')
+                            id='PBS_alps_inventory_check', expect=True)
 
         momA = self.moms.values()[0]
         if not momA.is_cray():
@@ -237,7 +237,8 @@ class TestBasilQuery(TestFunctional):
         for node in nodelist:
             a = {'provision_enable': 'true',
                  'resources_available.aoe': '%s' % node['current_aoe']}
-            self.server.manager(MGR_CMD_SET, NODE, a, id=node['id'])
+            self.server.manager(MGR_CMD_SET, NODE,
+                                a, id=node['id'], expect=True)
 
     def unset_provisioning(self):
         """
@@ -247,7 +248,8 @@ class TestBasilQuery(TestFunctional):
         for node in nodelist:
             a = ['provision_enable',
                  'resources_available.aoe']
-            self.server.manager(MGR_CMD_UNSET, NODE, a, id=node['id'])
+            self.server.manager(MGR_CMD_UNSET, NODE,
+                                a, id=node['id'], expect=True)
 
     def request_current_aoe(self):
         """
@@ -696,22 +698,26 @@ type=\"ENGINE\"/>" % (self.basil_version[1])
                 'user': 'pbsadmin', 'fail_action': 'none'}
 
         self.server.manager(MGR_CMD_LIST, PBS_HOOK,
-                            attr, id='PBS_xeon_phi_provision')
+                            attr, id='PBS_xeon_phi_provision', expect=True)
 
         self.server.manager(MGR_CMD_SET, PBS_HOOK, {'enabled': 'true',
                                                     'alarm': 1000},
-                            id='PBS_xeon_phi_provision')
+                            id='PBS_xeon_phi_provision',
+                            expect=True)
         self.server.manager(MGR_CMD_LIST, PBS_HOOK, {'enabled': 'true',
                                                      'alarm': 1000},
-                            id='PBS_xeon_phi_provision')
+                            id='PBS_xeon_phi_provision',
+                            expect=True)
 
         # Reset pbs_hook value to default PBS_xeon_phi_provision hook
         self.server.manager(MGR_CMD_SET, PBS_HOOK, {'enabled': 'false',
                                                     'alarm': 1800},
-                            id='PBS_xeon_phi_provision')
+                            id='PBS_xeon_phi_provision',
+                            expect=True)
 
         self.server.manager(MGR_CMD_LIST, PBS_HOOK,
-                            attr, id='PBS_xeon_phi_provision')
+                            attr, id='PBS_xeon_phi_provision',
+                            expect=True)
 
     def tearDown(self):
         TestFunctional.tearDown(self)
@@ -726,6 +732,6 @@ type=\"ENGINE\"/>" % (self.basil_version[1])
         # Restore hook freq to 300
         self.server.manager(MGR_CMD_SET, PBS_HOOK,
                             {'enabled': 'true', 'freq': 300},
-                            id='PBS_alps_inventory_check')
+                            id='PBS_alps_inventory_check', expect=True)
         # Do Mom HUP
         self.mom.signal('-HUP')

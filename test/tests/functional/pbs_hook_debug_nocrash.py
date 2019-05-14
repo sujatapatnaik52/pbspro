@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -129,7 +129,8 @@ pbs.logmsg(pbs.LOG_DEBUG, "hook %s executed" % (e.hook_name,))
             overwrite=True)
         self.assertTrue(rv)
 
-        self.server.manager(MGR_CMD_SET, SERVER, {'scheduling': 'False'})
+        self.server.manager(MGR_CMD_SET, SERVER, {'scheduling': 'False'},
+                            expect=True)
 
         for i in range(1000):
             j = Job(TEST_USER)

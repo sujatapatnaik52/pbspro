@@ -1,6 +1,6 @@
 
 #
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -339,7 +339,6 @@ PBS_AC_ENABLE_ALPS
 PBS_AC_ENABLE_CPUSET
 PBS_AC_WITH_LIBZ
 PBS_AC_ENABLE_PTL
-PBS_AC_SYSTEMD_UNITDIR
 
 AC_CONFIG_FILES([
 	pbspro.spec

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -57,6 +57,11 @@
 #include <wtypes.h>
 #include <varargs.h>
 #include <stddef.h>
+
+#ifdef _timezone
+#define _zonetime _timezone
+#undef _timezone
+#endif
 
 #define F_DUPFD         0       /* dup */
 #define _POSIX_PATH_MAX _MAX_PATH
@@ -351,7 +356,7 @@ extern int lstat(const char *file_name, struct stat *buf);
 
 
 /* refers to windows - net functions */
-extern int winsock_init(void);
+extern void winsock_init(void);
 extern void winsock_cleanup(void);
 
 /* refers to directory manipulation routines */
@@ -459,7 +464,7 @@ extern void save_env(void);
 extern int _setenv_win(char *key, char *value, int overwrite);
 extern char *_getenv_win(char *key);
 extern char *get_saved_env(char *e);
-extern int create_env_avltree();
+extern void create_env_avltree();
 extern void update_env_avltree();
 extern void destroy_env_avltree();
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -494,11 +494,11 @@ struct jbdscrd {
  * are maintained in the struct attrlist as discussed above.
  */
 
-
-#define	JSVERSION_18	800	/* 18 denotes the PBSPro version and it covers the job structure from >= 13.x to <= 18.x */
-#define	JSVERSION	1900	/* 1900 denotes the 19.x.x version */
-#define	ji_taskid	ji_extended.ji_ext.ji_taskidx
-#define	ji_nodeid	ji_extended.ji_ext.ji_nodeidx
+#define	JSVERSION_514	514
+#define	JSVERSION_80	800
+#define	JSVERSION	800
+#define ji_taskid  ji_extended.ji_ext.ji_taskidx
+#define ji_nodeid  ji_extended.ji_ext.ji_nodeidx
 
 struct job {
 
@@ -577,7 +577,6 @@ struct job {
 	int		ji_stdout;	/* socket for stdout */
 	int		ji_stderr;	/* socket for stderr */
 	int		ji_ports[2];	/* ports for stdout/err */
-	int		ji_hook_running_bg_on; /* set when hook starts in the background*/
 #else					/* END Mom ONLY -  start Server ONLY */
 	struct batch_request *ji_prunreq; /* outstanding runjob request */
 	pbs_list_head	ji_svrtask;	/* links to svr work_task list */
@@ -625,9 +624,6 @@ struct job {
 	 * This flag is to indicate if queued entity limit attribute usage
 	 * is decremented when the job is run*/
 	int             ji_etlimit_decr_queued;
-
-	struct preempt_ordering	*preempt_order;
-	int			preempt_order_index;
 
 #endif					/* END SERVER ONLY */
 
@@ -719,6 +715,21 @@ struct job {
 
 typedef struct job job;
 
+/* union from recovering old, 5.1.4 <= old < 8.0, jobextend area */
+/* see server/job_recov.c */
+union jobextend_514 {
+	char fill[256];	/* fill to keep same size */
+	struct {
+#if defined(__sgi)
+		jid_t	ji_jid;
+		ash_t	ji_ash;
+#else
+		char	ji_4jid[8];
+		char	ji_4ash[8];
+#endif 	/* sgi */
+		int	   ji_credtype;
+	} ji_ext;
+};
 
 #ifdef	PBS_MOM
 /*
@@ -1179,7 +1190,7 @@ extern int   site_acl_check(job *, pbs_queue *);
 #endif	/* _QUEUE_H */
 
 #ifdef	_WORK_TASK_H
-extern int   issue_signal(job *, char *, void(*)(struct work_task *), void *, struct batch_request *);
+extern int   issue_signal(job *, char *, void(*)(struct work_task *), void *);
 extern void   on_job_exit(struct work_task *);
 #endif	/* _WORK_TASK_H */
 
@@ -1189,10 +1200,6 @@ extern int   update_resources_list(job *, char *, int, char *, enum batch_op op,
 
 extern int   Mystart_end_dur_wall(void*, int);
 extern int   get_wall(job*);
-extern int   get_softwall(job*);
-extern int   get_used_wall(job*);
-extern int   get_used_cput(job*);
-extern int   get_cput(job*);
 extern void  remove_deleted_resvs(void);
 
 extern void  clear_and_populate_svr_unlicensedjobs(void);

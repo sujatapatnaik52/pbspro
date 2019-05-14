@@ -734,9 +734,12 @@ SWIG_UnpackDataName(const char *c, void *ptr, size_t sz, const char *name) {
 
 #endif
 
+
 #ifndef Py_TYPE
 #  define Py_TYPE(op) ((op)->ob_type)
 #endif
+
+//#define Py_TYPE(op) ((op)->ob_type)
 
 /* SWIG APIs for compatibility of both Python 2 & 3 */
 
@@ -2859,12 +2862,12 @@ SWIG_Python_MustGetPtr(PyObject *obj, swig_type_info *ty, int SWIGUNUSEDPARM(arg
 #ifdef SWIGPYTHON_BUILTIN
 SWIGRUNTIME int
 SWIG_Python_NonDynamicSetAttr(PyObject *obj, PyObject *name, PyObject *value) {
-  PyTypeObject *tp = obj->ob_type;
+  PyTypeObject *tp = Py_Type(obj);
   PyObject *descr;
   PyObject *encoded_name;
   descrsetfunc f;
   int res;
-
+/*
 # ifdef Py_USING_UNICODE
   if (PyString_Check(name)) {
     name = PyUnicode_Decode(PyString_AsString(name), PyString_Size(name), NULL, NULL);
@@ -2874,8 +2877,10 @@ SWIG_Python_NonDynamicSetAttr(PyObject *obj, PyObject *name, PyObject *value) {
 # else
   if (!PyString_Check(name))
 # endif
+*/
+  if (!PyUnicode_Check(name))
   {
-    PyErr_Format(PyExc_TypeError, "attribute name must be string, not '%.200s'", name->ob_type->tp_name);
+    PyErr_Format(PyExc_TypeError, "attribute name must be string, not '%.200s'", Py_Type(name)->tp_name);
     return -1;
   } else {
     Py_INCREF(name);

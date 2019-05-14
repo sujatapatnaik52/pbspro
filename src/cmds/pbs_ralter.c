@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -78,7 +78,7 @@ process_opts(int argc, char **argv, struct attrl **attrp, char *dest)
 				t = cvtdate(optarg);
 				if (t >= 0) {
 					(void)sprintf(time_buf, "%ld", (long)t);
-					set_attr_error_exit(&attrib, ATTR_resv_end, time_buf);
+					set_attr(&attrib, ATTR_resv_end, time_buf);
 					dtend = t;
 				} else {
 					fprintf(stderr, "pbs_ralter: illegal -E time value\n");
@@ -89,7 +89,7 @@ process_opts(int argc, char **argv, struct attrl **attrp, char *dest)
 			case 'I':
 				temp = strtol(optarg, &endptr, 0);
 				if (*endptr == '\0' && temp > 0) {
-					set_attr_error_exit(&attrib, ATTR_inter, optarg);
+					set_attr(&attrib, ATTR_inter, optarg);
 				} else {
 					fprintf(stderr, "pbs_ralter: illegal -I time value\n");
 					errflg++;
@@ -97,22 +97,22 @@ process_opts(int argc, char **argv, struct attrl **attrp, char *dest)
 				break;
 
 			case 'm':
-				set_attr_error_exit(&attrib, ATTR_m, optarg);
+				set_attr(&attrib, ATTR_m, optarg);
 				break;
 
 			case 'M':
-				set_attr_error_exit(&attrib, ATTR_M, optarg);
+				set_attr(&attrib, ATTR_M, optarg);
 				break;
 
 			case 'N':
-				set_attr_error_exit(&attrib, ATTR_resv_name, optarg);
+				set_attr(&attrib, ATTR_resv_name, optarg);
 				break;
 
 			case 'R':
 				t = cvtdate(optarg);
 				if (t >= 0) {
 					(void)sprintf(time_buf, "%ld", (long)t);
-					set_attr_error_exit(&attrib, ATTR_resv_start, time_buf);
+					set_attr(&attrib, ATTR_resv_start, time_buf);
 					dtstart = t;
 				} else {
 					fprintf(stderr, "pbs_ralter: illegal -R time value\n");
@@ -215,12 +215,10 @@ main(int argc, char *argv[], char *envp[])		/* pbs_ralter */
 
 	/*test for real deal or just version and exit*/
 
-	PRINT_VERSION_AND_EXIT(argc, argv);
+	execution_mode(argc, argv);
 
 #ifdef WIN32
-	if (winsock_init()) {
-		return 1;
-	}
+	winsock_init();
 #endif
 
 	destbuf[0] = '\0';

@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -682,6 +682,6 @@ class TestJobArray(TestFunctional):
                             {'scheduling': 'True'})
         # ensure the sched cycle is finished
         self.server.manager(MGR_CMD_SET, MGR_OBJ_SERVER,
-                            {'scheduling': 'False'})
+                            {'scheduling': 'False'}, expect=True)
         # ensure all the subjobs are running
         self.server.expect(JOB, {'job_state=R': 200}, extend='t')

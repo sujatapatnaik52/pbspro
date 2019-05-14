@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -71,9 +71,11 @@ class TestOnlySmallFilesOverTPP(TestFunctional):
         else:
             self.server.manager(MGR_CMD_CREATE, NODE, id=self.hostB)
 
-        self.server.manager(MGR_CMD_SET, SERVER, {'job_requeue_timeout': 175})
+        self.server.manager(MGR_CMD_SET, SERVER,
+                            {'job_requeue_timeout': 175}, expect=True)
 
-        self.server.manager(MGR_CMD_SET, SERVER, {'log_events': 4095})
+        self.server.manager(MGR_CMD_SET, SERVER,
+                            {'log_events': 4095}, expect=True)
 
     def test_small_job_file(self):
         """

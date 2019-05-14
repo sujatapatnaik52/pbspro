@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -46,12 +46,8 @@
  * @brief 
  *	exits of WSAStartup fails; otherwise, proceeds normally. 
  *
- * @return error code
- * @retval 0 Success
- * @retval 1 Failure
- * 
  */
-int
+void
 winsock_init()
 {	
 	char	logb[LOG_BUF_SIZE] = {'\0' } ;
@@ -63,9 +59,8 @@ winsock_init()
 	if (WSAStartup(MAKEWORD(2, 2), &data)) {
 		sprintf(logb,"winsock_init failed! error=%d", WSAGetLastError());
 		log_err(-1, "winsock_init", logb);
-		return 1;
+		exit(1);
 	}
-	return 0;
 }
 
 /**

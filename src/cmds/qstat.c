@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -463,9 +463,9 @@ prt_attr(char *name, char *resource, char *value, int one_line) {
 		if (buf == NULL)
 			exit_qstat("out of memory");
 		if (resource)
-			printf("%s.%s=%s", name, resource, show_nonprint_chars(buf));
+			printf("%s.%s=%s", name, resource, buf);
 		else
-			printf("%s=%s", name, show_nonprint_chars(buf));
+			printf("%s=%s", name, buf);
 		free(buf);
 		break;
 
@@ -477,7 +477,7 @@ prt_attr(char *name, char *resource, char *value, int one_line) {
 			if (resource)
 				printf("    %s.%s = %s", name, resource, buf);
 			else
-				printf("    %s = %s", name, show_nonprint_chars(buf));
+				printf("    %s = %s", name, buf);
 			free(buf);
 		} else {
 			start = strlen(name) + 7; /* 4 spaces + ' = ' is 7 */
@@ -492,7 +492,7 @@ prt_attr(char *name, char *resource, char *value, int one_line) {
 			buf = strtok(temp, comma);
 			while (buf) {
 				if ((len = strlen(buf)) + start < CHAR_LINE_LIMIT) {
-					printf("%s", show_nonprint_chars(buf));
+					printf("%s", buf);
 					start += len;
 				} else {
 					if (!first) {
@@ -500,20 +500,7 @@ prt_attr(char *name, char *resource, char *value, int one_line) {
 						start = 9; /* tab + 1 */
 					}
 					while (*buf) {
-						char *sbuf;
-						int  ch;
-						char char_buf[2];
-
-						ch = *buf++;
-						sprintf(char_buf, "%c", ch);
-						sbuf = show_nonprint_chars(char_buf);
-						if (sbuf != NULL) {
-							int c;
-							for (c=0; c < strlen(sbuf); c++)
-								putchar(sbuf[c]);
-						} else {
-							putchar(ch);
-						}
+						putchar(*buf++);
 						if (++start > CHAR_LINE_LIMIT) {
 							start = 8; /* tab */
 							printf("\n\t");
@@ -582,9 +569,9 @@ prt_nodes(char *nodes, int no_newl)
 				/* flush line and start next */
 				linebuf[i] = '\0';
 				if (no_newl)
-					printf("%s", show_nonprint_chars(linebuf));
+					printf("%s", linebuf);
 				else
-					printf("   %s\n", show_nonprint_chars(linebuf));
+					printf("   %s\n", linebuf);
 				i = 0;
 				while (nodes < stp)
 					linebuf[i++] = *nodes++;
@@ -601,9 +588,9 @@ prt_nodes(char *nodes, int no_newl)
 	if (i != 0) {
 		linebuf[i] = '\0';
 		if (no_newl)
-			printf("%s\n", show_nonprint_chars(linebuf));
+			printf("%s\n", linebuf);
 		else
-			printf("   %s\n", show_nonprint_chars(linebuf));
+			printf("   %s\n", linebuf);
 	} else if (no_newl)
 		printf("\n");
 }
@@ -734,7 +721,7 @@ altdsp_statjob(struct batch_status *pstat, struct batch_status *prtheader, int a
 		printf("\n%s: ", prtheader->name);
 		pc = get_attr(prtheader->attribs, ATTR_comment, NULL);
 		if (pc)
-			printf("%s", show_nonprint_chars(pc));
+			printf("%s", pc);
 		if (wide) {
 
 			/* Used for for displaying spaces and dashes dynamically for wide formatted output */
@@ -967,7 +954,7 @@ altdsp_statjob(struct batch_status *pstat, struct batch_status *prtheader, int a
 		if (alt_opt & ALT_DISPLAY_s) {
 			/* print (scheduler) comment */
 			if (*comment != '\0')
-				printf("   %s\n", show_nonprint_chars(comment));
+				printf("   %s\n", comment);
 		}
 
 		pstat = pstat->next;
@@ -1139,12 +1126,10 @@ percent_cal(char *state, char *timeu, char *timer, char *wtimu, char *wtimr, cha
 		case 'Q':
 		case 'T':
 		case 'W':
-			pbs_asprintf(&rtn, "%3s", "-- ");
 			return (rtn);
 
 		case 'X':
-			pbs_asprintf(&rtn, "%3s", "100");
-			return (rtn);
+			return ("100");
 	}
 
 
@@ -1226,7 +1211,7 @@ display_statjob(struct batch_status *status, struct batch_status *prtheader, int
 	if (! full && prtheader && output_format == FORMAT_DEFAULT) {
 		c = get_attr(prtheader->attribs, ATTR_comment, NULL);
 		if (c)
-			printf("%s\n", show_nonprint_chars(c));
+			printf("%s\n", c);
 		if (how_opt & ALT_DISPLAY_p) {
 				if (how_opt & ALT_DISPLAY_INCR_WIDTH) {
 					printf("Job id                 Name             User               %% done  S Queue\n");
@@ -1264,7 +1249,6 @@ display_statjob(struct batch_status *status, struct batch_status *prtheader, int
 		state = NULL;
 		location = NULL;
 		hpcbp_executable = NULL;
-		prev_resc_name = NULL;
 		if (full) {
 			if (output_format == FORMAT_DSV || output_format == FORMAT_DEFAULT)
 				printf("Job Id: %s%s", p->name, delimiter);
@@ -1330,17 +1314,17 @@ display_statjob(struct batch_status *status, struct batch_status *prtheader, int
 					}
 				}
 				a = a->next;
-				if (a)
+				if ((a || output_format == FORMAT_DEFAULT))
 					printf("%s", delimiter);
-			}
-			if (output_format == FORMAT_DEFAULT)
-				printf("%s", delimiter);
-			else if (output_format == FORMAT_JSON) {
-				if (prev_resc_name != NULL)
-					if (add_json_node(JSON_OBJECT_END, JSON_NULL, JSON_NOVALUE, NULL, NULL) == NULL)
+				else if (output_format == FORMAT_JSON) {
+					if (prev_resc_name != NULL)
+						if (add_json_node(JSON_OBJECT_END, JSON_NULL, JSON_NOVALUE, NULL,
+								NULL) == NULL)
+							return 1;
+					if (add_json_node(JSON_OBJECT_END, JSON_NULL, JSON_NOVALUE, NULL, NULL)
+							== NULL)
 						return 1;
-				if (add_json_node(JSON_OBJECT_END, JSON_NULL, JSON_NOVALUE, NULL, NULL) == NULL)
-					return 1;
+				}
 			}
 		} else {
 			if (p->name != NULL) {
@@ -1521,12 +1505,16 @@ display_statque(struct batch_status *status, int prtheader, int full, int alt_op
 		strcpy(trn, "0");
 		strcpy(ext, "0");
 		type = "not defined";
-		prev_resc_name = NULL;
 		if (full) {
 			if(output_format == FORMAT_DSV || output_format == FORMAT_DEFAULT)
 				printf("Queue: %s%s", p->name, delimiter);
 			else if (output_format == FORMAT_JSON) {
-				if (add_json_node(JSON_OBJECT, JSON_NULL, JSON_NOVALUE, p->name, NULL) == NULL)
+				if (prev_resc_name != NULL)
+					if (add_json_node(JSON_OBJECT_END, JSON_NULL, JSON_NOVALUE, NULL, NULL)
+							== NULL)
+						return 1;
+				if (add_json_node(JSON_OBJECT, JSON_NULL, JSON_NOVALUE, p->name, NULL)
+						== NULL)
 					return 1;
 			}
 			a = p->attribs;
@@ -1536,19 +1524,12 @@ display_statque(struct batch_status *status, int prtheader, int full, int alt_op
 							alt_opt & ALT_DISPLAY_w);
 				}
 				a = a->next;
-				if (a)
+				if ((a || output_format == FORMAT_DEFAULT))
 					printf("%s", delimiter);
-			}
-			if (output_format == FORMAT_DEFAULT) {
-				printf("%s", delimiter);
-			}
-			else if (output_format == FORMAT_JSON) {
-				/* end the resource node, if it exists */
-				if (prev_resc_name != NULL)
-					if (add_json_node(JSON_OBJECT_END, JSON_NULL, JSON_NOVALUE, NULL, NULL) == NULL)
+				else if (output_format == FORMAT_JSON)
+					if (add_json_node(JSON_OBJECT_END, JSON_NULL, JSON_NOVALUE, NULL, NULL)
+							== NULL)
 						return 1;
-				if (add_json_node(JSON_OBJECT_END, JSON_NULL, JSON_NOVALUE, NULL, NULL) == NULL)
-					return 1;
 			}
 		} else {
 			if (p->name != NULL) {
@@ -2190,6 +2171,7 @@ main(int argc, char **argv, char **envp) /* qstat */
 	int wide=0;
 	int format = 0;
 	time_t timenow;
+	int check_seqid_len; /* for dynamic qstat width */
 
 #if TCL_QSTAT
 	char option[3];
@@ -2240,12 +2222,10 @@ main(int argc, char **argv, char **envp) /* qstat */
 
 	/*test for real deal or just version and exit*/
 
-	PRINT_VERSION_AND_EXIT(argc, argv);
+	execution_mode(argc, argv);
 
 #ifdef WIN32
-	if (winsock_init()) {
-		return 1;
-	}
+	winsock_init();
 #endif
 
 	mode = JOBS; /* default */
@@ -2615,7 +2595,7 @@ qstat -B [-f] [-F format] [-D delim] [ server_name... ]\n";
 		timenow = time(0);
 		if (add_json_node(JSON_VALUE, JSON_INT, JSON_FULLESCAPE, "timestamp", &timenow) == NULL)
 			exit_qstat("out of memory");
-		if (add_json_node(JSON_VALUE, JSON_STRING, JSON_FULLESCAPE, "pbs_version", PBS_VERSION) == NULL)
+		if (add_json_node(JSON_VALUE, JSON_STRING, JSON_FULLESCAPE, "pbs_version", pbs_version) == NULL)
 			exit_qstat("out of memory");
 		if (add_json_node(JSON_VALUE, JSON_STRING, JSON_FULLESCAPE, "pbs_server", def_server) == NULL)
 			exit_qstat("out of memory");
@@ -2784,15 +2764,6 @@ job_no_args:
 					p_server = NULL;
 				}
 
-				/* check the server attribute max_job_sequence_id value */
-				if (p_server != NULL) {
-					int check_seqid_len; /* for dynamic qstat width */
-					check_seqid_len = check_max_job_sequence_id(p_server);
-					if (check_seqid_len == 1) {
-						how_opt |= ALT_DISPLAY_INCR_WIDTH; /* increase column width */
-					}
-				}
-
 				if ((stat_single_job == 1) || (new_atropl == 0)) {
 					if (E_opt == 1)
 						p_status = pbs_statjob(connect, query_job_list, display_attribs, extend);
@@ -2860,6 +2831,14 @@ job_no_args:
 						any_failed = pbs_errno;
 					}
 				} else {
+				    /* check the server attribute max_job_sequence_id value */
+					check_seqid_len = check_max_job_sequence_id("qstat");
+					if (check_seqid_len == 1) {
+						how_opt |= ALT_DISPLAY_INCR_WIDTH; /* increase column width*/
+					} else if(check_seqid_len == -1) {
+						fprintf(stderr, "qstat: Unable to fetch the width format\n");
+						exit(1);
+					}
 
 #ifdef NAS /* localmod 071 */
 					if (p_server) {

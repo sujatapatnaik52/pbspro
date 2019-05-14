@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -649,7 +649,7 @@ class TestAdminSuspend(TestFunctional):
                                id=jid4, max_attempts=20)
         except Exception as e:
             self.assertFalse(e.rv)
-            self.logger.info("jid3 and jid4 not running on vn[1] as expected")
+            print ("jid3 and jid4 not running on vn[1] as expected")
 
     def test_list_jobs_1(self):
         """
@@ -757,8 +757,7 @@ class TestAdminSuspend(TestFunctional):
         self.server.manager(MGR_CMD_CREATE, QUEUE, a, id="highp")
 
         # set preempt_order to R
-        self.server.manager(MGR_CMD_SET, SCHED, {'preempt_order': 'R'},
-                            runas=ROOT_USER)
+        self.scheduler.set_sched_config({'preempt_order': 'R'})
 
         # submit a job
         j = Job(TEST_USER)

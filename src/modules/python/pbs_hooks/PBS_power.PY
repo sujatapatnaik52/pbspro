@@ -1,7 +1,7 @@
 # coding: utf-8
 """
 /*
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -233,7 +233,7 @@ if this_event.type == pbs.PERIODIC:
             job_list = []
         else:
             job_list = o.splitlines()
-    except OSError, ValueError:
+    except OSError as ValueError:
         job_list = []
     # Analyze queued jobs and see if any of the nodes are needed in near future
     exec_vnodes = {}
@@ -250,7 +250,7 @@ if this_event.type == pbs.PERIODIC:
             (o, e) = p.communicate()
             if p.returncode:
                 continue
-        except OSError, ValueError:
+        except OSError as ValueError:
             pbs.logmsg(pbs.EVENT_DEBUG3,
                        "Error running qstat command for job %s" % jobid)
             continue
@@ -562,14 +562,14 @@ if this_event.type == pbs.EXECJOB_BEGIN:
     if requested_profile != "":
         try:
             this_event.vnode_list[me].current_eoe = requested_profile
-        except KeyError, ValueError:
+        except KeyError as ValueError:
             pass
     this_event.accept()
 if this_event.type == pbs.EXECJOB_END:
     me = pbs.get_local_nodename()
     try:
         this_event.vnode_list[me].current_eoe = None
-    except KeyError, ValueError:
+    except KeyError as ValueError:
         pass
 
     power = init_power(this_event)

@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -439,7 +439,7 @@ class TestSTF(TestFunctional):
         self.scheduler.set_sched_config(a)
 
         a = {'backfill_depth': '20'}
-        self.server.manager(MGR_CMD_SET, SERVER, a)
+        self.server.manager(MGR_CMD_SET, SERVER, a, expect=True)
 
         a = {'Resource_List.select': '1:ncpus=2',
              'Resource_List.place': 'free',
@@ -557,7 +557,7 @@ class TestSTF(TestFunctional):
         """
         a = {'resources_min.walltime': '00:10:00',
              'resources_max.walltime': '10:00:00'}
-        self.server.manager(MGR_CMD_SET, QUEUE, a, id="workq")
+        self.server.manager(MGR_CMD_SET, QUEUE, a, id="workq", expect=True)
 
         a = {'Resource_List.max_walltime': '10:00:00',
              'Resource_List.min_walltime': '00:09:00'}

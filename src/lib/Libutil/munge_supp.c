@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -58,20 +58,15 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <pwd.h>
-#include <pthread.h>
 #ifndef WIN32
 #include <dlfcn.h>
 #include <grp.h>
 #endif
 #include "pbs_error.h"
-#include "log.h"
 
 
 
 #ifndef WIN32
-static pthread_once_t munge_init_once = PTHREAD_ONCE_INIT;
-static char err_initmunge[LOG_BUF_SIZE];
-
 const char libmunge[] = "libmunge.so";  /* MUNGE library */
 void *munge_dlhandle; /* MUNGE dynamic loader handle */
 int (*munge_encode_ptr)(char **, void *, const void *, int); /* MUNGE munge_encode() function pointer */
@@ -84,42 +79,44 @@ char * (*munge_strerror_ptr) (int); /* MUNGE munge_stderror() function pointer *
  *      and assign specific function pointers to be used at the time
  *      of decode or encode.
  *
- * @note
- * 	This function should get invoked only once. Using pthread_once for this purpose.
- * 	This function is not expecting any arguments. So storing error messages in a static
- * 	variable in case of error.
+ * @param[in/out] ebuf	Error message is updated here
+ * @param[in] ebufsz	size of the error message buffer
+ *
+ * @return int
+ * @retval  0 on success
+ * @retval -1 on failure
  */
-void
-init_munge(void)
+int
+init_munge(char *ebuf, int ebufsz)
 {
         munge_dlhandle = dlopen(libmunge, RTLD_LAZY);
         if (munge_dlhandle == NULL) {
-            snprintf(err_initmunge, LOG_BUF_SIZE, "%s not found", libmunge);
+            snprintf(ebuf, ebufsz, "%s not found", libmunge);
             goto err;
         }
 
         munge_encode_ptr = dlsym(munge_dlhandle, "munge_encode");
         if (munge_encode_ptr == NULL) {
-            snprintf(err_initmunge, LOG_BUF_SIZE, "symbol munge_encode not found in %s", libmunge);
+        	snprintf(ebuf, ebufsz, "symbol munge_encode not found in %s", libmunge);
             goto err;
         }
 
         munge_decode_ptr = dlsym(munge_dlhandle, "munge_decode");
         if (munge_decode_ptr == NULL) {
-            snprintf(err_initmunge, LOG_BUF_SIZE, "symbol munge_decode not found in %s", libmunge);
+        	snprintf(ebuf, ebufsz, "symbol munge_decode not found in %s", libmunge);
             goto err;
         }
 
         munge_strerror_ptr = dlsym(munge_dlhandle, "munge_strerror");
         if (munge_strerror_ptr == NULL) {
-            snprintf(err_initmunge, LOG_BUF_SIZE, "symbol munge_strerror not found in %s", libmunge);
+        	snprintf(ebuf, ebufsz, "symbol munge_strerror not found in %s", libmunge);
             goto err;
         }
         /*
          * Don't close the munge handler as it will be used
          * further for encode or decode
          */
-        return;
+        return (0);
 
 err:
 	if (munge_dlhandle)
@@ -129,7 +126,7 @@ err:
 	munge_encode_ptr = NULL;
 	munge_decode_ptr = NULL;
 	munge_strerror_ptr = NULL;
-	return;
+	return (-1);
 }
 
 /**
@@ -155,11 +152,11 @@ pbs_get_munge_auth_data(int fromsvr, char *ebuf, int ebufsz)
 	char payload[2 + PBS_MAXUSER + PBS_MAXGRPN + 1] = { '\0' };
 	int munge_err = 0;
 
-	pthread_once(&munge_init_once, init_munge);
 	if (munge_dlhandle == NULL) {
-		strncpy(ebuf, err_initmunge, ebufsz);
-		pbs_errno = PBSE_SYSTEM;
-		goto err;
+		if (init_munge(ebuf, ebufsz) != 0) {
+			pbs_errno = PBSE_SYSTEM;
+			goto err;
+		}
 	}
 
 	myrealuid = getuid();
@@ -217,17 +214,18 @@ pbs_munge_validate(void *auth_data, int *fromsvr, char *ebuf, int ebufsz)
 	struct passwd *pwent = NULL;
 	struct group *grp = NULL;
 	void *recv_payload = NULL;
+	char user_credential[PBS_MAXUSER + PBS_MAXGRPN + 1] = { "\0" };
 	int munge_err = 0;
 	char *p;
 	int rc = -1;
 
 	*fromsvr = 0;
 
-	pthread_once(&munge_init_once, init_munge);
 	if (munge_dlhandle == NULL) {
-		strncpy(ebuf, err_initmunge, ebufsz);
-		pbs_errno = PBSE_SYSTEM;
-		goto err;
+		if (init_munge(ebuf, ebufsz) != 0) {
+			pbs_errno = PBSE_SYSTEM;
+			goto err;
+		}
 	}
 
 	munge_err = munge_decode_ptr(auth_data, NULL, &recv_payload, &recv_len, &uid, &gid);
@@ -246,15 +244,16 @@ pbs_munge_validate(void *auth_data, int *fromsvr, char *ebuf, int ebufsz)
 		snprintf(ebuf, ebufsz, "Failed to obtain group-info for gid=%d", gid);
 		goto err;
 	}
+	snprintf(user_credential, PBS_MAXUSER + PBS_MAXGRPN, "%s:%s", pwent->pw_name, grp->gr_name);
 
 	/* parse the recv_payload past the first two characters */
 	p = (char *) recv_payload;
 	if (*p == '1')
 		*fromsvr = 1; /* connection was from a server */
 
-	p = strtok(p + 2, ":");
+	p = recv_payload + 2;
 
-	if (p && (strncmp(pwent->pw_name, p, PBS_MAXUSER) == 0)) /* inline with current pbs_iff we compare with username only */
+	if (strcmp(user_credential, p) == 0)
 		rc = 0;
 	else
 		snprintf(ebuf, ebufsz, "User credentials do not match");

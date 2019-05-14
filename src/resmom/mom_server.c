@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -725,8 +725,7 @@ is_request(int stream, int version)
 	unsigned long		hkseq;
 	struct hook_job_action *phjba;
 	struct hook_vnl_action *phvna;
-	mom_hook_input_t	*phook_input = NULL;
-	mom_hook_output_t	*phook_output = NULL;
+	mom_hook_input_t	hook_input;
 
 	DBPRT(("%s: stream %d version %d\n", __func__, stream, version))
 	if (version != IS_PROTOCOL_VER) {
@@ -1077,50 +1076,14 @@ is_request(int stream, int version)
 						LOG_NOTICE,
 						pjob->ji_qs.ji_jobid,
 						"Job discarded at request of Server");
-						if (pjob->ji_hook_running_bg_on) {
-							free(jobid);
-							jobid = NULL;
-							break;
-						}
 					(void)kill_job(pjob, SIGKILL);
-					phook_input = (mom_hook_input_t *)malloc(sizeof(mom_hook_input_t));
-					if (phook_input == NULL) {
-						log_err(errno, __func__, MALLOC_ERR_MSG);
-						goto err;
-					}
-					mom_hook_input_init(phook_input);
-					phook_input->pjob = pjob;
-					if ((phook_output = (mom_hook_output_t *)malloc(
-						sizeof(mom_hook_output_t))) == NULL) {
-							log_err(errno, __func__, MALLOC_ERR_MSG);
-							goto err;
-					}
-					mom_hook_output_init(phook_output);
 
-					if ((phook_output->reject_errcode =
-						(int *)malloc(sizeof(int))) == NULL) {
-							log_err(errno, __func__, MALLOC_ERR_MSG);
-							free(phook_output);
-							goto err;
-					}
-					*(phook_output->reject_errcode) = 0;
-
-					if (mom_process_hooks(HOOK_EVENT_EXECJOB_END,
+					mom_hook_input_init(&hook_input);
+					hook_input.pjob = pjob;
+					(void)mom_process_hooks(HOOK_EVENT_EXECJOB_END,
 						PBS_MOM_SERVICE_NAME, mom_host,
-						phook_input, phook_output, NULL, 0, 1) == HOOK_RUNNING_IN_BACKGROUND) {
-							pjob->ji_hook_running_bg_on = IS_DISCARD_JOB;
-							if (pjob->ji_qs.ji_svrflags &
-									JOB_SVFLG_HERE)	/* MS */
-								(void)send_sisters(pjob,
-								IM_DELETE_JOB, NULL);
-							free(jobid);
-							jobid = NULL;
-							break;
-						}
+						&hook_input, NULL, NULL, 0, 1);
 					mom_deljob(pjob);
-					free(phook_output->reject_errcode);
-					free(phook_output);
-					free(phook_input);
 				}
 			}
 			if ((ret=is_compose(server_stream, IS_DISCARD_DONE)) != DIS_SUCCESS) {
@@ -1444,7 +1407,7 @@ state_to_server(int what_to_update)
 			goto err;
 	}
 
-	ret = diswst(server_stream, PBS_VERSION);	/* pbs_version */
+	ret = diswst(server_stream, pbs_version);	/* pbs_version */
 	if (ret != DIS_SUCCESS)
 		goto err;
 

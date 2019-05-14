@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -139,9 +139,12 @@ class TestSchedulerInterface(TestInterfaces):
                 self.assertTrue(
                     'qmgr: Error (15007) returned from server' in e.msg[1])
 
-        self.server.manager(MGR_CMD_SET, SCHED,
+        self.server.manager(MGR_CMD_SET,
+                            SCHED,
                             {'sched_cycle_length': 12000},
-                            id="TestCommonSched", runas=ROOT_USER)
+                            id="TestCommonSched",
+                            runas=ROOT_USER,
+                            expect=True)
 
     def test_delete_default_sched(self):
         """
@@ -161,8 +164,11 @@ class TestSchedulerInterface(TestInterfaces):
         Set and unset an attribute of a scheduler object .
         """
         # Set an attribute of a scheduler object.
-        self.server.manager(MGR_CMD_SET, SCHED,
-                            {'sched_cycle_length': 1234}, id="TestCommonSched")
+        self.server.manager(MGR_CMD_SET,
+                            SCHED,
+                            {'sched_cycle_length': 1234},
+                            id="TestCommonSched",
+                            expect=True)
 
         # Unset an attribute of a scheduler object.
         self.server.manager(MGR_CMD_UNSET,

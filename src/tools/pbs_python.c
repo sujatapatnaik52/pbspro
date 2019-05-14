@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -154,7 +154,6 @@ pbs_list_head	svr_exechost_periodic_hooks;
 pbs_list_head	svr_exechost_startup_hooks;
 pbs_list_head	svr_execjob_attach_hooks;
 pbs_list_head	svr_execjob_resize_hooks;
-pbs_list_head	svr_execjob_abort_hooks;
 
 char 		*path_hooks;
 char 		*path_hooks_workdir;
@@ -342,18 +341,6 @@ action_sched_user(attribute *pattr, void *pobj, int actmode)
 
 int
 action_queue_partition(attribute *pattr, void *pobj, int actmode)
-{
-	return 0;
-}
-
-int
-action_sched_preempt_order(attribute *pattr, void *pobj, int actmode)
-{
-	return 0;
-}
-
-int
-action_sched_preempt_common(attribute *pattr, void *pobj, int actmode)
 {
 	return 0;
 }
@@ -2247,13 +2234,11 @@ main(int argc, char *argv[], char *envp[])
 	/* won't end up getting ^M */
 	_set_fmode(_O_BINARY);
 
-	if (winsock_init()) {
-		return 1;
-	}
+	winsock_init();
 #endif
 
 	/*the real deal or output pbs_version and exit?*/
-	PRINT_VERSION_AND_EXIT(argc, argv);
+	execution_mode(argc, argv);
 	if (pbs_loadconf(0) == 0) {
 		fprintf(stderr, "Failed to load pbs.conf!\n");
 		return 1;
@@ -2964,7 +2949,6 @@ main(int argc, char *argv[], char *envp[])
 			case HOOK_EVENT_EXECJOB_END:
 			case HOOK_EVENT_EXECJOB_PRETERM:
 			case HOOK_EVENT_EXECJOB_RESIZE:
-			case HOOK_EVENT_EXECJOB_ABORT:
 
 				if ((svrattrl_e=find_svrattrl_list_entry(&event_job,
 					"id", NULL)) != NULL) {
@@ -3149,9 +3133,10 @@ main(int argc, char *argv[], char *envp[])
 
 		set_alarm(hook_alarm, pbs_python_set_interrupt);
 		if (hook_script[0] == '\0') {
-			char *tmp_argv[2];
+			wchar_t *tmp_argv[2];
 
-			tmp_argv[0] = argv[0];
+			tmp_argv[0] = Py_DecodeLocale(argv[0], NULL);
+			/* if (tmp_argv[0] == NULL)  - add this error handling */
 			tmp_argv[1] = NULL;
 
 			rc=Py_Main(1, tmp_argv);
@@ -3346,7 +3331,6 @@ main(int argc, char *argv[], char *envp[])
 			case HOOK_EVENT_EXECJOB_END:
 			case HOOK_EVENT_EXECJOB_PRETERM:
 			case HOOK_EVENT_EXECJOB_LAUNCH:
-			case HOOK_EVENT_EXECJOB_ABORT:
 
 				if (pbs_python_event_get_accept_flag() == FALSE) {
 

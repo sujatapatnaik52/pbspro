@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -95,7 +95,6 @@
 #include "work_task.h"
 #include "attribute.h"
 #include "resource.h"
-#include "pbs_license.h"
 #include "server.h"
 #include "job.h"
 #include "reservation.h"
@@ -142,6 +141,7 @@ extern	void unset_max_job_sequence_id(void);
 extern	void force_qsub_daemons_update(void);
 extern  void unset_node_fail_requeue(void);
 extern pbs_sched *sched_alloc(char *sched_name);
+extern pbs_sched *find_scheduler(char *sched_name);
 extern void sched_free(pbs_sched *psched);
 extern int sched_delete(pbs_sched *psched);
 
@@ -1075,6 +1075,7 @@ mgr_unset_attr(attribute *pattr, attribute_def *pdef, int limit, svrattrl *plist
 	resource *presc;
 	struct pbsnode *pnode = pobj;
 	pbs_db_conn_t *conn = (pbs_db_conn_t *) svr_db_conn;
+	attribute *ppnl;
 	pbs_db_obj_info_t obj;
 	obj.pbs_db_un.pbs_db_job = NULL;
 
@@ -1195,6 +1196,11 @@ mgr_unset_attr(attribute *pattr, attribute_def *pdef, int limit, svrattrl *plist
 			if (presc) {
 				if ((ptype != PARENT_TYPE_SERVER) ||
 					(index != (int)SRV_ATR_resource_cost)) {
+					if (!strcmp(prsdef->rs_name, ND_RESC_LicSignature)) {
+						ppnl = &pnode->nd_attr[(int) ND_ATR_License];
+						if ((ppnl->at_flags & ATR_VFLAG_SET) && (ppnl->at_val.at_char == ND_LIC_TYPE_cloud))
+							clear_attr(ppnl, &node_attr_def[(int) ND_ATR_License]);
+					}
 					if ((ptype == PARENT_TYPE_NODE) && (presc->rs_value.at_flags & ATR_VFLAG_INDIRECT)) {
 							unset_indirect(presc, pdef,
 								limit, plist->al_name,
@@ -1640,26 +1646,22 @@ mgr_server_unset(struct batch_request *preq)
 		} else if (strcasecmp(plist->al_name,
 				ATTR_scheduling) == 0) {
 			if (dflt_scheduler) {
-				/* when unset, scheduling is set to True */
-				dflt_scheduler->sch_attr[SCHED_ATR_scheduling].at_val.at_long = 1;
+				dflt_scheduler->sch_attr[SCHED_ATR_scheduling].at_val.at_long = 0;
 				dflt_scheduler->sch_attr[SCHED_ATR_scheduling].at_flags |=
 						ATR_VFLAG_SET | ATR_VFLAG_MODIFY | ATR_VFLAG_MODCACHE;
 				(void)sched_save_db(dflt_scheduler, SVR_SAVE_FULL);
 			}
-		} else if (strcasecmp(plist->al_name,
+		}  else if (strcasecmp(plist->al_name,
 				ATTR_schediteration) == 0) {
 			if (dflt_scheduler) {
 				svrattrl *tm_list;
-				/* value is 600 so it is of size 4 including terminating character */
-				tm_list = attrlist_create(plist->al_name, NULL, 8);
+				tm_list = attrlist_create(plist->al_name, NULL, 0);
 				if (tm_list == NULL) {
 					reply_badattr(-1, bad_attr, plist, preq);
 				}
 				tm_list->al_link.ll_next->ll_struct = NULL;
-				/* when unset, set scheduler_iteration to 600 seconds */
-				sprintf(tm_list->al_value, "%d", PBS_SCHEDULE_CYCLE);
-				rc = mgr_set_attr(dflt_scheduler->sch_attr, sched_attr_def, SCHED_ATR_LAST, tm_list,
-					MGR_ONLY_SET, &bad_attr, (void *)dflt_scheduler, ATR_ACTION_ALTER);
+				rc = mgr_unset_attr(dflt_scheduler->sch_attr, sched_attr_def, SCHED_ATR_LAST, tm_list,
+					-1, &bad_attr, (void *)dflt_scheduler, PARENT_TYPE_SCHED, INDIRECT_RES_CHECK);
 				if (rc != 0) {
 					free_svrattrl(tm_list);
 					reply_badattr(rc, bad_attr, plist, preq);
@@ -1680,68 +1682,6 @@ mgr_server_unset(struct batch_request *preq)
 	else {
 		if (server.sv_attr[SVR_ATR_DefaultChunk].at_flags & ATR_VFLAG_MODIFY) {
 			(void)deflt_chunk_action(&server.sv_attr[SVR_ATR_DefaultChunk], (void *)&server, ATR_ACTION_ALTER);
-		}
-		/* Now set the default values on some of the unset attributes */
-		plist = (svrattrl *)GET_NEXT(preq->rq_ind.rq_manager.rq_attr);
-		for (plist = (svrattrl *)GET_NEXT(preq->rq_ind.rq_manager.rq_attr);
-			plist != NULL; plist = (struct svrattrl *)GET_NEXT(plist->al_link)) {
-			if (strcasecmp(plist->al_name, ATTR_logevents) == 0) {
-				char dflt_log_event[22];
-				snprintf(dflt_log_event, sizeof(dflt_log_event), "%d", SVR_LOG_DFLT);
-				set_attr_svr(&(server.sv_attr[(int)SRV_ATR_log_events]), &svr_attr_def[(int) SRV_ATR_log_events],
-					     dflt_log_event);
-			}
-			else if (strcasecmp(plist->al_name, ATTR_mailfrom) == 0)
-				set_attr_svr(&(server.sv_attr[(int)SRV_ATR_mailfrom]),
-					    &svr_attr_def[(int)SRV_ATR_mailfrom], PBS_DEFAULT_MAIL);
-			else if (strcasecmp(plist->al_name, ATTR_queryother) == 0)
-				set_attr_svr(&(server.sv_attr[(int)SRV_ATR_query_others]),
-					    &svr_attr_def[(int)SRV_ATR_query_others], "TRUE");
-			else if (strcasecmp(plist->al_name, ATTR_schediteration) == 0)
-				set_attr_svr(&(server.sv_attr[(int)SRV_ATR_scheduler_iteration]),
-					    &svr_attr_def[(int)SRV_ATR_scheduler_iteration], TOSTR(PBS_SCHEDULE_CYCLE));
-			else if(strcasecmp(plist->al_name, ATTR_ResvEnable) == 0)
-				set_attr_svr(&(server.sv_attr[(int)SRV_ATR_ResvEnable]),
-					    &svr_attr_def[(int)SRV_ATR_ResvEnable], "TRUE");
-			else if(strcasecmp(plist->al_name, ATTR_maxarraysize) == 0)
-				set_attr_svr(&(server.sv_attr[(int)SVR_ATR_maxarraysize]),
-					    &svr_attr_def[(int)SVR_ATR_maxarraysize], TOSTR(PBS_MAX_ARRAY_JOB_DFL));
-			else if(strcasecmp(plist->al_name, ATTR_max_concurrent_prov) == 0)
-				set_attr_svr(&(server.sv_attr[(int)SRV_ATR_max_concurrent_prov]),
-					    &svr_attr_def[(int)SRV_ATR_max_concurrent_prov], TOSTR(PBS_MAX_CONCURRENT_PROV));
-			else if(strcasecmp(plist->al_name, ATTR_EligibleTimeEnable) == 0)
-				set_attr_svr(&(server.sv_attr[(int)SRV_ATR_EligibleTimeEnable]),
-					    &svr_attr_def[(int)SRV_ATR_EligibleTimeEnable], "FALSE");
-			else if(strcasecmp(plist->al_name, ATTR_license_linger) == 0)
-				set_attr_svr(&(server.sv_attr[(int)SRV_ATR_license_linger]),
-					    &svr_attr_def[(int)SRV_ATR_license_linger], TOSTR(PBS_LIC_LINGER_TIME));
-			else if(strcasecmp(plist->al_name, ATTR_license_max) == 0)
-				set_attr_svr(&(server.sv_attr[(int)SRV_ATR_license_max]),
-					    &svr_attr_def[(int)SRV_ATR_license_max], TOSTR(PBS_MAX_LICENSING_LICENSES));
-			else if(strcasecmp(plist->al_name, ATTR_license_min) == 0)
-				set_attr_svr(&(server.sv_attr[(int)SRV_ATR_license_min]),
-					    &svr_attr_def[(int)SRV_ATR_license_min], TOSTR(PBS_MIN_LICENSING_LICENSES));
-			else if (strcasecmp(plist->al_name, ATTR_rescdflt) == 0) {
-				if (plist->al_resc != NULL && strcasecmp(plist->al_resc, "ncpus") == 0) {
-					svrattrl *tm_list;
-					tm_list = attrlist_create(plist->al_name, "ncpus", 8);
-					if (tm_list == NULL) {
-						reply_badattr(-1, bad_attr, plist, preq);
-					}
-					tm_list->al_link.ll_next->ll_struct = NULL;
-					sprintf(tm_list->al_value, "%d", 1);
-					rc = mgr_set_attr(server.sv_attr, svr_attr_def, SRV_ATR_LAST, tm_list,
-					NO_USER_SET, &bad_attr, (void *)&server, ATR_ACTION_ALTER);
-					if (rc != 0) {
-						free_svrattrl(tm_list);
-						reply_badattr(rc, bad_attr, plist, preq);
-						return;
-					}
-					free_svrattrl(tm_list);
-				}
-			} else if (strcasecmp(plist->al_name, ATTR_scheduling) == 0)
-				set_attr_svr(&(server.sv_attr[(int)SRV_ATR_scheduling]),
-					    &svr_attr_def[(int) SRV_ATR_scheduling], "TRUE");
 		}
 		svr_save_db(&server, SVR_SAVE_FULL);
 		(void)sprintf(log_buffer, msg_manager, msg_man_uns,
@@ -1770,7 +1710,7 @@ mgr_sched_set(struct batch_request *preq)
 	int	  rc;
 	pbs_sched *psched;
 
-	psched = find_sched(preq->rq_ind.rq_manager.rq_objname);
+	psched = find_scheduler(preq->rq_ind.rq_manager.rq_objname);
 	if (!psched) {
 		req_reject(PBSE_UNKSCHED, 0, preq);
 		return;
@@ -1783,12 +1723,8 @@ mgr_sched_set(struct batch_request *preq)
 	if (rc != 0)
 		reply_badattr(rc, bad_attr, plist, preq);
 	else {
-		if (find_sched_from_sock(preq->rq_conn))
-			set_sched_default(psched, 0, 1);
-		else
-			set_sched_default(psched, 0, 0);
+		set_sched_default(psched, 0);
 		(void)sched_save_db(psched, SVR_SAVE_FULL);
-
 		(void)sprintf(log_buffer, msg_manager, msg_man_set,
 			preq->rq_user, preq->rq_host);
 		log_event(PBSEVENT_ADMIN, PBS_EVENTCLASS_SCHED, LOG_INFO,
@@ -1814,11 +1750,12 @@ mgr_sched_unset(struct batch_request *preq)
 	int	  bad_attr = 0;
 	svrattrl *plist, *tmp_plist;
 	int	  rc;
-	pbs_sched *psched = find_sched(preq->rq_ind.rq_manager.rq_objname);
+	pbs_sched *psched = find_scheduler(preq->rq_ind.rq_manager.rq_objname);
 	if (!psched) {
 		req_reject(PBSE_UNKSCHED, 0, preq);
 		return;
 	}
+
 
 	for (tmp_plist = (svrattrl *)GET_NEXT(preq->rq_ind.rq_manager.rq_attr); tmp_plist; tmp_plist = (struct svrattrl *)GET_NEXT(tmp_plist->al_link)) {
 		if (strcasecmp(tmp_plist->al_name, ATTR_sched_log) == 0 ||
@@ -1853,7 +1790,7 @@ mgr_sched_unset(struct batch_request *preq)
 	else {
 
 		/* save the attributes to disk */
-		set_sched_default(psched, 1, 0);
+		set_sched_default(psched, 1);
 		(void)sched_save_db(psched, SVR_SAVE_FULL);
 		(void)sprintf(log_buffer, msg_manager, msg_man_uns,
 			preq->rq_user, preq->rq_host);
@@ -3416,7 +3353,7 @@ mgr_sched_delete(struct batch_request *preq)
 			}
 		}
 	} else {
-		psched = find_sched(preq->rq_ind.rq_manager.rq_objname);
+		psched = find_scheduler(preq->rq_ind.rq_manager.rq_objname);
 		if (!psched) {
 			req_reject(PBSE_UNKSCHED, 0, preq);
 			return;
@@ -3713,7 +3650,7 @@ mgr_sched_create(struct batch_request *preq)
 		req_reject(PBSE_SCHED_NAME_BIG, 0, preq);
 		return;
 	}
-	if (find_sched(preq->rq_ind.rq_manager.rq_objname)) {
+	if (find_scheduler(preq->rq_ind.rq_manager.rq_objname)) {
 		req_reject(PBSE_SCHEDEXIST, 0, preq);
 		return;
 	}
@@ -3734,7 +3671,7 @@ mgr_sched_create(struct batch_request *preq)
 	} else {
 
 		/* save the attributes to disk */
-		set_sched_default(psched, 0, 0);
+		set_sched_default(psched, 0);
 		(void) sched_save_db(psched, SVR_SAVE_FULL);
 		snprintf(log_buffer, LOG_BUF_SIZE, msg_manager, msg_man_set,
 				preq->rq_user, preq->rq_host);

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -344,10 +344,6 @@ extern "C" {
 #define ATTR_sched_log "sched_log"
 #define ATTR_sched_user "sched_user"
 #define ATTR_sched_state  "state"
-#define ATTR_sched_preempt_queue_prio  "preempt_queue_prio"
-#define ATTR_sched_preempt_prio  "preempt_prio"
-#define ATTR_sched_preempt_order  "preempt_order"
-#define ATTR_sched_preempt_sort  "preempt_sort"
 
 /* additional node "attributes" names */
 
@@ -378,6 +374,8 @@ extern "C" {
 #define ATTR_NODE_poweroff_eligible	"poweroff_eligible"
 #define ATTR_NODE_last_state_change_time	"last_state_change_time"
 #define ATTR_NODE_last_used_time	"last_used_time"
+
+#define ND_RESC_LicSignature "lic_signature"	/* custom resource used for licensing */
 
 /* Resource "attribute" names */
 #define ATTR_RESC_TYPE		"type"
@@ -532,19 +530,6 @@ struct ecl_attribute_errors {
 	struct  ecl_attrerr *ecl_attrerr; /* ecl_attrerr array of structs */
 };
 
-enum preempt_method
-{
-	PREEMPT_METHOD_LOW,
-	PREEMPT_METHOD_SUSPEND,
-	PREEMPT_METHOD_CHECKPOINT,
-	PREEMPT_METHOD_REQUEUE,
-	PREEMPT_METHOD_HIGH
-};
-
-typedef struct preempt_job_info {
-        char	job_id[PBS_MAXSVRJOBID + 1];
-        char	order[PREEMPT_METHOD_HIGH + 1];
-} preempt_job_info;
 
 /* Resource Reservation Information */
 typedef int	pbs_resource_t;	/* resource reservation handle */
@@ -657,7 +642,6 @@ DECLDIR int pbs_terminate(int, int, char *);
 
 DECLDIR char *pbs_modify_resv(int, char*, struct attropl *, char *);
 
-DECLDIR preempt_job_info *pbs_preempt_jobs(int, char **);
 #else
 
 #ifndef __PBS_ERRNO
@@ -677,8 +661,6 @@ extern int pbs_asyrunjob(int, char *, char *, char *);
 
 extern int pbs_alterjob(int, char *, struct attrl *, char *);
 
-extern int pbs_confirmresv(int, char *, char *, unsigned long, char *);
-
 extern int pbs_connect(char *);
 
 extern int pbs_connect_extend(char *, char *);
@@ -694,8 +676,6 @@ extern int pbs_deljob(int, char *, char *);
 extern char *pbs_geterrmsg(int);
 
 extern int pbs_holdjob(int, char *, char *, char *);
-
-extern int pbs_loadconf(int);
 
 extern char *pbs_locjob(int, char *, char *);
 
@@ -752,51 +732,7 @@ extern int pbs_delresv(int, char *, char *);
 extern int pbs_terminate(int, int, char *);
 
 extern char *pbs_modify_resv(int, char*, struct attropl *, char *);
-
-extern preempt_job_info *pbs_preempt_jobs(int, char **);
 #endif /* _USRDLL */
-
-/* IFL function pointers */
-extern int (*pfn_pbs_asyrunjob)(int, char *, char *, char *);
-extern int (*pfn_pbs_alterjob)(int, char *, struct attrl *, char *);
-extern int (*pfn_pbs_confirmresv)(int, char *, char *, unsigned long, char *);
-extern int (*pfn_pbs_connect)(char *);
-extern int (*pfn_pbs_connect_extend)(char *, char *);
-extern char *(*pfn_pbs_default)(void);
-extern int (*pfn_pbs_deljob)(int, char *, char *);
-extern int (*pfn_pbs_disconnect)(int);
-extern char *(*pfn_pbs_geterrmsg)(int);
-extern int (*pfn_pbs_holdjob)(int, char *, char *, char *);
-extern int (*pfn_pbs_loadconf)(int);
-extern char *(*pfn_pbs_locjob)(int, char *, char *);
-extern int (*pfn_pbs_manager)(int, int, int, char *, struct attropl *, char *);
-extern int (*pfn_pbs_movejob)(int, char *, char *, char *);
-extern int (*pfn_pbs_msgjob)(int, char *, int, char *, char *);
-extern int (*pfn_pbs_orderjob)(int, char *, char *, char *);
-extern int (*pfn_pbs_rerunjob)(int, char *, char *);
-extern int (*pfn_pbs_rlsjob)(int, char *, char *, char *);
-extern int (*pfn_pbs_runjob)(int, char *, char *, char *);
-extern char **(*pfn_pbs_selectjob)(int, struct attropl *, char *);
-extern int (*pfn_pbs_sigjob)(int, char *, char *, char *);
-extern void (*pfn_pbs_statfree)(struct batch_status *);
-extern struct batch_status *(*pfn_pbs_statrsc)(int, char *, struct attrl *, char *);
-extern struct batch_status *(*pfn_pbs_statjob)(int, char *, struct attrl *, char *);
-extern struct batch_status *(*pfn_pbs_selstat)(int, struct attropl *, struct attrl *, char *);
-extern struct batch_status *(*pfn_pbs_statque)(int, char *, struct attrl *, char *);
-extern struct batch_status *(*pfn_pbs_statserver)(int, struct attrl *, char *);
-extern struct batch_status *(*pfn_pbs_statsched)(int, struct attrl *, char *);
-extern struct batch_status *(*pfn_pbs_stathost)(int, char *, struct attrl *, char *);
-extern struct batch_status *(*pfn_pbs_statnode)(int, char *, struct attrl *, char *);
-extern struct batch_status *(*pfn_pbs_statvnode)(int, char *, struct attrl *, char *);
-extern struct batch_status *(*pfn_pbs_statresv)(int, char *, struct attrl *, char *);
-extern struct batch_status *(*pfn_pbs_stathook)(int, char *, struct attrl *, char *);
-extern struct ecl_attribute_errors * (*pfn_pbs_get_attributes_in_error)(int);
-extern char *(*pfn_pbs_submit)(int, struct attropl *, char *, char *, char *);
-extern char *(*pfn_pbs_submit_resv)(int, struct attropl *, char *);
-extern int (*pfn_pbs_delresv)(int, char *, char *);
-extern int (*pfn_pbs_terminate)(int, int, char *);
-extern preempt_job_info *(*pfn_pbs_preempt_jobs)(int, char**);
-
 #ifdef	__cplusplus
 }
 #endif

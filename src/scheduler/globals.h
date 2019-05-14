@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -51,7 +51,7 @@ extern const struct sort_conv sort_convert[];
 
 /* used to convert string into enum in parsing */
 extern const struct enum_conv smp_cluster_info[];
-extern const struct enum_conv preempt_prio_info[];
+extern const struct enum_conv prempt_prio_info[];
 
 /* info to get from mom */
 extern const char *res_to_get[];
@@ -84,6 +84,7 @@ extern char path_log[_MAX_PATH];
 extern char path_log[_POSIX_PATH_MAX];
 #endif
 extern int dflt_sched;
+
 
 /**
  * @brief

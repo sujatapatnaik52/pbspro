@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -76,8 +76,9 @@ class Test_acl_host_moms(TestFunctional):
         self.assertTrue(self.remote_host)
 
         self.server.manager(MGR_CMD_SET, SERVER, {
-                            'acl_hosts': self.hostB})
-        self.server.manager(MGR_CMD_SET, SERVER, {'acl_host_enable': True})
+                            'acl_hosts': self.hostB}, expect=True)
+        self.server.manager(MGR_CMD_SET, SERVER, {
+                            'acl_host_enable': True}, expect=True)
 
         self.pbsnodes_cmd = os.path.join(self.server.pbs_conf[
             'PBS_EXEC'], 'bin', 'pbsnodes') + ' -av'
@@ -92,7 +93,8 @@ class Test_acl_host_moms(TestFunctional):
         """
 
         self.server.manager(MGR_CMD_SET, SERVER, {
-                            'acl_host_moms_enable': True})
+                            'acl_host_moms_enable': True}, expect=True)
+
         ret = self.du.run_cmd(self.remote_host, cmd=self.pbsnodes_cmd)
         self.assertEqual(ret['rc'], 0)
 
@@ -105,7 +107,7 @@ class Test_acl_host_moms(TestFunctional):
         host is forbidden to run pbsnodes and qstat.
         """
         self.server.manager(MGR_CMD_SET, SERVER, {
-                            'acl_host_moms_enable': False})
+                            'acl_host_moms_enable': False}, expect=True)
 
         ret = self.du.run_cmd(self.remote_host, cmd=self.pbsnodes_cmd)
         self.assertNotEqual(ret['rc'], 0)
@@ -135,7 +137,7 @@ e.accept()
             hook_name, a, hook_body, overwrite=True)
 
         self.server.manager(MGR_CMD_SET, SERVER, {
-                            'acl_host_moms_enable': False})
+                            'acl_host_moms_enable': False}, expect=True)
 
         j = Job()
         j.set_sleep_time(10)
@@ -144,7 +146,7 @@ e.accept()
         self.server.expect(JOB, {'job_state': 'H'}, id=jid)
 
         self.server.manager(MGR_CMD_SET, SERVER, {
-                            'acl_host_moms_enable': True})
+                            'acl_host_moms_enable': True}, expect=True)
         j = Job()
         j.set_sleep_time(10)
         jid = self.server.submit(j)
@@ -163,11 +165,12 @@ e.accept()
         self.server.manager(MGR_CMD_CREATE, QUEUE, queue_params, id='tempq')
 
         self.server.manager(MGR_CMD_SET, SERVER, {
-                            'acl_host_moms_enable': True})
+                            'acl_host_moms_enable': True}, expect=True)
         # Setting acl_host_enable on queue overrides acl_host_moms_enable
         # on server and requires acl_hosts to include remote host's name.
 
-        self.server.manager(MGR_CMD_SET, SERVER, {'flatuid': True})
+        self.server.manager(MGR_CMD_SET, SERVER, {
+                            'flatuid': True}, expect=True)
         # Setting flatuid lets us submit jobs on server as a remote
         # host without creating a seperate user account there.
         qsub_cmd_on_queue = os.path.join(self.server.pbs_conf[

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -60,7 +60,6 @@ extern "C" {
 #include "constant.h"
 #include "config.h"
 #include "pbs_bitmap.h"
-#include "pbs_share.h"
 #ifdef NAS
 #include "site_queue.h"
 #endif
@@ -96,7 +95,6 @@ struct node_bucket;
 struct bucket_bitpool;
 struct chunk_map;
 struct node_bucket_count;
-struct preempt_job_st;
 
 
 typedef struct state_count state_count;
@@ -132,7 +130,6 @@ typedef struct node_bucket node_bucket;
 typedef struct bucket_bitpool bucket_bitpool;
 typedef struct chunk_map chunk_map;
 typedef struct node_bucket_count node_bucket_count;
-typedef struct preempt_job_st preempt_job_st;
 
 #ifdef NAS
 /* localmod 034 */
@@ -300,7 +297,6 @@ struct server_info
 	unsigned enforce_prmptd_job_resumption:1;/* If set, preempted jobs will resume after the preemptor finishes */
 	unsigned preempt_targets_enable:1;/* if preemptable limit targets are enabled */
 	unsigned use_hard_duration:1;	/* use hard duration when creating the calendar */
-	unsigned pset_metadata_stale:1;	/* The placement set meta data is stale and needs to be regenerated before the next use */
 	char *name;			/* name of server */
 	struct schd_resource *res;	/* list of resources */
 	void *liminfo;			/* limit storage information */
@@ -331,7 +327,7 @@ struct server_info
 	/* the number of running jobs in each preempt level
 	 * all jobs in preempt_count[NUM_PPRIO] are unknown preempt status's
 	 */
-	int preempt_count[NUM_PPRIO + 1];
+	int preempt_count[NUM_PPRIO+1];
 
 	counts *group_counts;		/* group resource and running counts */
 	counts *project_counts;		/* project resource and running counts */
@@ -946,6 +942,7 @@ struct sort_conv
 	enum sort_order order;
 };
 
+
 /* structure to convert an enum to a string or back again */
 struct enum_conv
 {
@@ -953,17 +950,26 @@ struct enum_conv
 	const char *str;
 };
 
+
 struct timegap
 {
 	time_t from;
 	time_t to;
 };
 
+struct preempt_ordering
+{
+	unsigned high_range;		/* high end of the walltime range */
+	unsigned low_range;		/* low end of the walltime range */
+
+
+	enum preempt_method order[PREEMPT_METHOD_HIGH];/* the order to preempt jobs */
+};
+
 struct dyn_res
 {
 	char *res;
-	char *command_line;
-	char *script_name;
+	char *program;
 };
 
 struct peer_queue
@@ -1089,8 +1095,8 @@ struct config
 	int preempt_low;			/* lowest preemption level */
 	int preempt_normal;			/* preempt priority of normal_jobs */
 	/* order to preempt jobs */
+	struct preempt_ordering preempt_order[PREEMPT_ORDER_MAX+1];
 	struct sort_info *prime_node_sort;	/* node sorting primetime */
-	struct preempt_ordering preempt_order[PREEMPT_ORDER_MAX + 1];
 	struct sort_info *non_prime_node_sort;	/* node sorting non primetime */
 	struct dyn_res dynamic_res[MAX_SERVER_DYN_RES]; /* for server_dyn_res */
 	struct peer_queue peer_queues[NUM_PEERS];/* peer local -> remote queue map */
@@ -1108,6 +1114,7 @@ struct config
 	/* selection criteria of nodes for provisioning */
 	enum provision_policy_types provision_policy;
 };
+
 
 struct rescheck
 {

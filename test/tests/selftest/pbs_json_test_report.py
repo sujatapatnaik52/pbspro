@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -70,16 +70,7 @@ class TestJSONReport(TestSelf):
             'suitedoc': '\n    This test suite contains smoke tests of PBS\n',
             'tags': ['smoke'],
             'file': 'tests/pbs_smoketest.py',
-            'module': 'tests.pbs_smoketest',
-            'requirements': {
-                "num_moms": 1,
-                "no_comm_on_mom": True,
-                "no_comm_on_server": False,
-                "num_servers": 1,
-                "no_mom_on_server": False,
-                "num_comms": 1,
-                "num_clients": 1
-            }
+            'module': 'tests.pbs_smoketest'
         }
         verify_data = {
             'test_keys': ["command", "user", "product_version", "run_id",
@@ -99,25 +90,13 @@ class TestJSONReport(TestSelf):
         }
         field_values = {
             'machine_info_name': test_data['machinfo'].keys()[0],
-            'testresult_status': test_data['status'],
-            'requirements': {
-                "num_moms": 1,
-                "no_comm_on_mom": True,
-                "no_comm_on_server": False,
-                "num_servers": 1,
-                "no_mom_on_server": False,
-                "num_comms": 1,
-                "num_clients": 1
-            }
+            'testresult_status': test_data['status']
         }
         faulty_fields = []
         faulty_values = []
         test_cmd = "pbs_benchpress -t SmokeTest.test_submit_job"
         jsontest = PTLJsonData(command=test_cmd)
         jdata = jsontest.get_json(data=test_data, prev_data=None)
-        tsname = test_data['suite']
-        tcname = test_data['testcase']
-        vdata = jdata['testsuites'][tsname]['testcases'][tcname]
         for k in verify_data['test_keys']:
             if k not in jdata:
                 faulty_fields.append(k)
@@ -152,11 +131,11 @@ class TestJSONReport(TestSelf):
                 if jdata['machine_info'].keys()[0] != v:
                     faulty_values.append(k)
             if k == 'testresult_status':
+                tsname = test_data['suite']
+                tcname = test_data['testcase']
+                vdata = jdata['testsuites'][tsname]['testcases'][tcname]
                 if vdata['results']['status'] != v:
                     faulty_values.append(k)
-            if k == 'requirements':
-                if vdata['requirements'] != v:
-                    faulty_values.append(r)
         if (faulty_fields or faulty_values):
             raise AssertionError("Faulty fields or values",
                                  (faulty_fields, faulty_values))

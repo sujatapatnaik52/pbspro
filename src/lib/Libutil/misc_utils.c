@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -70,12 +70,9 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <libpbs.h>
 #include <limits.h>
 #include <pbs_ifl.h>
 #include <pbs_internal.h>
-#include <pbs_sched.h>
-#include <pbs_share.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <pwd.h>
@@ -1416,107 +1413,3 @@ get_mem_info(void) {
 }
 #endif /* malloc_info */
 #endif /* WIN32 */
-
-/**
- * @brief
- *	Return a copy of 'str' where non-printing characters
- *	(except the ones listed in the local variable 'special_char') are
- *	shown in ^<translated_char> notation.
- *
- * @param[in]	str - input string
- *
- * @return char *
- *
- * @note
- * 	Do not free the return value - it's in a fixed memory area that
- *	will get overwritten the next time the function is called.
- *      So best to use the result immediately or strdup() it.
- *
- *	This will return the original (non-translated) 'str' value if 
- *	an error was encounted, like a realloc() error.
- */
-char *
-show_nonprint_chars(char *str)
-{
-#ifndef WIN32
-	static char	*locbuf = NULL;
-	static size_t	locbuf_size = 0;
-	char		*buf, *buf2;
-	size_t		nsize;
-	int		ch;
-	char		special_char[] = "\n\t";
-
-	if ((str == NULL) || (str[0] == '\0'))
-		return str;
-
-	nsize = (strlen(str) * 2) + 1;
-	if (nsize > locbuf_size) {
-		char *tmpbuf;
-		if ((tmpbuf = realloc(locbuf, nsize)) == NULL)
-			return str;
-		locbuf = tmpbuf;
-		locbuf_size = nsize;
-	}
-
-	locbuf[0] = '\0';
-	buf = str;
-	buf2 = locbuf;
-	while ((ch = *buf++) != '\0') {
-		if ((ch < 32) && !char_in_set(ch, special_char)) {
-			*buf2++ = '^';
-			*buf2++ = ch + 64;
-		} else {
-			*buf2++ = ch;
-		}
-	}
-	*buf2 = '\0';
-	return (locbuf);
-#else
-	return (str);
-#endif
-}
-
-/**
- * @brief
- *  get_preemption_order - deduce the preemption ordering to be used for a job
- *
- *  @param[in]	porder - static value of preempt order from the sched object
- *  						this array is assumed to be of size PREEMPT_ORDER_MAX
- *  @param[in]	req - amount of requested time for the job
- *  @param[in]	used - amount of used time by the job
- *
- *  @return	struct preempt_ordering *
- *  @retval	preempt ordering for the job
- *  @retval	NULL if error
- */
-struct preempt_ordering *
-get_preemption_order(struct preempt_ordering *porder, int req, int used)
-{
-	int i;
-	int percent_left = 0;
-	struct preempt_ordering *po = NULL;
-
-	if (porder == NULL)
-		return NULL;
-
-	po = &porder[0];
-	if (req < 0 || used < 0)
-		return po;
-
-	/* check if we have more then one range... no need to choose if not */
-	if (porder[1].high_range != 0) {
-		percent_left = 100 - (used / req) * 100;
-		if (percent_left < 0)
-			percent_left = 1;
-
-		for (i = 0; i < PREEMPT_ORDER_MAX; i++) {
-			if (percent_left <= porder[i].high_range
-					&& percent_left >= porder[i].low_range) {
-				po = &porder[i];
-				break;
-			}
-		}
-	}
-
-	return po;
-}

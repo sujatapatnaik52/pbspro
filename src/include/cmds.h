@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -78,6 +78,6 @@ extern int	parse_jobid(char *, char **, char **, char **);
 extern int	parse_stage_name(char *, char *, char *, char *);
 extern void	prt_error(char *, char *, int);
 extern int	cnt2mom(char *server);
-extern int	check_max_job_sequence_id(struct batch_status *);
-extern void	set_attr_error_exit(struct attrl **, char *, char *);
-extern void	set_attr_resc_error_exit(struct attrl **, char *, char *, char *);
+extern void	set_attr_resc(struct attrl **, char *, char *, char *);
+extern int	check_max_job_sequence_id(char *);
+

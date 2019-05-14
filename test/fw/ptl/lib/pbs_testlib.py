@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -3480,11 +3480,11 @@ class PBSService(PBSObject):
         self.logutils = None
         self.logfile = None
         self.acctlogfile = None
+        self.pid = None
         self.pbs_conf = {}
         self.pbs_env = {}
         self._is_local = True
         self.launcher = None
-        self.dyn_created_files = []
 
         PBSObject.__init__(self, name, attrs, defaults)
 
@@ -3696,7 +3696,10 @@ class PBSService(PBSObject):
         pid = None
 
         if inst is not None:
-            pid = self._get_pid(inst)
+            if inst.pid is not None:
+                pid = inst.pid
+            else:
+                pid = self._get_pid(inst)
 
         if procname is not None:
             pi = self.pu.get_proc_info(self.hostname, procname)
@@ -3745,24 +3748,25 @@ class PBSService(PBSObject):
             path = os.path.join(self.pbs_conf['PBS_HOME'], priv, lock)
         rv = self.du.cat(self.hostname, path, sudo=True, logerr=False)
         if ((rv['rc'] == 0) and (len(rv['out']) > 0)):
-            pid = rv['out'][0].strip()
+            self.pid = rv['out'][0].strip()
         else:
-            pid = None
-        return pid
+            self.pid = None
+        return self.pid
 
-    def _validate_pid(self, inst):
+    def _update_pid(self, inst):
         """
-        Get pid and validate
+        update pid of given inst
+
         :param inst: inst to update pid
         :type inst: object
         """
         for i in range(30):
             live_pids = self._all_instance_pids(inst)
-            pid = self._get_pid(inst)
-            if live_pids is not None and pid in live_pids:
-                return pid
+            inst.pid = self._get_pid(inst)
+            if live_pids is not None and inst.pid in live_pids:
+                return
             time.sleep(1)
-        return None
+        inst.pid = None
 
     def _start(self, inst=None, args=None, cmd_map=None, launcher=None):
         """
@@ -3844,8 +3848,8 @@ class PBSService(PBSObject):
         ret_msg = True
         if ret['err']:
             ret_msg = ret['err']
-        pid = self._validate_pid(inst)
-        if pid is None:
+        self._update_pid(inst)
+        if inst.pid is None:
             raise PbsServiceError(rv=False, rc=-1, msg="Could not find PID")
         return ret_msg
 
@@ -3866,6 +3870,7 @@ class PBSService(PBSObject):
             time.sleep(1)
             num_seconds += 1
             chk_pid = self._all_instance_pids(inst)
+        inst.pid = None
         return True
 
     def initialise_service(self):
@@ -4081,7 +4086,8 @@ class PBSService(PBSObject):
                 self.logger.log(level, infomsg + '... OK')
                 break
             else:
-                if n != 'ALL':
+                if ((starttime is not None or endtime is not None) and
+                        n != 'ALL'):
                     if attempt > max_attempts:
                         # We will do one last attempt to match in case the
                         # number of lines that were provided did not capture
@@ -4303,15 +4309,6 @@ class PBSService(PBSObject):
         return (self.__class__.__name__ + '/' + self.pbs_conf_file + '@' +
                 self.hostname)
 
-    def cleanup_files(self):
-        """
-        This function removes any dynamic resource files created by server/mom
-        objects
-        """
-        for dyn_files in self.dyn_created_files:
-            self.du.rm(path=dyn_files, sudo=True, force=True)
-        self.dyn_created_files = []
-
 
 class Comm(PBSService):
 
@@ -4410,10 +4407,7 @@ class Comm(PBSService):
         else:
             try:
                 rv = self.pi.start_comm()
-                pid = self._validate_pid(self)
-                if pid is None:
-                    raise PbsServiceError(rv=False, rc=-1,
-                                          msg="Could not find PID")
+                self._update_pid(self)
             except PbsInitServicesError as e:
                 raise PbsServiceError(rc=e.rc, rv=e.rv, msg=e.msg)
             return rv
@@ -4432,6 +4426,7 @@ class Comm(PBSService):
         else:
             try:
                 self.pi.stop_comm()
+                self.pid = None
             except PbsInitServicesError as e:
                 raise PbsServiceError(rc=e.rc, rv=e.rv, msg=e.msg)
             return True
@@ -4573,10 +4568,21 @@ class Server(PBSService):
     logger = logging.getLogger(__name__)
 
     dflt_attributes = {
+        ATTR_scheduling: "True",
         ATTR_dfltque: "workq",
-        ATTR_nodefailrq: "310",
-        ATTR_FlatUID: 'True',
+        ATTR_logevents: "511",
+        ATTR_mailfrom: "adm",
+        ATTR_queryother: "True",
+        ATTR_rescdflt + ".ncpus": "1",
         ATTR_DefaultChunk + ".ncpus": "1",
+        ATTR_schedit: "600",
+        ATTR_ResvEnable: "True",
+        ATTR_nodefailrq: "310",
+        ATTR_maxarraysize: "10000",
+        ATTR_license_linger: "3600",
+        ATTR_EligibleTimeEnable: "False",
+        ATTR_max_concurrent_prov: "5",
+        ATTR_FlatUID: 'True',
     }
 
     dflt_sched_name = 'default'
@@ -4923,10 +4929,7 @@ class Server(PBSService):
         else:
             try:
                 rv = self.pi.start_server()
-                pid = self._validate_pid(self)
-                if pid is None:
-                    raise PbsServiceError(rv=False, rc=-1,
-                                          msg="Could not find PID")
+                self._update_pid(self)
             except PbsInitServicesError as e:
                 raise PbsServiceError(rc=e.rc, rv=e.rv, msg=e.msg)
         if self.isUp():
@@ -4948,6 +4951,7 @@ class Server(PBSService):
         else:
             try:
                 self.pi.stop_server()
+                self.pid = None
             except PbsInitServicesError as e:
                 raise PbsServiceError(rc=e.rc, rv=e.rv, msg=e.msg,
                                       post=self._disconnect, conn=self._conn,
@@ -5029,8 +5033,7 @@ class Server(PBSService):
 
     def revert_to_defaults(self, reverthooks=True, revertqueues=True,
                            revertresources=True, delhooks=True,
-                           delqueues=True, delscheds=True, delnodes=True,
-                           server_stat=None):
+                           delqueues=True, delscheds=True, server_stat=None):
         """
         reset server attributes back to out of box defaults.
 
@@ -5059,8 +5062,6 @@ class Server(PBSService):
                           The sched_priv and sched_logs directories will be
                           deleted.
         :type delscheds: bool
-        :param delnodes: If True all vnodes are deleted
-        :type delnodes: bool
         :returns: True upon success and False if an error is
                   encountered.
         :raises: PbsStatusError or PbsManagerError
@@ -5069,10 +5070,9 @@ class Server(PBSService):
         ignore_attrs += [ATTR_status, ATTR_total, ATTR_count]
         ignore_attrs += [ATTR_rescassn, ATTR_FLicenses, ATTR_SvrHost]
         ignore_attrs += [ATTR_license_count, ATTR_version, ATTR_managers]
-        ignore_attrs += [ATTR_pbs_license_info, ATTR_power_provisioning]
+        ignore_attrs += [ATTR_pbs_license_info,  ATTR_power_provisioning]
         unsetlist = []
         setdict = {}
-        skip_site_hooks = ['pbs_cgroups']
         self.logger.info(self.logprefix +
                          'reverting configuration to defaults')
         self.cleanup_jobs_and_reservations()
@@ -5107,11 +5107,8 @@ class Server(PBSService):
                 reverthooks = False
             hooks = self.status(HOOK, level=logging.DEBUG)
             hooks = [h['id'] for h in hooks]
-            for h in skip_site_hooks:
-                if h in hooks:
-                    hooks.remove(h)
             if len(hooks) > 0:
-                self.manager(MGR_CMD_DELETE, HOOK, id=hooks)
+                self.manager(MGR_CMD_DELETE, HOOK, id=hooks, expect=True)
         if delqueues:
             revertqueues = False
             queues = self.status(QUEUE, level=logging.DEBUG)
@@ -5125,11 +5122,11 @@ class Server(PBSService):
                                          node['id'])
                 except:
                     pass
-                self.manager(MGR_CMD_DELETE, QUEUE, id=queues)
+                self.manager(MGR_CMD_DELETE, QUEUE, id=queues, expect=True)
             a = {ATTR_qtype: 'Execution',
                  ATTR_enable: 'True',
                  ATTR_start: 'True'}
-            self.manager(MGR_CMD_CREATE, QUEUE, a, id='workq')
+            self.manager(MGR_CMD_CREATE, QUEUE, a, id='workq', expect=True)
             setdict.update({ATTR_dfltque: 'workq'})
         if delscheds:
             self.manager(MGR_CMD_LIST, SCHED)
@@ -5146,12 +5143,6 @@ class Server(PBSService):
                                recursive=True, force=True)
                     self.manager(MGR_CMD_DELETE, SCHED, id=name)
 
-        if delnodes:
-            try:
-                self.manager(MGR_CMD_DELETE, VNODE, id="@default")
-            except PbsManagerError as e:
-                if "Unknown node" not in e.msg[0]:
-                    raise
         if reverthooks:
             if self.platform == 'cray' or self.platform == 'craysim':
                 if self.du.cmp(self.hostname, self.dflt_mpp_hook,
@@ -5163,7 +5154,8 @@ class Server(PBSService):
             hooks = [h['id'] for h in hooks]
             a = {ATTR_enable: 'false'}
             if len(hooks) > 0:
-                self.manager(MGR_CMD_SET, MGR_OBJ_HOOK, a, hooks)
+                self.manager(MGR_CMD_SET, MGR_OBJ_HOOK, a, hooks,
+                             expect=True)
         if revertqueues:
             self.status(QUEUE, level=logging.DEBUG)
             queues = []
@@ -5176,10 +5168,10 @@ class Server(PBSService):
                 qobj.revert_to_defaults()
                 queues.append(qname)
                 a = {ATTR_enable: 'false'}
-                self.manager(MGR_CMD_SET, QUEUE, a, id=queues)
+                self.manager(MGR_CMD_SET, QUEUE, a, id=queues, expect=True)
             a = {ATTR_enable: 'True', ATTR_start: 'True'}
             self.manager(MGR_CMD_SET, MGR_OBJ_QUEUE, a,
-                         id=server_stat[ATTR_dfltque])
+                         id=server_stat[ATTR_dfltque], expect=True)
         if len(setdict) > 0:
             self.manager(MGR_CMD_SET, MGR_OBJ_SERVER, setdict)
         if revertresources:
@@ -5189,7 +5181,7 @@ class Server(PBSService):
             except:
                 rescs = []
             if len(rescs) > 0:
-                self.manager(MGR_CMD_DELETE, RSC, id=rescs)
+                self.manager(MGR_CMD_DELETE, RSC, id=rescs, expect=True)
         return True
 
     def save_configuration(self, outfile, mode='a'):
@@ -6435,7 +6427,8 @@ class Server(PBSService):
         return bs
 
     def manager(self, cmd, obj_type, attrib=None, id=None, extend=None,
-                level=logging.INFO, sudo=None, runas=None, logerr=True):
+                expect=False, max_attempts=None, level=logging.INFO,
+                sudo=None, runas=None, logerr=True):
         """
         issue a management command to the server, e.g to set an
         attribute
@@ -6456,6 +6449,13 @@ class Server(PBSService):
         :param extend: Optional extension to the IFL call. see
                        pbs_ifl.h
         :type extend: str or None
+        :param expect: If set to True, query the server expecting
+                       the value to be\ accurately reflected.
+                       Defaults to False
+        :type expect: bool
+        :param max_attempts: Sets a maximum number of attempts to
+                             call expect with.
+        :type max_attempts: int
         :param level: logging level
         :param sudo: If True, run the manager command as super user.
                      Defaults to None. Some attribute settings
@@ -6471,7 +6471,21 @@ class Server(PBSService):
                        i.e. silent mode
         :type logerr: bool
         :raises: PbsManagerError
+        :returns: On success:
+                - if expect is False, return code of qmgr/pbs_manager
+                - if expect is True, 0 for success
+        :raises: On Error/Failure:
+                - PbsManagerError if qmgr/pbs_manager() failed
+                - PtlExpectError if expect() failed
         """
+
+        # Currently, expect() doesn't validate the values being set for
+        # create operations.
+        # For unset operations, expect does not handle attributes that are
+        # reset to default after unset.
+        # So, only call expect automatically for set and delete operations.
+        if cmd in (MGR_CMD_SET, MGR_CMD_DELETE):
+            expect = True
 
         if isinstance(id, str):
             oid = id.split(',')
@@ -6521,14 +6535,8 @@ class Server(PBSService):
                                 op = '='
                             # handle string arrays as double quotes if
                             # not already set:
-                            if isinstance(v, str):
-                                if ',' in v and v[0] != '"':
-                                    v = '"' + v + '"'
-                                elif any((c in v) for c in set(', \'\n"')):
-                                    if '"' in v:
-                                        v = "'%s'" % v
-                                    else:
-                                        v = '"%s"' % v
+                            if isinstance(v, str) and ',' in v and v[0] != '"':
+                                v = '"' + v + '"'
                             kvpairs += [str(k) + op + str(v)]
                         if kvpairs:
                             execcmd += [",".join(kvpairs)]
@@ -6669,15 +6677,45 @@ class Server(PBSService):
 
         if c is not None:
             self._disconnect(c)
-        if cmd == MGR_CMD_SET and 'scheduling' in attrib:
-            if attrib['scheduling'] in PTL_FALSE:
-                if obj_type == SERVER:
-                    sname = 'default'
-                else:
-                    sname = id
-                # Default max cycle length is 1200 seconds (20m)
-                self.expect(SCHED, {'state': 'scheduling'}, op=NE, id=sname,
-                            interval=1, max_attempts=1200)
+
+        if expect:
+            offset = None
+            attrop = PTL_OR
+            if obj_type in (NODE, HOST):
+                obj_type = VNODE
+            if obj_type in (VNODE, QUEUE):
+                offset = 0.5
+            if cmd in PBS_CMD_TO_OP:
+                op = PBS_CMD_TO_OP[cmd]
+            else:
+                op = EQ
+
+            # If scheduling is set to false then check for
+            # state to be idle
+            if attrib and isinstance(attrib,
+                                     dict) and 'scheduling' in attrib.keys():
+                if str(attrib['scheduling']) in PTL_FALSE:
+                    if obj_type == MGR_OBJ_SERVER:
+                        state_val = 'Idle'
+                        state_attr = ATTR_status
+                    else:   # SCHED object
+                        state_val = 'idle'
+                        state_attr = 'state'
+                    attrib[state_attr] = state_val
+                    attrop = PTL_AND
+
+            if oid is None:
+                self.expect(obj_type, attrib, op=op,
+                            max_attempts=max_attempts,
+                            attrop=attrop, offset=offset)
+
+            else:
+                for i in oid:
+                    self.expect(obj_type, attrib, i, op=op,
+                                max_attempts=max_attempts,
+                                attrop=attrop, offset=offset)
+            rc = 0  # If we've reached here then expect passed, so return 0
+
         return rc
 
     def sigjob(self, jobid=None, signal=None, extend=None, runas=None,
@@ -8016,10 +8054,10 @@ class Server(PBSService):
         if c:
             self._disconnect(c)
 
-    def expect(self, obj_type, attrib=None, id=None, op=EQ, attrop=PTL_AND,
+    def expect(self, obj_type, attrib=None, id=None, op=EQ, attrop=PTL_OR,
                attempt=0, max_attempts=None, interval=None, count=None,
                extend=None, offset=0, runas=None, level=logging.INFO,
-               msg=None, trigger_sched_cycle=True):
+               msg=None):
         """
         expect an attribute to match a given value as per an
         operation.
@@ -8059,9 +8097,6 @@ class Server(PBSService):
                     message will be used while raising
                     PtlExpectError.
         :type msg: str or None
-        :param trigger_sched_cycle: True by default can be set to False if
-                          kicksched_action is not supposed to be called
-        :type trigger_sched_cycle: Boolean
 
         :returns: True if attributes are as expected
 
@@ -8297,15 +8332,15 @@ class Server(PBSService):
                 time.sleep(interval)
 
                 # run custom actions defined for this object type
-                if trigger_sched_cycle and self.actions:
+                if self.actions:
                     for act_obj in self.actions.get_actions_by_type(obj_type):
                         if act_obj.enabled:
                             act_obj.action(self, obj_type, attrib, id, op,
                                            attrop)
+
                 return self.expect(obj_type, attrib, id, op, attrop,
                                    attempt + 1, max_attempts, interval, count,
-                                   extend, level=level, msg=" ".join(msg),
-                                   trigger_sched_cycle=False)
+                                   extend, level=level, msg=" ".join(msg))
 
         self.logger.log(level, prefix + " ".join(msg) + ' ...  OK')
         return True
@@ -8337,27 +8372,7 @@ class Server(PBSService):
             delete_xt += 'deletehist'
             select_xt = 'x'
         job_ids = self.select(extend=select_xt)
-
-        # Make sure the current user is a manager. Some tests might have
-        # unset the mangers attribute. Ignore 'Duplicate entry in the list'
-        # error if the current user was already a manager
-        current_user = pwd.getpwuid(os.getuid())[0]
-        a = {ATTR_managers: (INCR, current_user + '@*')}
-        try:
-            self.manager(MGR_CMD_SET, SERVER, a, sudo=True)
-        except PbsManagerError:
-            pass
-
-        # Turn off scheduling so jobs don't start when trying to
-        # delete. Restore the orignial scheduling state
-        # once jobs are deleted.
-        sched_state = self.status(SERVER, {'scheduling'})[0]['scheduling']
-        self.manager(MGR_CMD_SET, SERVER, {'scheduling': 'False'})
-        num_jobs = len(job_ids)
-        if num_jobs >= 100:
-            self._cleanup_large_num_jobs(job_ids, runas=runas)
-
-        if num_jobs > 0 and num_jobs < 100:
+        if len(job_ids) > 0:
             try:
                 self.deljob(id=job_ids, extend=delete_xt, runas=runas,
                             wait=True)
@@ -8366,9 +8381,6 @@ class Server(PBSService):
         rv = self.expect(JOB, {'job_state': 0}, count=True, op=SET)
         if not rv:
             return self.cleanup_jobs(extend=extend, runas=runas)
-
-        self.manager(MGR_CMD_SET, SERVER,
-                     {'scheduling': sched_state})
         return rv
 
     def cleanup_reservations(self, extend=None, runas=None):
@@ -8398,28 +8410,6 @@ class Server(PBSService):
         rv = self.cleanup_jobs(extend)
         self.cleanup_reservations()
         return rv
-
-    def _cleanup_large_num_jobs(self, job_ids=None, runas=None):
-        """
-        Helper function to cleanup large number of jobs.
-        Job processes are killed manually. Jobs are then deleted
-        using qdel -Wforce
-        """
-        status_list = self.status(JOB,
-                                  attrib=[{'job_state': 'R'}, ATTR_session])
-
-        for s in status_list:
-            if 'session_id' in s:
-                sess_id = s[ATTR_session]
-                self.logger.info('Killing pid [%s]' % sess_id)
-                cmd = 'kill -9 ' + sess_id
-                self.du.run_cmd(self.hostname, cmd, sudo=True,
-                                runas=runas)
-        # Delete jobs from server, if any
-        try:
-            self.delete(id=job_ids, extend='force', wait=True, runas=runas)
-        except PbsDeleteError:
-            pass
 
     def update_attributes(self, obj_type, bs):
         """
@@ -9460,10 +9450,10 @@ class Server(PBSService):
             self.logger.error('hook named ' + name + ' exists')
             return False
 
-        self.manager(MGR_CMD_SET, HOOK, attrs, id=name)
+        self.manager(MGR_CMD_SET, HOOK, attrs, id=name, expect=True)
         return True
 
-    def import_hook(self, name, body, level=logging.INFO):
+    def import_hook(self, name, body):
         """
         Helper function to import hook body into hook by name.
         The hook must have been created prior to calling this
@@ -9476,16 +9466,6 @@ class Server(PBSService):
         :returns: True on success.
         :raises: PbsManagerError
         """
-        # sync_mom_hookfiles_timeout is 15min by default
-        # Setting it to lower value to avoid the race condition at hook copy
-        srv_stat = self.status(SERVER, 'sync_mom_hookfiles_timeout')
-        try:
-            sync_val = srv_stat[0]['sync_mom_hookfiles_timeout']
-        except:
-            self.logger.info("Setting sync_mom_hookfiles_timeout to 15s")
-            self.manager(MGR_CMD_SET, SERVER,
-                         {"sync_mom_hookfiles_timeout": 15})
-
         fn = self.du.create_temp_file(body=body)
 
         if not self._is_local:
@@ -9503,13 +9483,12 @@ class Server(PBSService):
         os.remove(rfile)
         if not self._is_local:
             self.du.rm(self.hostname, rfile)
-        self.logger.log(level, 'server ' + self.shortname +
-                        ': imported hook body\n---\n' +
-                        body + '---')
+
+        self.logger.info('server ' + self.shortname +
+                         ': imported hook body\n---\n' + body + '---')
         return True
 
-    def create_import_hook(self, name, attrs=None, body=None, overwrite=True,
-                           level=logging.INFO):
+    def create_import_hook(self, name, attrs=None, body=None, overwrite=True):
         """
         Helper function to create a hook, import content into it,
         set the event and enable it.
@@ -9553,7 +9532,7 @@ class Server(PBSService):
 
         # In 12.0 A MoM hook must be enabled and the event set prior to
         # importing, otherwise the MoM does not get the hook content
-        ret = self.import_hook(name, body, level)
+        ret = self.import_hook(name, body)
 
         # In case of mom hooks, make sure that the hook related files
         # are successfully copied to the MoM
@@ -10552,6 +10531,7 @@ class Scheduler(PBSService):
         self.resource_group = None
         self.holidays_obj = None
         self.server = None
+        self.server_dyn_res = None
         self.logger = logging.getLogger(__name__)
         self.db_access = None
 
@@ -10695,10 +10675,7 @@ class Scheduler(PBSService):
         else:
             try:
                 rv = self.pi.start_sched()
-                pid = self._validate_pid(self)
-                if pid is None:
-                    raise PbsServiceError(rv=False, rc=-1,
-                                          msg="Could not find PID")
+                self._update_pid(self)
             except PbsInitServicesError as e:
                 raise PbsServiceError(rc=e.rc, rv=e.rv, msg=e.msg)
             return rv
@@ -10717,6 +10694,7 @@ class Scheduler(PBSService):
         else:
             try:
                 self.pi.stop_sched()
+                self.pid = None
             except PbsInitServicesError as e:
                 raise PbsServiceError(rc=e.rc, rv=e.rv, msg=e.msg)
             return True
@@ -11041,12 +11019,10 @@ class Scheduler(PBSService):
         return True
 
     def add_server_dyn_res(self, custom_resource, script_body=None,
-                           res_file=None, apply=True, validate=True,
-                           dirname=None, host=None, perm=0700,
-                           prefix='PtlPbsSvrDynRes', suffix='.scr'):
+                           res_file=None, apply=True, validate=True):
         """
-        Add a root owned server dynamic resource script or file to the
-        scheduler configuration.
+        Add a server dynamic resource script or file to the scheduler
+        configuration
 
         :param custom_resource: The name of the custom resource to
                                 define
@@ -11060,46 +11036,25 @@ class Scheduler(PBSService):
         :param validate: if True (the default), validate the
                          configuration settings.
         :type validate: bool
-        :param dirname: the file will be created in this directory
-        :type dirname: str or None
-        :param host: the hostname on which dyn res script is created
-        :type host: str or None
-        :param perm: perm to use while creating scripts
-                     (must be octal like 0777)
-        :param prefix: the file name will begin with this prefix
-        :type prefix: str
-        :param suffix: the file name will end with this suffix
-        :type suffix: str
-        :return Absolute path of the dynamic resource script
         """
         if res_file is not None:
-            with open(res_file) as f:
-                script_body = f.readlines()
-                self.du.chmod(hostname=host, path=res_file, mode=perm,
-                              sudo=True)
+            f = open(file)
+            script_body = f.readlines()
+            f.close()
         else:
-            if dirname is None:
-                dirname = self.pbs_conf['PBS_HOME']
-            tmp_file = self.du.create_temp_file(prefix=prefix, suffix=suffix,
-                                                body=script_body,
-                                                hostname=host)
-            res_file = os.path.join(dirname, tmp_file.split(os.path.sep)[-1])
-            self.du.run_copy(host, tmp_file, res_file, sudo=True,
-                             preserve_permission=False)
-            self.du.chown(hostname=host, path=res_file, uid=0, gid=0,
-                          sudo=True)
-            self.du.chmod(hostname=host, path=res_file, mode=perm, sudo=True)
-            if host is None:
-                self.dyn_created_files.append(res_file)
+            res_file = self.du.create_temp_file(prefix='PtlPbsSchedConfig',
+                                                body=script_body)
 
+        self.server_dyn_res = res_file
         self.logger.info(self.logprefix + "adding server dyn res " + res_file)
         self.logger.info("-" * 30)
         self.logger.info(script_body)
         self.logger.info("-" * 30)
 
+        self.du.chmod(self.hostname, path=res_file, mode=0755)
+
         a = {'server_dyn_res': '"' + custom_resource + ' !' + res_file + '"'}
         self.set_sched_config(a, apply=apply, validate=validate)
-        return res_file
 
     def unset_sched_config(self, name, apply=True):
         """
@@ -11151,6 +11106,10 @@ class Scheduler(PBSService):
                              self.resource_group_file,
                              preserve_permission=False,
                              sudo=True)
+        if self.server_dyn_res is not None:
+            self.du.rm(self.hostname, self.server_dyn_res, force=True,
+                       sudo=True)
+            self.server_dyn_res = None
         rc = self.holidays_revert_to_default()
         if self.du.cmp(self.hostname, self.dflt_sched_config_file,
                        self.sched_config_file, sudo=True) != 0:
@@ -12688,29 +12647,11 @@ class MoM(PBSService):
         self.version = None
         self._is_cpuset_mom = None
 
-    def isUp(self, max_attempts=20):
+    def isUp(self):
         """
         Check for PBS mom up
         """
-        # Poll for few seconds to see if mom is up and node is free
-        for _ in range(max_attempts):
-            rv = super(MoM, self)._isUp(self)
-            if rv:
-                break
-            time.sleep(1)
-        if rv:
-            try:
-                nodes = self.server.status(NODE, id=self.shortname)
-                if nodes:
-                    self.server.expect(NODE, {'state': 'free'},
-                                       id=self.shortname)
-            # Ignore PbsStatusError if mom daemon is up but there aren't
-            # any mom nodes
-            except PbsStatusError:
-                pass
-            except PtlExpectError:
-                rv = False
-        return rv
+        return super(MoM, self)._isUp(self)
 
     def signal(self, sig):
         """
@@ -12747,10 +12688,7 @@ class MoM(PBSService):
         else:
             try:
                 rv = self.pi.start_mom()
-                pid = self._validate_pid(self)
-                if pid is None:
-                    raise PbsServiceError(rv=False, rc=-1,
-                                          msg="Could not find PID")
+                self._update_pid(self)
             except PbsInitServicesError as e:
                 raise PbsServiceError(rc=e.rc, rv=e.rv, msg=e.msg)
             return rv
@@ -12769,6 +12707,7 @@ class MoM(PBSService):
         else:
             try:
                 self.pi.stop_mom()
+                self.pid = None
             except PbsInitServicesError as e:
                 raise PbsServiceError(rc=e.rc, rv=e.rv, msg=e.msg)
             return True
@@ -12922,8 +12861,6 @@ class MoM(PBSService):
                     return False
                 self.delete_vnodes()
             if cmp(self.config, self.dflt_config) != 0:
-                # Clear older mom configuration. Apply default.
-                self.config = {}
                 self.apply_config(self.dflt_config, hup=False, restart=False)
             if restart:
                 self.restart()
@@ -13453,62 +13390,6 @@ class MoM(PBSService):
         """
         pass
 
-    def add_mom_dyn_res(self, custom_resource, script_body=None,
-                        res_file=None, dirname=None, host=None, perm=0700,
-                        prefix='PtlPbsMomDynRes', suffix='.scr'):
-        """
-        Add a root owned mom dynamic resource script or file to the mom
-        configuration
-
-        :param custom_resource: The name of the custom resource to
-                                define
-        :type custom_resource: str
-        :param script_body: The body of the mom dynamic resource
-        :param res_file: Alternatively to passing the script body, use
-                     the file instead
-        :type res_file: str or None
-        :param dirname: the file will be created in this directory
-        :type dirname: str or None
-        :param host: the hostname on which dyn res script is created
-        :type host: str or None
-        :param perm: perm to use while creating scripts
-                     (must be octal like 0777)
-        :param prefix: the file name will begin with this prefix
-        :type prefix: str
-        :param suffix: the file name will end with this suffix
-        :type suffix: str
-        :return Absolute path of the dynamic resource script
-        """
-        if res_file is not None:
-            with open(res_file) as f:
-                script_body = f.readlines()
-                self.du.chmod(host, path=res_file, mode=perm,
-                              sudo=True)
-        else:
-            if dirname is None:
-                dirname = self.pbs_conf['PBS_HOME']
-            tmp_file = self.du.create_temp_file(prefix=prefix, suffix=suffix,
-                                                body=script_body,
-                                                hostname=host)
-
-            res_file = os.path.join(dirname, tmp_file.split(os.path.sep)[-1])
-            self.du.run_copy(host, tmp_file, res_file, sudo=True,
-                             preserve_permission=False)
-            self.du.chown(hostname=host, path=res_file, uid=0, gid=0,
-                          sudo=True)
-            self.du.chmod(hostname=host, path=res_file, mode=perm, sudo=True)
-            if host is None:
-                self.dyn_created_files.append(res_file)
-
-        self.logger.info(self.logprefix + "adding mom dyn res " + res_file)
-        self.logger.info("-" * 30)
-        self.logger.info(script_body)
-        self.logger.info("-" * 30)
-
-        a = {custom_resource: '!' + res_file}
-        self.add_config(a)
-        return res_file
-
 
 class Hook(PBSObject):
 
@@ -13864,16 +13745,6 @@ class Job(ResourceResv):
         idx = job_array_id.find('[]')
         return job_array_id[:idx + 1] + str(subjob_index) + \
             job_array_id[idx + 1:]
-
-    def create_eatcpu_job(self, duration=None):
-        """
-        Create a job that eats cpu indefinitely or for the given
-        duration of time
-        """
-        script_dir = os.path.dirname(os.path.dirname(__file__))
-        script_path = os.path.join(script_dir, 'utils', 'jobs', 'eatcpu.py')
-        DshUtils().chmod(path=script_path, mode=0755)
-        self.set_execargs(script_path, duration)
 
 
 class Reservation(ResourceResv):

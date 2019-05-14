@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -38,7 +38,7 @@
 import re
 import time
 import sys
-from datetime import tzinfo, timedelta, datetime
+import datetime
 import logging
 import traceback
 import math
@@ -194,7 +194,6 @@ JID = 'job_id'
 JRR = 'job_run_rate'
 JSR = 'job_submit_rate'
 JER = 'job_end_rate'
-JTR = 'job_throughput'
 NJQ = 'num_jobs_queued'
 NJR = 'num_jobs_run'
 NJE = 'num_jobs_ended'
@@ -210,7 +209,7 @@ PARSER_OK_STOP = 1
 PARSER_ERROR_CONTINUE = 2
 PARSER_ERROR_STOP = 3
 
-epoch_datetime = datetime.fromtimestamp(0)
+epoch_datetime = datetime.datetime.fromtimestamp(0)
 
 
 class PBSLogUtils(object):
@@ -226,9 +225,7 @@ class PBSLogUtils(object):
     def convert_date_time(cls, dt=None, fmt=None):
         """
         convert a date time string of the form given by fmt into
-        number of seconds since epoch (with possible microseconds).
-        it considers the current system's timezone to convert
-        the datetime to epoch time
+        number of seconds since epoch (with possible microseconds)
 
         :param dt: the datetime string to convert
         :type dt: str or None
@@ -239,12 +236,6 @@ class PBSLogUtils(object):
         if dt is None:
             return None
 
-        stdoffset = timedelta(seconds=-time.timezone)
-        if time.daylight:
-            dstoffset = timedelta(seconds=-time.altzone)
-        else:
-            dstoffset = stdoffset
-        offsetdiff = dstoffset - stdoffset
         micro = False
         if fmt is None:
             if '.' in dt:
@@ -255,11 +246,11 @@ class PBSLogUtils(object):
 
         try:
             # Get datetime object
-            t = datetime.strptime(dt, fmt)
+            t = datetime.datetime.strptime(dt, fmt)
             # Get timedelta object of epoch time
             t -= epoch_datetime
             # get epoch time from timedelta object
-            tm = t.total_seconds() - offsetdiff.total_seconds()
+            tm = t.total_seconds()
         except:
             cls.logger.debug("could not convert date time: " + str(datetime))
             return None
@@ -465,7 +456,7 @@ class PBSLogUtils(object):
     @staticmethod
     def _duration(val=None):
         if val is not None:
-            return str(timedelta(seconds=int(val)))
+            return str(datetime.timedelta(seconds=int(val)))
 
     @staticmethod
     def get_day(tm=None):
@@ -1039,9 +1030,6 @@ class PBSServerLog(PBSLogAnalyzer):
         self.info[NUR] = self.logutils.get_rate(self.nodeup)
         self.info[JRR] = self.logutils.get_rate(self.jobsrun)
         self.info[JER] = self.logutils.get_rate(self.jobsend)
-        if len(self.server_job_end) > 0:
-            tjr = self.jobsend[-1] - self.enquejob[0]
-            self.info[JTR] = str(len(self.server_job_end) / tjr) + '/s'
         if len(self.wait_time) > 0:
             wt = sorted(self.wait_time)
             wta = float(sum(self.wait_time)) / len(self.wait_time)

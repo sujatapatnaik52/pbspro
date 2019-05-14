@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -1092,7 +1092,7 @@ check_new_reservations(status *policy, int pbs_sd, resource_resv **resvs, server
 						add_event(sinfo->calendar, te_end);
 
 						if (j > 0) {
-							tmp_resresv = add_resresv_to_array(sinfo->resvs, nresv_copy, NO_FLAGS);
+							tmp_resresv = add_resresv_to_array(sinfo->resvs, nresv_copy);
 							if (tmp_resresv == NULL)
 								break;
 							sinfo->resvs = tmp_resresv;
@@ -1180,13 +1180,13 @@ disable_reservation_occurrence(timed_event *events,
 {
 	timed_event *te;
 
-	te = find_timed_event(events, 0, resv->name, TIMED_RUN_EVENT, resv->start);
+	te = find_timed_event(events, resv->name, TIMED_RUN_EVENT, resv->start);
 	if (te != NULL)
 		set_timed_event_disabled(te, 1);
 	else
 		return 0;
 
-	te = find_timed_event(events, 0, resv->name, TIMED_END_EVENT, resv->end);
+	te = find_timed_event(events, resv->name, TIMED_END_EVENT, resv->end);
 	if (te != NULL)
 		set_timed_event_disabled(te, 1);
 	else
@@ -1352,7 +1352,7 @@ confirm_reservation(status *policy, int pbs_sd, resource_resv *unconf_resv, serv
 				/* add it to the simulated universe of reservations.
 				 * Also add it to the reservation list (resvs) to be garbage collected
 				 */
-				tmp_resresv = add_resresv_to_array(nsinfo->resvs, nresv, NO_FLAGS);
+				tmp_resresv = add_resresv_to_array(nsinfo->resvs, nresv);
 				if (tmp_resresv == NULL) {
 					free_resource_resv(nresv);
 					rconf = RESV_CONFIRM_FAIL;
@@ -1360,7 +1360,7 @@ confirm_reservation(status *policy, int pbs_sd, resource_resv *unconf_resv, serv
 				}
 				nsinfo->resvs = tmp_resresv;
 
-				tmp_resresv = add_resresv_to_array(nsinfo->all_resresv, nresv, SET_RESRESV_INDEX);
+				tmp_resresv = add_resresv_to_array(nsinfo->all_resresv, nresv);
 				if (tmp_resresv == NULL) {
 					free_resource_resv(nresv);
 					rconf = RESV_CONFIRM_FAIL;

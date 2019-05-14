@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -92,9 +92,8 @@ const struct enum_conv smp_cluster_info[] =
 /*
  *	prempt_prio_info - used to convert parse values into enum values
  *			   for preemption priority levels
- *
  */
-const struct enum_conv preempt_prio_info[] =
+const struct enum_conv prempt_prio_info[] =
 	{
 	{ PREEMPT_NORMAL, "normal_jobs" },
 	{ PREEMPT_OVER_FS_LIMIT, "fairshare" },
@@ -105,6 +104,7 @@ const struct enum_conv preempt_prio_info[] =
 	{ PREEMPT_ERR, "" },			/* no corresponding config file value */
 	{ PREEMPT_HIGH, "" }
 };
+
 
 /*
  *	res_to_get - resources to get from each nodes mom

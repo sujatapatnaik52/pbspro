@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -176,6 +176,7 @@ pg_db_save_svr(pbs_db_conn_t *conn, pbs_db_obj_info_t *obj, int savetype)
 	pbs_db_svr_info_t *ps = obj->pbs_db_un.pbs_db_svr;
 	char *stmt;
 	int params;
+	int rc = 0;
 	char *raw_array = NULL;
 
 	SET_PARAM_INTEGER(conn, ps->sv_numjobs, 0);
@@ -205,11 +206,12 @@ pg_db_save_svr(pbs_db_conn_t *conn, pbs_db_obj_info_t *obj, int savetype)
 
 	if (pg_db_cmd(conn, stmt, params) != 0) {
 		free(raw_array);
-		return -1;
+		rc = -1;
 	}
 
 	free(raw_array);
-	return 0;
+
+	return rc;
 }
 
 /**

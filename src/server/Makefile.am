@@ -1,6 +1,6 @@
 
 #
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -103,7 +103,6 @@ pbs_server_bin_SOURCES = \
 	req_manager.c \
 	req_message.c \
 	req_modify.c \
-	req_preemptjob.c \
 	req_movejob.c \
 	req_quejob.c \
 	req_register.c \

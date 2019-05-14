@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -359,7 +359,6 @@ pbsinteractiveMain(DWORD dwArgc, LPTSTR *rgszArgv)
 	g_ssHandle = RegisterServiceCtrlHandler(g_PbsInteractiveName, pbsinteractiveHandler);
 	if (g_ssHandle == 0) {
 		ErrorMessage("RegisterServiceCtrlHandler");
-		return 1;
 	}
 
 	/* Check for argument */
@@ -368,14 +367,12 @@ pbsinteractiveMain(DWORD dwArgc, LPTSTR *rgszArgv)
 		pap = create_arg_param();
 		if (pap == NULL)
 			ErrorMessage("create_arg_param");
-			return 1;
 
 		pap->argc = dwArgc;
 		for (i=0; i < dwArgc; i++) {
 			if ((pap->argv[i] = _strdup(rgszArgv[i])) == NULL) {
 				free_arg_param(pap);
 				ErrorMessage("strdup");
-				return 1;
 			}
 
 		}
@@ -389,7 +386,6 @@ pbsinteractiveMain(DWORD dwArgc, LPTSTR *rgszArgv)
 	if (pbsinteractiveThreadH == 0) {
 		free_arg_param(pap);
 		ErrorMessage("CreateThread");
-		return 1;
 	}
 
 	/* Wait to finish main thread of PBS_INTERACTIVE service for infinite time */
@@ -397,7 +393,6 @@ pbsinteractiveMain(DWORD dwArgc, LPTSTR *rgszArgv)
 	if (dwWait != WAIT_OBJECT_0) {
 		free_arg_param(pap);
 		ErrorMessage("WaitForSingleObject");
-		return 1;
 	}
 
 	/* Execution of main thread of PBS_INTERACTIVE service is finished, stop PBS_INTERACTIVE service */
@@ -432,7 +427,7 @@ main(int argc, char *argv[])
 	char ModuleName[MAX_PATH];
 
 	/* The real deal or output pbs_version and exit? */
-	PRINT_VERSION_AND_EXIT(argc, argv);
+	execution_mode(argc, argv);
 
 	if (argc > 1) {
 		if (strcmp(argv[1], "-R") == 0) {
@@ -452,7 +447,6 @@ main(int argc, char *argv[])
 		SvcManager = OpenSCManager(0, 0, SC_MANAGER_ALL_ACCESS);
 		if (SvcManager == 0) {
 			ErrorMessage("OpenSCManager");
-			return 1;
 		}
 
 		if (reg) { /* register service */
@@ -474,7 +468,6 @@ main(int argc, char *argv[])
 				if (SvcManager)
 					CloseServiceHandle(SvcManager);
 				ErrorMessage("CreateService");
-				return 1;
 			}
 
 			if (SvcHandle) {
@@ -494,13 +487,11 @@ main(int argc, char *argv[])
 					if (SvcHandle)
 						CloseServiceHandle(SvcManager);
 					ErrorMessage("DeleteService");
-					return 1;
 				}
 			} else {
 				if (SvcManager)
 					CloseServiceHandle(SvcManager);
 				ErrorMessage("OpenSevice");
-				return 1;
 			}
 		}
 		if (SvcManager) {
@@ -514,7 +505,6 @@ main(int argc, char *argv[])
 
 		if (!StartServiceCtrlDispatcher(ServiceTable)) {
 			ErrorMessage("StartServiceCntrlDispatcher");
-			return 1;
 		}
 	}
 

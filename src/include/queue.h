@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -153,7 +153,7 @@ struct pbs_queue {
 		int	qu_type;		/* queue type: exec, route */
 		time_t	qu_ctime;		/* time queue created */
 		time_t	qu_mtime;		/* time queue last modified */
-		char	qu_name[PBS_MAXQUEUENAME + 1]; /* queue name */
+		char	qu_name[PBS_MAXQUEUENAME]; /* queue name */
 	} qu_qs;
 
 	int	qu_numjobs;			/* current numb jobs in queue */

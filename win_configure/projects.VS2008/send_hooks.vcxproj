@@ -1,0 +1,198 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{4CC82B48-411A-45AB-BDF5-093CAE054EDD}</ProjectGuid>
+    <RootNamespace>send_hooks</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0.10586.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v140</PlatformToolset>
+    <UseOfMfc>false</UseOfMfc>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v140</PlatformToolset>
+    <UseOfMfc>false</UseOfMfc>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC71.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC71.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>14.0.25431.1</_ProjectFileVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>..\..\..\win_build\src\send_hooks\Debug\</OutDir>
+    <IntDir>..\..\..\win_build\src\send_hooks\Debug\</IntDir>
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>..\..\..\win_build\src\send_hooks\Release\</OutDir>
+    <IntDir>..\..\..\win_build\src\send_hooks\Release\</IntDir>
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Midl>
+      <TypeLibraryName>..\..\..\win_build\src\send_hooks\Debug\send_hooks.tlb</TypeLibraryName>
+      <HeaderFileName />
+    </Midl>
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>..\..\src\include;..\include;..\..\..\binaries\openssl_debug\include;..\..\..\binaries\python_debug\PC;..\..\..\binaries\python_debug\Include;..\..\..\binaries\libical_debug\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_USE_32BIT_TIME_T;LINKS_PYTHON;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <PrecompiledHeader />
+      <PrecompiledHeaderOutputFile>..\..\..\win_build\src\send_hooks\Debug\send_hooks.pch</PrecompiledHeaderOutputFile>
+      <AssemblerListingLocation>..\..\..\win_build\src\send_hooks\Debug\</AssemblerListingLocation>
+      <ObjectFileName>..\..\..\win_build\src\send_hooks\Debug\</ObjectFileName>
+      <ProgramDataBaseFileName>..\..\..\win_build\src\send_hooks\Debug\</ProgramDataBaseFileName>
+      <WarningLevel>Level3</WarningLevel>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <CompileAs>Default</CompileAs>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <Culture>0x0409</Culture>
+    </ResourceCompile>
+    <Link>
+      <AdditionalOptions>/SAFESEH %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalDependencies>secur32.lib;Userenv.lib;mpr.lib;mom_info.obj;failover.obj;setup_resc.obj;sched_func.obj;libcrypto.lib;crypt32.lib;job_recov.obj;job_recov_db.obj;node_recov_db.obj;job_func.obj;vnparse.obj;user_func.obj;hook_func.obj;array_func.obj;svr_jobfunc.obj;svr_connect.obj;attr_recov.obj;attr_recov_db.obj;job_attr_def.obj;resv_attr_def.obj;req_track.obj;req_signal.obj;issue_request.obj;svr_mail.obj;accounting.obj;node_manager.obj;process_request.obj;svr_func.obj;req_quejob.obj;resc_def_all.obj;req_register.obj;queue_func.obj;geteusernam.obj;req_delete.obj;reply_send.obj;queue_attr_def.obj;req_select.obj;svr_chk_owner.obj;req_runjob.obj;dis_read.obj;req_jobobit.obj;node_func.obj;req_modify.obj;req_getcred.obj;req_stat.obj;req_shutdown.obj;req_holdjob.obj;req_rescq.obj;req_movejob.obj;req_rerun.obj;req_message.obj;req_manager.obj;req_locate.obj;run_sched.obj;svr_recov_db.obj;job_route.obj;svr_resccost.obj;stat_job.obj;checkkey.obj;license_client.obj;svr_movejob.obj;node_attr_def.obj;svr_attr_def.obj;queue_recov_db.obj;resv_attr.obj;resc_attr.obj;svr_attr.obj;ws2_32.lib;odbc32.lib;odbccp32.lib;netapi32.lib;comctl32.lib;python27_d.lib;libical.lib;libpq.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>..\..\..\win_build\src\send_hooks\Debug\pbs_send_hooks.exe</OutputFile>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <AdditionalLibraryDirectories>..\..\..\binaries\openssl_debug\lib;..\..\..\win_build\src\server\Debug;..\..\..\binaries\python_debug\PC\VS9.0;..\..\..\binaries\libical_debug\lib;..\..\..\binaries\pgsql_debug\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <UACExecutionLevel>AsInvoker</UACExecutionLevel>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <ProgramDatabaseFile>..\..\..\win_build\src\send_hooks\Debug\pbs_send_hooks.pdb</ProgramDatabaseFile>
+      <SubSystem>Console</SubSystem>
+      <RandomizedBaseAddress>true</RandomizedBaseAddress>
+      <DataExecutionPrevention>true</DataExecutionPrevention>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Midl>
+      <TypeLibraryName>..\..\..\win_build\src\send_hooks\Release\send_hooks.tlb</TypeLibraryName>
+      <HeaderFileName />
+    </Midl>
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <AdditionalIncludeDirectories>..\..\src\include;..\include;..\..\..\binaries\openssl\include;..\..\..\binaries\python\include;..\..\..\binaries\libical\include</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_USE_32BIT_TIME_T;LINKS_PYTHON;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <StringPooling>true</StringPooling>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <PrecompiledHeader />
+      <PrecompiledHeaderOutputFile>..\..\..\win_build\src\send_hooks\Release\send_hooks.pch</PrecompiledHeaderOutputFile>
+      <AssemblerListingLocation>..\..\..\win_build\src\send_hooks\Release\</AssemblerListingLocation>
+      <ObjectFileName>..\..\..\win_build\src\send_hooks\Release\</ObjectFileName>
+      <ProgramDataBaseFileName>..\..\..\win_build\src\send_hooks\Release\</ProgramDataBaseFileName>
+      <WarningLevel>Level3</WarningLevel>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <CompileAs>Default</CompileAs>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <Culture>0x0409</Culture>
+    </ResourceCompile>
+    <Link>
+      <AdditionalOptions>/SAFESEH %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalDependencies>secur32.lib;Userenv.lib;mpr.lib;mom_info.obj;sched_func.obj;failover.obj;setup_resc.obj;libcrypto.lib;crypt32.lib;job_recov.obj;job_recov_db.obj;node_recov_db.obj;job_func.obj;vnparse.obj;user_func.obj;hook_func.obj;array_func.obj;svr_jobfunc.obj;svr_connect.obj;attr_recov.obj;attr_recov_db.obj;job_attr_def.obj;resv_attr_def.obj;req_track.obj;req_signal.obj;issue_request.obj;svr_mail.obj;accounting.obj;node_manager.obj;process_request.obj;svr_func.obj;req_quejob.obj;resc_def_all.obj;req_register.obj;queue_func.obj;geteusernam.obj;req_delete.obj;reply_send.obj;queue_attr_def.obj;req_select.obj;svr_chk_owner.obj;req_runjob.obj;dis_read.obj;req_jobobit.obj;node_func.obj;req_modify.obj;req_getcred.obj;req_stat.obj;req_shutdown.obj;req_holdjob.obj;req_rescq.obj;req_movejob.obj;req_rerun.obj;req_message.obj;req_manager.obj;req_locate.obj;run_sched.obj;svr_recov_db.obj;job_route.obj;svr_resccost.obj;stat_job.obj;checkkey.obj;license_client.obj;svr_movejob.obj;node_attr_def.obj;svr_attr_def.obj;queue_recov_db.obj;resv_attr.obj;resc_attr.obj;svr_attr.obj;ws2_32.lib;odbc32.lib;odbccp32.lib;netapi32.lib;comctl32.lib;python36.lib;libical.lib;libpq.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>..\..\..\win_build\src\send_hooks\Release\pbs_send_hooks.exe</OutputFile>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <AdditionalLibraryDirectories>..\..\..\binaries\openssl\lib;..\..\..\win_build\src\server\Release;..\..\..\binaries\python\libs;..\..\..\binaries\libical\lib;..\..\..\binaries\pgsql\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <UACExecutionLevel>AsInvoker</UACExecutionLevel>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <ProgramDatabaseFile>..\..\..\win_build\src\send_hooks\Release\pbs_send_hooks.pdb</ProgramDatabaseFile>
+      <SubSystem>Console</SubSystem>
+      <RandomizedBaseAddress>true</RandomizedBaseAddress>
+      <DataExecutionPrevention>true</DataExecutionPrevention>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\lib\Libattr\sched_attr_def.c">
+      <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Disabled</Optimization>
+      <BasicRuntimeChecks Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">EnableFastChecks</BasicRuntimeChecks>
+      <Optimization Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">MaxSpeed</Optimization>
+    </ClCompile>
+    <ClCompile Include="..\..\src\send_hooks_win\w32_send_hooks.c">
+      <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Disabled</Optimization>
+      <BasicRuntimeChecks Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">EnableFastChecks</BasicRuntimeChecks>
+      <Optimization Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">MaxSpeed</Optimization>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="Libdb.vcxproj">
+      <Project>{a4e48127-8b04-44fd-b57c-5d78579cbab3}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="Liblog.vcxproj">
+      <Project>{1ce3edf8-7001-4756-a85b-df7d0bff4c52}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="Libnet.vcxproj">
+      <Project>{5885bb13-6d58-4ee3-94c8-a8928f1eab00}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="Libpbs.vcxproj">
+      <Project>{17f70b8b-9669-4f98-95b0-e98eca3d6039}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="libpbspthread.vcxproj">
+      <Project>{4f776873-f1fb-4299-b3d5-394af05baa73}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="Libpbspython.vcxproj">
+      <Project>{2f37584c-b957-4949-a2eb-a11471ae5fde}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="Libpbspython_svr.vcxproj">
+      <Project>{854a4d56-a4f4-4c6a-9032-60185ca5b4f2}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="Libsite.vcxproj">
+      <Project>{4d4dcde5-c580-44aa-81a9-bad24437c188}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="Libutil.vcxproj">
+      <Project>{625346dc-194a-4e7d-92c4-8f9e10b0bb2a}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="Libwin.vcxproj">
+      <Project>{684975bf-d264-4429-83f2-6fb31dd36366}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="server.vcxproj">
+      <Project>{7fcdf2f3-526e-45f2-8f78-7d5ba46c57fe}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

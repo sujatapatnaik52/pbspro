@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -667,7 +667,7 @@ int validate_job_formula(attribute *pattr, void *pobject, int actmode) {
 		"errmsg = \'\'\n"
 		"try:\n"
 		"    from math import *\n"
-		"except ImportError, e:\n"
+		"except ImportError as e:\n"
 		"    errnum=4\n"
 		"    errmsg=str(e)\n");
 	if (pbs_strcat(&script, &script_size, buf) == NULL) {

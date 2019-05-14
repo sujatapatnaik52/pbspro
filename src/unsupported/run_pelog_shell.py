@@ -6,7 +6,7 @@ epilogue, if it exists, while still being able to use execjob_prologue or
 execjob_epilogue hooks. Also adds the capability of running parallel prologue 
 or epilogue shell scripts and Torque compatibility.
 
-Copyright (C) 1994-2019 Altair Engineering, Inc.
+Copyright (C) 1994-2018 Altair Engineering, Inc.
 For more information, contact Altair at www.altair.com.
 
 This file is part of the PBS Professional ("PBS Pro") software.
@@ -176,7 +176,7 @@ def trace_hook(**kwargs):
                  'execjob_prologue', 'execjob_launch', 'execjob_attach', 
                  'execjob_preterm', 'execjob_epilogue', 'execjob_end', 
                  'resvsub', 'provision', 'exechost_periodic', 
-                 'exechost_startup', 'execjob_resize', 'execjob_abort']
+                 'exechost_startup', 'execjob_resize']
 
     hook_event={}
     for he in hook_events:
@@ -218,7 +218,7 @@ def trace_hook(**kwargs):
                 pbs.event().reject(rejectmsg)
         else: 
             pbs.event().reject(str(trace_in_reject)+'Line %s in %s %s:\n%s' % (
-                trace['line'],trace['module'],trace['exception'],
+                trace['line'], trace['module'], trace['exception'],
                 trace['message'] ))
 
 class JobLog:
@@ -301,10 +301,10 @@ def pbs_conf(pbs_key=None):
     if hasattr(pbs_conf, 'pbs_keys'):
         return pbs_conf.pbs_keys[pbs_key] if pbs_key else pbs_conf.pbs_keys
 
-    if 'PBS_CONF_FILE' in os.environ.keys():
+    if 'PBS_CONF_FILE' in list(os.environ.keys()):
         pbs_conf_file=os.environ['PBS_CONF_FILE']
     elif sys.platform == 'win32':
-        if 'ProgramFiles(x86)' in os.environ.keys():
+        if 'ProgramFiles(x86)' in list(os.environ.keys()):
             program_files=os.environ['ProgramFiles(x86)']
         else:
             program_files=os.environ['ProgramFiles']
@@ -316,7 +316,7 @@ def pbs_conf(pbs_key=None):
         for line in open(pbs_conf_file) \
         if not line.startswith('#') and '=' in line])
 
-    if 'PBS_MOM_HOME' not in pbs_conf.pbs_keys.keys():
+    if 'PBS_MOM_HOME' not in list(pbs_conf.pbs_keys.keys()):
         pbs_conf.pbs_keys['PBS_MOM_HOME'] = \
             pbs_conf.pbs_keys['PBS_HOME']
 
@@ -343,22 +343,22 @@ try:
         pbs.logmsg(pbs.LOG_WARNING, ';'.join([hook_name, job.id, reason]))
         pbs.logjobmsg(job.id, reason) # Add a message that can be tracejob'd
         if VERBOSE_USER_OUTPUT:
-            print reason
+            print(reason)
         pbs_event.reject()
 
     # For the path to mom_priv, we use PBS_MOM_HOME in case that is set, 
     # pbs_conf() will return PBS_HOME if it is not.
     mom_priv=os.path.abspath(os.path.join(
-        pbs_conf()['PBS_MOM_HOME'],'mom_priv'))
+        pbs_conf()['PBS_MOM_HOME'], 'mom_priv'))
 
     # Get the hook alarm time from the .HK file if it exists.
-    hk_file=os.path.join(mom_priv,'hooks','%s.HK' % hook_name)
+    hk_file=os.path.join(mom_priv, 'hooks', '%s.HK' % hook_name)
     if os.path.exists(hk_file):
         hook_settings=dict([l.strip().split('=') for l in 
-                            open(hk_file,'r').readlines()])
-        if 'alarm' in hook_settings.keys():
+                            open(hk_file, 'r').readlines()])
+        if 'alarm' in list(hook_settings.keys()):
             hook_alarm=int(hook_settings['alarm'])
-        if 'debug' in hook_settings.keys():
+        if 'debug' in list(hook_settings.keys()):
             DEBUG=True if hook_settings['debug']=='true' else False
 
     if DEBUG: 
@@ -368,14 +368,14 @@ try:
     if 'PBS_HOOK_CONFIG_FILE' in os.environ:
         config_file = os.environ["PBS_HOOK_CONFIG_FILE"]
         config=dict([l.split('#')[0].strip().split('=') 
-                     for l in open(config_file,'r').readlines() if '=' in l])
+                     for l in open(config_file, 'r').readlines() if '=' in l])
 
         # Set the true/false configurations
-        if 'ENABLE_PARALLEL' in config.keys():
+        if 'ENABLE_PARALLEL' in list(config.keys()):
             ENABLE_PARALLEL=config['ENABLE_PARALLEL'].lower()[0] in ['t', '1']
-        if 'VERBOSE_USER_OUTPUT' in config.keys():
+        if 'VERBOSE_USER_OUTPUT' in list(config.keys()):
             VEROSE_USER_OUTPUT=config['VERBOSE_USER_OUTPUT'].lower()[0] in ['t', '1']
-        if 'DEFAULT_ACTION' in config.keys():
+        if 'DEFAULT_ACTION' in list(config.keys()):
             if config['DEFAULT_ACTION'].upper() == 'DELETE':
                 DEFAULT_ACTION=DELETE
             elif config['DEFAULT_ACTION'].upper() == 'RERUN':
@@ -385,7 +385,7 @@ try:
                     '%s;%s;[ERROR] ' % (hook_name, job.id) + \
                     'DEFAULT_ACTION in %s.ini must be one ' % (hook_name) + \
                     'of DELETE or RERUN.')
-        if 'TORQUE_COMPAT' in config.keys():
+        if 'TORQUE_COMPAT' in list(config.keys()):
             TORQUE_COMPAT=config['TORQUE_COMPAT'].lower()[0] in ['t', '1']
 
     # Skip sister mom if parallel pelogs aren't enabled.
@@ -483,7 +483,7 @@ try:
         # We mask for read and execute on owner make sure no one else can write
         # with 0522 (?r?x?w??w?). With this, permissions such as 0777 masked by
         # 522 will return 522. Acceptable permissions will return 500.
-        correct_permissions = bool(struct_stat.st_mode & 0522 == 0500 and
+        correct_permissions = bool(struct_stat.st_mode & 0o522 == 0o500 and
                                    struct_stat.st_uid == 0)
         
     if correct_permissions:
@@ -542,7 +542,7 @@ try:
             pbs.logmsg(pbs.EVENT_DEBUG3, 
                 '%s;%s;[DEBUG3] cmd=%s' % (hook_name, job.id, repr(cmd)))
 
-        if str(job.Join_Path) in ['oe','eo']:
+        if str(job.Join_Path) in ['oe', 'eo']:
             proc=subprocess.Popen(
                 cmd, 
                 stdout=subprocess.PIPE, 
@@ -625,8 +625,8 @@ try:
                     (hook_name, job.id, p+event))
 
             if pbs_event.type == pbs.EXECJOB_PROLOGUE and VERBOSE_USER_OUTPUT:
-                print '%s: attached as primary execution host.' % \
-                    pbs.get_local_nodename()
+                print('%s: attached as primary execution host.' % \
+                    pbs.get_local_nodename())
 
             pbs_event.accept()
     else:

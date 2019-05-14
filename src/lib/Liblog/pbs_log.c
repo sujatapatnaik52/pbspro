@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -378,19 +378,19 @@ log_init(void)
 {
 	if (pthread_key_create(&pbs_log_tls_key, NULL) != 0) {
 		fprintf(stderr, "log tls key creation failed\n");
-		return;
+		exit(1);
 	}
 
 	if (pthread_mutex_init(&log_mutex, NULL) != 0) {
 		fprintf(stderr, "log mutex init failed\n");
-		return;
+		exit(1);
 	}
 
 #ifndef WIN32
 	/* for unix, set a pthread_atfork handler */
 	if (pthread_atfork(log_atfork_prepare, log_atfork_parent, log_atfork_child) != 0) {
 		fprintf(stderr, "log mutex atfork handler failed\n");
-		return;
+		exit(1);
 	}
 #endif
 }
@@ -607,9 +607,9 @@ log_open_main(char *filename, char *directory, int silent)
 
 		if (!silent) {
 			log_record(PBSEVENT_SYSTEM, PBS_EVENTCLASS_SERVER, LOG_INFO, "Log", "Log opened");
-			snprintf(tbuf, LOG_BUF_SIZE, "pbs_version=%s", PBS_VERSION);
+			snprintf(tbuf, LOG_BUF_SIZE, "pbs_version=%s", pbs_version);
 			log_record(PBSEVENT_SYSTEM, PBS_EVENTCLASS_SERVER, LOG_INFO, msg_daemonname, tbuf);
-			snprintf(tbuf, LOG_BUF_SIZE, "pbs_build=%s", PBS_BUILD);
+			snprintf(tbuf, LOG_BUF_SIZE, "pbs_build=%s", pbs_build);
 			log_record(PBSEVENT_SYSTEM, PBS_EVENTCLASS_SERVER, LOG_INFO, msg_daemonname, tbuf);
 
 			log_add_debug_info();
@@ -931,7 +931,6 @@ log_record(int eventtype, int objclass, int sev, const char *objname, const char
 			     eventtype & ~PBSEVENT_FORCE, msg_daemonname,
 			     class_names[objclass], objname, text);
 
-		(void)fflush(logfile);
 		if (rc < 0) {
 			rc = errno;
 			clearerr(logfile);

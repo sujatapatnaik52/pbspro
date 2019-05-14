@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -165,7 +165,8 @@ class SmokeTest(PBSTestSuite):
         """
         Test to alter job
         """
-        self.server.manager(MGR_CMD_SET, SERVER, {'scheduling': 'False'})
+        self.server.manager(MGR_CMD_SET, SERVER, {'scheduling': 'False'},
+                            expect=True)
         j = Job(TEST_USER)
         jid = self.server.submit(j)
         self.server.expect(JOB, {'job_state': 'Q'}, id=jid)
@@ -191,7 +192,8 @@ class SmokeTest(PBSTestSuite):
         Test for backfilling
         """
         a = {'resources_available.ncpus': 2}
-        self.server.manager(MGR_CMD_SET, NODE, a, self.mom.shortname)
+        self.server.manager(MGR_CMD_SET, NODE, a, self.mom.shortname,
+                            expect=True)
         self.scheduler.set_sched_config({'strict_ordering': 'True'})
         a = {'Resource_List.select': '1:ncpus=1',
              'Resource_List.walltime': 3600}
@@ -244,10 +246,10 @@ class SmokeTest(PBSTestSuite):
         qname = 'testq'
         try:
             self.server.manager(MGR_CMD_DELETE, QUEUE, None, qname)
-        except PbsManagerError:
+        except:
             pass
         a = {'queue_type': 'Execution', 'enabled': 'True', 'started': 'True'}
-        self.server.manager(MGR_CMD_CREATE, QUEUE, a, qname)
+        self.server.manager(MGR_CMD_CREATE, QUEUE, a, qname, expect=True)
         self.server.manager(MGR_CMD_DELETE, QUEUE, id=qname)
 
     def test_create_routing_queue(self):
@@ -257,10 +259,10 @@ class SmokeTest(PBSTestSuite):
         qname = 'routeq'
         try:
             self.server.manager(MGR_CMD_DELETE, QUEUE, None, qname)
-        except PbsManagerError:
+        except:
             pass
         a = {'queue_type': 'Route', 'started': 'True'}
-        self.server.manager(MGR_CMD_CREATE, QUEUE, a, qname)
+        self.server.manager(MGR_CMD_CREATE, QUEUE, a, qname, expect=True)
         self.server.manager(MGR_CMD_DELETE, QUEUE, id=qname)
 
     @skipOnCpuSet
@@ -292,7 +294,7 @@ class SmokeTest(PBSTestSuite):
         a = {'resources_available.ncpus': 4}
         self.server.create_vnodes('lt', a, 2, self.mom)
         a = {'max_run_res.ncpus': '[u:' + str(TEST_USER) + '=1]'}
-        self.server.manager(MGR_CMD_SET, SERVER, a)
+        self.server.manager(MGR_CMD_SET, SERVER, a, expect=True)
         for _ in range(3):
             j = Job(TEST_USER)
             self.server.submit(j)
@@ -307,9 +309,10 @@ class SmokeTest(PBSTestSuite):
         Test for finished jobs
         """
         a = {'resources_available.ncpus': '4'}
-        self.server.manager(MGR_CMD_SET, NODE, a, self.mom.shortname)
+        self.server.manager(MGR_CMD_SET, NODE, a, self.mom.shortname,
+                            expect=True)
         a = {'job_history_enable': 'True'}
-        self.server.manager(MGR_CMD_SET, SERVER, a)
+        self.server.manager(MGR_CMD_SET, SERVER, a, expect=True)
         a = {'Resource_List.walltime': '10', ATTR_k: 'oe'}
         j = Job(TEST_USER, attrs=a)
         j.set_sleep_time(5)
@@ -323,7 +326,7 @@ class SmokeTest(PBSTestSuite):
         """
         proj = 'testproject'
         a = {'max_run': '[p:' + proj + '=1]'}
-        self.server.manager(MGR_CMD_SET, SERVER, a)
+        self.server.manager(MGR_CMD_SET, SERVER, a, expect=True)
         for _ in range(5):
             j = Job(TEST_USER, attrs={ATTR_project: proj})
             self.server.submit(j)
@@ -336,20 +339,21 @@ class SmokeTest(PBSTestSuite):
         Test for job scheduling order
         """
         a = {'backfill_depth': 5}
-        self.server.manager(MGR_CMD_SET, SERVER, a)
+        self.server.manager(MGR_CMD_SET, SERVER, a, expect=True)
         self.scheduler.set_sched_config({'strict_ordering': 'True'})
         a = {'resources_available.ncpus': '1'}
-        self.server.manager(MGR_CMD_SET, NODE, a, self.mom.shortname)
+        self.server.manager(MGR_CMD_SET, NODE, a, self.mom.shortname,
+                            expect=True)
         a = {'state=free': 1}
         self.server.expect(VNODE, a, attrop=PTL_AND)
         a = {'scheduling': 'False'}
-        self.server.manager(MGR_CMD_SET, SERVER, a)
+        self.server.manager(MGR_CMD_SET, SERVER, a, expect=True)
         for _ in range(6):
             j = Job(TEST_USER, attrs={'Resource_List.select': '1:ncpus=1',
                                       'Resource_List.walltime': 3600})
             self.server.submit(j)
         a = {'scheduling': 'True'}
-        self.server.manager(MGR_CMD_SET, SERVER, a)
+        self.server.manager(MGR_CMD_SET, SERVER, a, expect=True)
         a = {'server_state': 'Scheduling'}
         self.server.expect(SERVER, a, op=NE)
         self.server.expect(JOB, {'estimated.start_time': 5},
@@ -363,7 +367,8 @@ class SmokeTest(PBSTestSuite):
         a = {'log_filter': 2048}
         self.scheduler.set_sched_config(a)
         a = {'resources_available.ncpus': '1'}
-        self.server.manager(MGR_CMD_SET, NODE, a, self.mom.shortname)
+        self.server.manager(MGR_CMD_SET, NODE, a, self.mom.shortname,
+                            expect=True)
         self.server.status(QUEUE)
         if 'expressq' in self.server.queues.keys():
             self.server.manager(MGR_CMD_DELETE, QUEUE, None, 'expressq')
@@ -455,14 +460,14 @@ class SmokeTest(PBSTestSuite):
         hook_body = "import pbs\npbs.event().reject('my custom message')\n"
         a = {'event': 'queuejob', 'enabled': 'True'}
         self.server.create_import_hook(hook_name, a, hook_body)
-        self.server.manager(MGR_CMD_SET, SERVER, {'log_events': 2047})
+        self.server.manager(MGR_CMD_SET, SERVER, {'log_events': 2047},
+                            expect=True)
         j = Job(TEST_USER)
-        now = int(time.time())
         try:
             self.server.submit(j)
         except PbsSubmitError:
             pass
-        self.server.log_match("my custom message", starttime=now)
+        self.server.log_match("my custom message")
 
     def test_mom_hook(self):
         """
@@ -508,8 +513,6 @@ class SmokeTest(PBSTestSuite):
         """
         Test to submit job with job script
         """
-        a = {ATTR_rescavail + '.ncpus': '2'}
-        self.server.manager(MGR_CMD_SET, NODE, a, id=self.mom.shortname)
         j = Job(TEST_USER, attrs={ATTR_N: 'test'})
         j.create_script('sleep 120\n', hostname=self.server.client)
         jid = self.server.submit(j)
@@ -524,7 +527,7 @@ class SmokeTest(PBSTestSuite):
             self.assertNotIn('illegal -N value', e.msg[0],
                              'qsub: Not accepted "." in job name')
         else:
-            self.server.expect(JOB, {'job_state': 'R'}, id=jid)
+            self.server.expect(JOB, {'job_state': (MATCH_RE, '[RQ]')}, id=jid)
             self.logger.info('Job submitted successfully: ' + jid)
 
     @skipOnCpuSet
@@ -533,10 +536,11 @@ class SmokeTest(PBSTestSuite):
         Test for job sort formula
         """
         a = {'resources_available.ncpus': 8}
-        self.server.manager(MGR_CMD_SET, NODE, a, self.mom.shortname)
+        self.server.manager(MGR_CMD_SET, NODE, a, self.mom.shortname,
+                            expect=True)
         self.scheduler.set_sched_config({'log_filter': '2048'})
         a = {'job_sort_formula': 'ncpus'}
-        self.server.manager(MGR_CMD_SET, SERVER, a)
+        self.server.manager(MGR_CMD_SET, SERVER, a, expect=True)
         # purposely submitting a job that is highly unlikely to run so
         # it stays Q'd
         j = Job(TEST_USER, attrs={'Resource_List.select': '1:ncpus=128'})
@@ -621,7 +625,8 @@ class SmokeTest(PBSTestSuite):
         self.server.manager(MGR_CMD_SET, SERVER, a)
         self.scheduler.set_sched_config({'by_queue': 'True'})
         a = {'resources_available.ncpus': 8}
-        self.server.manager(MGR_CMD_SET, NODE, a, self.mom.shortname)
+        self.server.manager(MGR_CMD_SET, NODE, a, self.mom.shortname,
+                            expect=True)
         a = {'Resource_List.select': '1:ncpus=1', ATTR_queue: 'p1'}
         j = Job(TEST_USER, a)
         j1id = self.server.submit(j)
@@ -641,9 +646,9 @@ class SmokeTest(PBSTestSuite):
         j = Job(TEST_USER, a)
         j6id = self.server.submit(j)
         a = {'scheduling': 'True'}
-        self.server.manager(MGR_CMD_SET, SERVER, a)
+        self.server.manager(MGR_CMD_SET, SERVER, a, expect=True)
         a = {'scheduling': 'False'}
-        self.server.manager(MGR_CMD_SET, SERVER, a)
+        self.server.manager(MGR_CMD_SET, SERVER, a, expect=True)
         # Given node configuration of 8 cpus the only jobs that could run are
         # j4id j1id and j3id
         self.server.expect(JOB, {'job_state=R': 3})
@@ -678,7 +683,8 @@ class SmokeTest(PBSTestSuite):
         self.server.manager(MGR_CMD_SET, SERVER, a)
         self.scheduler.set_sched_config({'round_robin': 'true   ALL'})
         a = {'resources_available.ncpus': 9}
-        self.server.manager(MGR_CMD_SET, NODE, a, self.mom.shortname)
+        self.server.manager(MGR_CMD_SET, NODE, a, self.mom.shortname,
+                            expect=True)
         jids = []
         queues = ['p1', 'p2', 'p3']
         queue = queues[0]
@@ -758,12 +764,9 @@ class SmokeTest(PBSTestSuite):
         self.scheduler.add_server_dyn_res("foo", script_body=body)
         self.scheduler.add_resource("foo", apply=True)
         j1 = Job(TEST_USER)
-        j1.set_attributes({'Resource_List': 'foo=15'})
+        j1.set_attributes({'Resource_List': 'foo=5'})
         j1id = self.server.submit(j1)
-        msg = "Can Never Run: Insufficient amount of server resource: foo "\
-              "(R: 15 A: 10 T: 10)"
-        a = {'job_state': 'Q', 'Resource_List.foo': '15',
-             'comment': msg}
+        a = {'job_state': 'R', 'Resource_List.foo': '5'}
         self.server.expect(JOB, a, id=j1id)
 
     @skipOnCpuSet
@@ -790,7 +793,7 @@ class SmokeTest(PBSTestSuite):
         """
         try:
             self.server.manager(MGR_CMD_DELETE, QUEUE, id="expressq")
-        except PbsManagerError:
+        except:
             pass
         a = {'queue_type': 'e',
              'started': 'True',
@@ -824,7 +827,7 @@ class SmokeTest(PBSTestSuite):
         """
         try:
             self.server.manager(MGR_CMD_DELETE, QUEUE, id="expressq")
-        except PbsManagerError:
+        except:
             pass
         a = {'queue_type': 'e',
              'started': 'True',
@@ -907,8 +910,8 @@ class SmokeTest(PBSTestSuite):
         a = {'resources_available.ncpus': 1}
         self.server.manager(MGR_CMD_SET, NODE, a, self.mom.shortname)
         a = {'job_sort_formula':
-             'ceil(fabs(-ncpus*(mem/100.00)*sqrt(walltime)))'}
-        self.server.manager(MGR_CMD_SET, SERVER, a)
+             'math.ceil(math.fabs(-ncpus*(mem/100.00)*math.sqrt(walltime)))'}
+        self.server.manager(MGR_CMD_SET, SERVER, a, expect=True)
         a = {'job_sort_formula_threshold': '7'}
         self.server.manager(MGR_CMD_SET, SCHED, a)
         self.server.manager(MGR_CMD_SET, SERVER, {'scheduling': 'False'})
@@ -1012,7 +1015,7 @@ class SmokeTest(PBSTestSuite):
         self.scheduler.set_sched_config(a)
         try:
             self.server.manager(MGR_CMD_DELETE, QUEUE, None, 'expressq')
-        except PbsManagerError:
+        except:
             pass
         a = {'queue_type': 'e',
              'started': 'True',
@@ -1020,7 +1023,7 @@ class SmokeTest(PBSTestSuite):
              'enabled': 'True'}
         self.server.manager(MGR_CMD_CREATE, QUEUE, a, 'expressq')
 
-    def common_stuff(self, isJobArray=False, isWithPreempt=False):
+    def common_stuff(self, isJobArray=False, isWithPreemt=False):
         """
         Do common stuff for job like submitting, stating and suspending
         """
@@ -1030,7 +1033,7 @@ class SmokeTest(PBSTestSuite):
             a = {'resources_available.ncpus': 1}
         self.server.create_vnodes('vn', a, 1,
                                   mom=self.mom)
-        if isWithPreempt:
+        if isWithPreemt:
             self.do_preempt_config()
         j1 = Job(TEST_USER, attrs={'Resource_List.walltime': 100})
         if isJobArray:
@@ -1041,7 +1044,7 @@ class SmokeTest(PBSTestSuite):
         else:
             a = {'job_state': 'R', 'substate': 42}
         self.server.expect(JOB, a, extend='t')
-        if isWithPreempt:
+        if isWithPreemt:
             j2 = Job(TEST_USER, attrs={'Resource_List.walltime': 100,
                                        'queue': 'expressq'})
             if isJobArray:
@@ -1065,7 +1068,7 @@ class SmokeTest(PBSTestSuite):
             if 'session_id' in job:
                 self.server.expect(JOB, {'session_id': self.isSuspended},
                                    id=job['id'])
-        if isWithPreempt:
+        if isWithPreemt:
             return (j1id, j2id)
         else:
             return j1id
@@ -1075,14 +1078,14 @@ class SmokeTest(PBSTestSuite):
         """
         Test Suspend of Job using Scheduler Preemption
         """
-        self.common_stuff(isWithPreempt=True)
+        self.common_stuff(isWithPreemt=True)
 
     @skipOnCpuSet
     def test_resume_job_with_preempt(self):
         """
         Test Resume of Job using Scheduler Preemption
         """
-        (j1id, j2id) = self.common_stuff(isWithPreempt=True)
+        (j1id, j2id) = self.common_stuff(isWithPreemt=True)
         self.server.delete(j2id)
         self.server.expect(JOB, {'job_state': 'R', 'substate': 42},
                            id=j1id)
@@ -1098,14 +1101,14 @@ class SmokeTest(PBSTestSuite):
         """
         Test Suspend of Job array using Scheduler Preemption
         """
-        self.common_stuff(isJobArray=True, isWithPreempt=True)
+        self.common_stuff(isJobArray=True, isWithPreemt=True)
 
     @skipOnCpuSet
     def test_resume_job_array_with_preempt(self):
         """
         Test Resume of Job array using Scheduler Preemption
         """
-        (j1id, j2id) = self.common_stuff(isJobArray=True, isWithPreempt=True)
+        (j1id, j2id) = self.common_stuff(isJobArray=True, isWithPreemt=True)
         self.server.delete(j2id)
         self.server.expect(JOB,
                            {'job_state=R': 3, 'substate=42': 3},
@@ -1276,7 +1279,7 @@ class SmokeTest(PBSTestSuite):
                 self.assertNotEqual(jid, None)
             else:
                 self.server.manager(MGR_CMD_SET, obj_type, {ar: val},
-                                    id=obj_id)
+                                    id=obj_id, expect=True)
             try:
                 rc = self.server.manager(MGR_CMD_DELETE, RSC, id=r,
                                          logerr=False)
@@ -1315,7 +1318,7 @@ class SmokeTest(PBSTestSuite):
             self.server.status(RSC, id=self.resc_name)
             self.server.manager(MGR_CMD_DELETE, RSC,
                                 id=self.resc_name, logerr=False)
-        except (PbsManagerError, PbsStatusError):
+        except:
             pass
         for k in self.objs:
             if k not in self.obj_map:
@@ -1358,7 +1361,7 @@ class SmokeTest(PBSTestSuite):
         rv = self.server.add_resource('foo1', 'float', 'nh')
         self.assertTrue(rv)
         # Set scheduler fairshare usage formula
-        self.setup_fs('ceil(fabs(-ncpus*(foo1/100.00)*sqrt(100)))')
+        self.setup_fs('math.ceil(math.fabs(-ncpus*(foo1/100.00)*math.sqrt(100)))')
         node_attr = {'resources_available.ncpus': 1,
                      'resources_available.foo1': 5000}
         self.server.manager(MGR_CMD_SET, NODE, node_attr, self.mom.shortname)

@@ -1,7 +1,7 @@
 
 """
 
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -49,7 +49,7 @@ import sys
 import os
 import pbs
 from pbs.v1._pmi_utils import _get_hosts, _get_vnode_names, _running_excl
-from _exc_types import *
+from ._exc_types import *
 
 
 class InternalError(Exception):

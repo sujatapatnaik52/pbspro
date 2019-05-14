@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -811,7 +811,7 @@ perm_granted_admin_and_owner(char *path, int disallow, char *owner, char *errmsg
 		powner_s = getgrpname(powner);
 
 	if (powner_s != NULL) {
-		if ( !sidIsAdminPrivilege(powner) || \
+		if ( !sidIsAdminPrivilege(powner) && \
 			( (owner != NULL) && strcmp(owner, powner_s) != 0 )  ) {
 			rc = EPERM;
 			sprintf(errmsg, "File %s not owned by user %s or an admin-type user!",
@@ -852,7 +852,7 @@ perm_granted_admin_and_owner(char *path, int disallow, char *owner, char *errmsg
 			 ( EqualSid((SID *)&pace->SidStart, esid) || \
 			sid2rid((SID *)&pace->SidStart) != \
 					 SECURITY_CREATOR_OWNER_RID ) && \
-			(!sidIsAdminPrivilege( (SID *)&pace->SidStart)) || \
+			(!sidIsAdminPrivilege( (SID *)&pace->SidStart)) && \
    			((owner != NULL) && strcmp(name, owner) != 0) ) {
 			(void)accessinfo_add(allowed, sizeInfo.AceCount,
 				name, (mask & 0xFFFF));

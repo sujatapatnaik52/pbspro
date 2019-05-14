@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -124,7 +124,6 @@ void set_timed_event_disabled(timed_event *te, int disabled);
  *			   different types
  *
  *	  te_list - timed_event list to search in
- *	  ignore_disabled - ignore disabled events
  *	  name    - name of timed_event to search for
  *	  event_type - event_type or TIMED_LOW to ignore
  *	  event_time - time or 0 to ignore
@@ -133,7 +132,7 @@ void set_timed_event_disabled(timed_event *te, int disabled);
  *
  */
 timed_event *
-find_timed_event(timed_event *te_list, int ignore_disabled, char *name,
+find_timed_event(timed_event *te_list, char *name,
 	enum timed_event_types event_type, time_t event_time);
 
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -853,7 +853,7 @@ is_comm_up(int maturity_time)
  *				that have been taken out from the list of
  *				vnodes assigned with non-functioning parent
  *				moms.
- *
+ *				
  * @return  int
  * @retval	0	- for success
  * @retval	1	- if any error occurred.
@@ -949,7 +949,7 @@ prune_exec_vnode(job *pjob,  char *select_str, vnl_t **failed_vnodes, vnl_t **go
 	}
 
 	if (new_exec_vnode != NULL) {
-
+	
 		if (strcmp(execvnode, new_exec_vnode) == 0) {
 			/* there was no change */
 			rc = 0;
@@ -1324,7 +1324,7 @@ receive_job_update(int stream, job *pjob)
 			return (-1);
 		}
 #endif	/* MOM_CPUSET && !IRIX6_CPUSET */
-
+	
 		mom_hook_input_init(&hook_input);
 		hook_input.pjob = pjob;
 
@@ -1888,7 +1888,7 @@ find_node(job *pjob, int stream, tm_node_id vnodeid)
  *	The returned hostname points to a fixed memory area that must not
  *	be freed, and get overwritten on the next call to
  *	addr_to_hostname().
- *
+ * 
  */
 char *
 addr_to_hostname(struct sockaddr_in *ap)
@@ -1946,7 +1946,9 @@ addr_to_hostname(struct sockaddr_in *ap)
 void
 job_start_error(job *pjob, int code, char *nodename, char *cmd)
 {
+#ifndef WIN32
 	void    exec_bail(job *pjob, int code, char *txt);
+#endif
 
 	if ((pjob == NULL) || (nodename == NULL) || (cmd == NULL))
 		return;
@@ -1963,7 +1965,7 @@ job_start_error(job *pjob, int code, char *nodename, char *cmd)
 			pjob->ji_qs.ji_jobid, log_buffer);
 		/* a filled-in log_buffer could be mistaken for an error message */
 		log_buffer[0] = '\0';
-
+		
 		reliable_job_node_add(&pjob->ji_failed_node_list, nodename);
 		reliable_job_node_delete(&pjob->ji_node_list, nodename);
 
@@ -1982,12 +1984,18 @@ job_start_error(job *pjob, int code, char *nodename, char *cmd)
 	if (pjob->ji_qs.ji_substate >= JOB_SUBSTATE_EXITING)
 		return;
 
+#ifdef WIN32
+	pjob->ji_qs.ji_substate = JOB_SUBSTATE_EXITING;
+	pjob->ji_qs.ji_un.ji_momt.ji_exitstat = JOB_EXEC_RETRY;
+	exiting_tasks = 1;
+#else
 	if (code == PBSE_HOOK_REJECT_DELETEJOB)
 		exec_bail(pjob, JOB_EXEC_FAILHOOK_DELETE, NULL);
 	else if (code == PBSE_HOOK_REJECT_RERUNJOB)
 		exec_bail(pjob, JOB_EXEC_FAILHOOK_RERUN, NULL);
 	else
 		exec_bail(pjob, JOB_EXEC_RETRY, NULL);
+#endif
 }
 
 /**
@@ -2269,7 +2277,7 @@ node_bailout(job *pjob, hnodent *np)
 				snprintf(log_buffer, sizeof(log_buffer),
 			 		"sister node %s failed to update job",
 						np->hn_host?np->hn_host:"");
-
+			
 #ifndef WIN32
 				close_update_pipes(pjob);
 #endif
@@ -2408,7 +2416,7 @@ im_eof(int stream, int ret)
 #ifndef WIN32
 					if (pjob->ji_parent2child_moms_status_pipe != -1) {
 						size_t r_size;
-						r_size = strlen(np->hn_host) + 1;
+						r_size = strlen(np->hn_host) + 1; 	
 						if (write_pipe_data(pjob->ji_parent2child_moms_status_pipe, &r_size, sizeof(size_t)) == 0)
 							(void)write_pipe_data(pjob->ji_parent2child_moms_status_pipe, np->hn_host, r_size);
 						else
@@ -2917,7 +2925,7 @@ recv_resc_used_from_sister(int stream, char *jobid, int nodeidx)
  *	before calling finish_exec() on a job.
  *
  * @param[in]       pjob		job being operated on
- * @param[in]       do_job_setup_send	set to 1 if job_setup_send() should be done
+ * @param[in]       do_job_setup_send	set to 1 if job_setup_send() should be done 
  *
  * @return enum pre_finish_results_t
  * @retval PRE_FINISH_SUCCESS			all actions executed successfully
@@ -2925,7 +2933,7 @@ recv_resc_used_from_sister(int stream, char *jobid, int nodeidx)
  * @retval PRE_FINISH_SUCCESS_JOB_SETUP_SEND	all actions up to job_setup_send()
  *						succeeded
  * @retval PRE_FINISH_FAIL_JOB_SETUP_SEND	action to do job_setup_send() failed
- * @retval PRE_FINISH_FAIL_JOIN_EXTRA		action to do job_join_extra() failed
+ * @retval PRE_FINISH_FAIL_JOIN_EXTRA		action to do job_join_extra() failed 
  * @retval PRE_FINISH_FAIL_NEW_CPUSET		action to create new cpuset failed
  *
  */
@@ -2997,7 +3005,7 @@ im_request(int stream, int version)
 	char			*jobid = NULL;
 	char			*cookie = NULL;
 	char			*oreo;
-	char			basename[MAXPATHLEN + 1] = {0};
+	char			basename[50];
 	char			namebuf[MAXPATHLEN+1];
 	job			*pjob;
 	pbs_task		*ptask;
@@ -3035,8 +3043,6 @@ im_request(int stream, int version)
 	int			argc = 0;
 	mom_hook_input_t	hook_input;
 	mom_hook_output_t	hook_output;
-	mom_hook_input_t	*hook_input_ptr;
-	mom_hook_output_t	*hook_output_ptr;
 	int			hook_errcode = 0;
 	int			hook_rc = 0;
 	hook			*last_phook = NULL;
@@ -3140,12 +3146,12 @@ im_request(int stream, int version)
 			psatl = (svrattrl *)GET_NEXT(lhead);
 			while (psatl) {
 				if (!strcmp(psatl->al_name, ATTR_hashname)) {
-					strncpy(basename, psatl->al_value, MAXPATHLEN);
+					(void)strcpy(basename, psatl->al_value);
 					break;
 				}
 				psatl = (svrattrl *)GET_NEXT(psatl->al_link);
 			}
-			strncpy(pjob->ji_qs.ji_jobid, jobid, PBS_MAXSVRJOBID);
+			(void)strcpy(pjob->ji_qs.ji_jobid, jobid);
 			if (strlen(basename) <= PBS_JOBBASE)
 				strcpy(pjob->ji_qs.ji_fileprefix, basename);
 			else
@@ -3313,15 +3319,6 @@ im_request(int stream, int version)
 					mom_deljob(pjob);
 					goto done;
 			}
-
-			mom_hook_input_init(&hook_input);
-			hook_input.pjob = pjob;
-
-			mom_hook_output_init(&hook_output);
-			hook_output.reject_errcode = &hook_errcode;
-			hook_output.last_phook = &last_phook;
-			hook_output.fail_action = &hook_fail_action;
-
 			DBPRT(("%s: JOIN_JOB %s node %d\n", __func__, jobid, pjob->ji_nodeid))
 
 			/*
@@ -3330,7 +3327,6 @@ im_request(int stream, int version)
 			if (job_join_extra != NULL) {
 				errcode = job_join_extra(pjob, np);
 				if (errcode != 0) {
-					(void)mom_process_hooks(HOOK_EVENT_EXECJOB_ABORT, PBS_MOM_SERVICE_NAME, mom_host, &hook_input, &hook_output, hook_msg, sizeof(hook_msg), 1);
 					mom_deljob(pjob);
 					SEND_ERR(errcode)
 					goto done;
@@ -3339,12 +3335,18 @@ im_request(int stream, int version)
 
 #if	defined(MOM_CPUSET) && !defined(IRIX6_CPUSET)
 			if (new_cpuset(pjob) < 0) {
-				(void)mom_process_hooks(HOOK_EVENT_EXECJOB_ABORT, PBS_MOM_SERVICE_NAME, mom_host, &hook_input, &hook_output, hook_msg, sizeof(hook_msg), 1);
 				mom_deljob(pjob);
 				SEND_ERR(PBSE_SYSTEM)
 				goto done;
 			}
 #endif	/* MOM_CPUSET && !IRIX6_CPUSET */
+#if	MOM_BGL
+			if (verify_job_bgl_partition(pjob, NULL) != 0) {
+				mom_deljob(pjob);
+				SEND_ERR(PBSE_SYSTEM)
+				goto done;
+			}
+#endif	/* MOM_BGL */
 
 			(void)job_save(pjob, SAVEJOB_FULL);
 			(void)strcpy(namebuf, path_jobs);	/* job directory path */
@@ -3355,7 +3357,6 @@ im_request(int stream, int version)
 			(void)strcat(namebuf, JOB_TASKDIR_SUFFIX);
 
 			if (mkdir(namebuf, 0700) == -1) {
-				(void)mom_process_hooks(HOOK_EVENT_EXECJOB_ABORT, PBS_MOM_SERVICE_NAME, mom_host, &hook_input, &hook_output, hook_msg, sizeof(hook_msg), 1);
 				mom_deljob(pjob);
 				SEND_ERR(PBSE_SYSTEM)
 				goto done;
@@ -3364,7 +3365,6 @@ im_request(int stream, int version)
 			/* the following must appear before check_pwd() since the */
 			/* latter tries to read cred info */
 			if (mom_create_cred(pjob, info, len, FALSE, stream) == -1) {
-				(void)mom_process_hooks(HOOK_EVENT_EXECJOB_ABORT, PBS_MOM_SERVICE_NAME, mom_host, &hook_input, &hook_output, hook_msg, sizeof(hook_msg), 1);
 				mom_deljob(pjob);
 				SEND_ERR(PBSE_SYSTEM)
 				goto done;
@@ -3373,7 +3373,6 @@ im_request(int stream, int version)
 			if (check_pwd(pjob) == NULL) {
 				log_event(PBSEVENT_JOB, PBS_EVENTCLASS_JOB, LOG_NOTICE,
 					pjob->ji_qs.ji_jobid, log_buffer);
-				(void)mom_process_hooks(HOOK_EVENT_EXECJOB_ABORT, PBS_MOM_SERVICE_NAME, mom_host, &hook_input, &hook_output, hook_msg, sizeof(hook_msg), 1);
 				mom_deljob(pjob);
 				SEND_ERR(PBSE_BADUSER)
 				goto done;
@@ -3383,7 +3382,6 @@ im_request(int stream, int version)
 
 #ifndef WIN32
 			if (mom_create_cred(pjob, info, len, FALSE, stream) == -1) {
-				(void)mom_process_hooks(HOOK_EVENT_EXECJOB_ABORT, PBS_MOM_SERVICE_NAME, mom_host, &hook_input, &hook_output, hook_msg, sizeof(hook_msg), 1);
 				mom_deljob(pjob);
 				SEND_ERR(PBSE_SYSTEM)
 				goto done;
@@ -3403,7 +3401,6 @@ im_request(int stream, int version)
 					sprintf(log_buffer, "unable to create the job directory %s",
 						jobdirname(pjob->ji_qs.ji_jobid, pjob->ji_grpcache->gc_homedir));
 					log_err(errno, __func__, log_buffer);
-					(void)mom_process_hooks(HOOK_EVENT_EXECJOB_ABORT, PBS_MOM_SERVICE_NAME, mom_host, &hook_input, &hook_output, hook_msg, sizeof(hook_msg), 1);
 					mom_deljob(pjob);
 					SEND_ERR(PBSE_SYSTEM)
 					goto done;
@@ -3436,7 +3433,6 @@ im_request(int stream, int version)
 				if (e != 0) {
 					sprintf(log_buffer, "unable to create the job directory %s", jobdirname(pjob->ji_qs.ji_jobid, pjob->ji_grpcache->gc_homedir));
 					log_err(errno, __func__, log_buffer);
-					(void)mom_process_hooks(HOOK_EVENT_EXECJOB_ABORT, PBS_MOM_SERVICE_NAME, mom_host, &hook_input, &hook_output, hook_msg, sizeof(hook_msg), 1);
 					mom_deljob(pjob);
 					SEND_ERR(PBSE_SYSTEM)
 					goto done;
@@ -3491,7 +3487,6 @@ im_request(int stream, int version)
 
 join_err:
 			log_err(errno, __func__, "rpp_write");
-			(void)mom_process_hooks(HOOK_EVENT_EXECJOB_ABORT, PBS_MOM_SERVICE_NAME, mom_host, &hook_input, &hook_output, hook_msg, sizeof(hook_msg), 1);
 			rpp_close(stream);
 			mom_deljob(pjob);
 			goto fini;
@@ -3681,49 +3676,25 @@ join_err:
 				log_event(PBSEVENT_JOB, PBS_EVENTCLASS_JOB, LOG_DEBUG,
 				jobid, delete_job_msg);
 
-			if (pjob->ji_hook_running_bg_on)
-				goto fini;
-
 			kill_job(pjob, SIGKILL);	/* just in case */
 
 			/* NULL value passed to hook_input.vnl 				*/
 			/* means to assign vnode list using pjob->ji_host[].	    	*/
 
-			if ((hook_input_ptr = (mom_hook_input_t *)malloc(
-				sizeof(mom_hook_input_t))) == NULL) {
-					log_err(errno, __func__, MALLOC_ERR_MSG);
-					goto err;
-			}
-			mom_hook_input_init(hook_input_ptr);
-			hook_input_ptr->pjob = pjob;
+			mom_hook_input_init(&hook_input);
+			hook_input.pjob = pjob;
 
-			if ((hook_output_ptr = (mom_hook_output_t *)malloc(
-				sizeof(mom_hook_output_t))) == NULL) {
-					log_err(errno, __func__, MALLOC_ERR_MSG);
-					goto err;
-			}
-			mom_hook_output_init(hook_output_ptr);
+			mom_hook_output_init(&hook_output);
+			hook_output.reject_errcode = &hook_errcode;
+			hook_output.last_phook = &last_phook;
+			hook_output.fail_action = &hook_fail_action;
 
-			if ((hook_output_ptr->reject_errcode =
-				(int *)malloc(sizeof(int))) == NULL) {
-					log_err(errno, __func__, MALLOC_ERR_MSG);
-					goto err;
-			}
-			memset(hook_output_ptr->reject_errcode, 0, sizeof(int));
-
-			pjob->ji_postevent = event;
-			pjob->ji_taskid = fromtask;
-
-			if (mom_process_hooks(
+			(void)mom_process_hooks(
 				(command == IM_DELETE_JOB2)?
 					HOOK_EVENT_EXECJOB_EPILOGUE:
 					HOOK_EVENT_EXECJOB_END,
-				PBS_MOM_SERVICE_NAME, mom_host, hook_input_ptr,
-				hook_output_ptr, NULL, 0, 1) ==
-						HOOK_RUNNING_IN_BACKGROUND) {
-					pjob->ji_hook_running_bg_on = command;
-					break;
-				}
+				PBS_MOM_SERVICE_NAME, mom_host, &hook_input,
+				&hook_output, hook_msg, sizeof(hook_msg), 1);
 
 			if (command == IM_DELETE_JOB_REPLY) {
 				mom_deljob(pjob);
@@ -3783,9 +3754,6 @@ join_err:
 				mom_deljob(pjob);
 				reply = 0;
 			}
-			free(hook_input_ptr);
-			free(hook_output_ptr->reject_errcode);
-			free(hook_output_ptr);
 			break;
 
 		case	IM_EXEC_PROLOGUE:
@@ -4363,17 +4331,9 @@ join_err:
 			if (pjob->ji_qs.ji_svrflags &
 				(JOB_SVFLG_CHKPT|JOB_SVFLG_ChkptMig)) {
 				kill_job(pjob, SIGKILL);	/* is this right? */
-			} else {
-				mom_hook_input_init(&hook_input);
-				hook_input.pjob = pjob;
-
-				mom_hook_output_init(&hook_output);
-				hook_output.reject_errcode = &hook_errcode;
-				hook_output.last_phook = &last_phook;
-				hook_output.fail_action = &hook_fail_action;
-				(void)mom_process_hooks(HOOK_EVENT_EXECJOB_ABORT, PBS_MOM_SERVICE_NAME, mom_host, &hook_input, &hook_output, hook_msg, sizeof(hook_msg), 1);
-				mom_deljob(pjob);
 			}
+			else
+				mom_deljob(pjob);
 			break;
 
 		case	IM_REQUEUE:

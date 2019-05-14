@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -984,10 +984,6 @@ class PBSAnonymizer(object):
 
         :returns: a str object containing filename of the anonymized file
         """
-        if not os.path.isfile(filename):
-            self.logger.debug("%s not found, nothing to anonymize" % filename)
-            return filename
-
         fn = self.du.create_temp_file()
 
         with open(filename) as f, open(fn, "w") as nf:
@@ -1091,8 +1087,6 @@ class PBSAnonymizer(object):
             # accounting log format is
             # %Y/%m/%d %H:%M:%S;<Key>;<Id>;<key1=val1> <key2=val2> ...
             curr = data.split(";", 3)
-            if curr is None or len(curr) < 4:
-                continue
             if curr[1] in ("A", "L"):
                 anon_data.append(data.strip())
                 continue
@@ -1101,11 +1095,6 @@ class PBSAnonymizer(object):
             skip_record = False
             # Split the attribute list into key value pairs
             kvl_list = map(lambda n: n.split("=", 1), buf)
-            if kvl_list is None:
-                self.num_bad_acct_records += 1
-                self.logger.debug("Bad accounting record found:\n" +
-                                  data)
-                continue
             for kvl in kvl_list:
                 try:
                     k, v = kvl

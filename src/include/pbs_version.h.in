@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -45,9 +45,6 @@ extern "C" {
  * The version of this file and the PBS version have no simple correlation.
  *
  */
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 #ifdef WIN32
 #define PBS_BUILD "mach=WIN32:security=:configure_args="
@@ -65,8 +62,9 @@ extern "C" {
 
 #endif
 
-#define PRINT_VERSION_AND_EXIT(argc, argv) if (argc == 2 && strcasecmp(argv[1], "--version") == 0) { fprintf(stdout, "pbs_version = %s\n", PBS_VERSION); exit(0); }
-
+extern char pbs_version [];
+extern char pbs_build [];
+extern void execution_mode(int argc, char** argv);
 #ifdef __cplusplus
 }
 #endif

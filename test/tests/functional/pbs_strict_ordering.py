@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -54,13 +54,13 @@ class TestStrictOrderingAndBackfilling(TestFunctional):
         self.server.create_vnodes('vn', a, 1, self.mom, usenatvnode=True)
 
         rv = self.scheduler.set_sched_config(
-            {'round_robin': 'false all', 'by_queue': 'false all',
-             'strict_ordering': 'true all',
+            {'round_robin': 'false all', 'by_queue': 'false prime',
+             'by_queue': 'false non_prime', 'strict_ordering': 'true all',
              'help_starving_jobs': 'false all'})
         self.assertTrue(rv)
 
         a = {'backfill_depth': 0}
-        self.server.manager(MGR_CMD_SET, SERVER, a)
+        self.server.manager(MGR_CMD_SET, SERVER, a, expect=True)
 
         j1 = Job(TEST_USER)
         a = {'Resource_List.select': '1:ncpus=2',
@@ -97,11 +97,12 @@ class TestStrictOrderingAndBackfilling(TestFunctional):
 
     def test_t2(self):
         rv = self.scheduler.set_sched_config(
-            {'by_queue': 'false prime', 'strict_ordering': 'true all'})
+            {'by_queue': 'false prime', 'by_queue': 'false non_prime',
+             'strict_ordering': 'true all'})
         self.assertTrue(rv)
         a = {'backfill_depth': 2}
         self.server.manager(
-            MGR_CMD_SET, QUEUE, a, id='workq')
+            MGR_CMD_SET, QUEUE, a, id='workq', expect=True)
         a = {
             'queue_type': 'execution',
             'started': 't',
@@ -115,10 +116,17 @@ class TestStrictOrderingAndBackfilling(TestFunctional):
             'backfill_depth': 0}
         self.server.manager(MGR_CMD_CREATE, QUEUE, a, id='wq3')
         a = {'backfill_depth': 0}
-        self.server.manager(MGR_CMD_SET, SERVER, a)
+        self.server.manager(MGR_CMD_SET, SERVER, a, expect=True)
         a = {'resources_available.ncpus': 5}
-        self.server.manager(MGR_CMD_SET, NODE, a, self.mom.shortname)
-        self.server.manager(MGR_CMD_SET, SERVER, {'scheduling': 'False'})
+        self.server.manager(
+            MGR_CMD_SET,
+            NODE,
+            a,
+            self.mom.shortname,
+            expect=True)
+        self.server.manager(
+            MGR_CMD_SET, SERVER, {
+                'scheduling': 'False'}, expect=True)
         a = {'Resource_List.select': '1:ncpus=2', ATTR_queue: 'workq'}
         j = Job(TEST_USER, a)
         j.set_sleep_time(100)
@@ -133,7 +141,9 @@ class TestStrictOrderingAndBackfilling(TestFunctional):
         j = Job(TEST_USER, a)
         j.set_sleep_time(100)
         j5id = self.server.submit(j)
-        self.server.manager(MGR_CMD_SET, SERVER, {'scheduling': 'True'})
+        self.server.manager(
+            MGR_CMD_SET, SERVER, {
+                'scheduling': 'True'}, expect=True)
         self.server.expect(JOB,
                            {'job_state': 'R'},
                            id=j1id,
@@ -154,142 +164,3 @@ class TestStrictOrderingAndBackfilling(TestFunctional):
                            id=j5id,
                            max_attempts=30,
                            interval=2)
-
-    def test_zero_backfill_depth_on_queue(self):
-        """
-        Test if scheduler tries to run a job when strict ordering is enabled
-        and backfill_depth is set to 0 on the queue
-        """
-        a = {'resources_available.ncpus': 2}
-        self.server.create_vnodes('vn', a, 1, self.mom, usenatvnode=True)
-
-        rv = self.scheduler.set_sched_config(
-            {'round_robin': 'false all', 'by_queue': 'false all',
-             'strict_ordering': 'true all',
-             'help_starving_jobs': 'false all'})
-        self.assertTrue(rv)
-
-        a = {'backfill_depth': 0}
-        self.server.manager(MGR_CMD_SET, QUEUE, a, id="workq")
-
-        a = {'scheduling': 'False'}
-        self.server.manager(MGR_CMD_SET, SERVER, a)
-
-        a = {'Resource_List.select': '1:ncpus=1'}
-        j1 = Job(TEST_USER)
-        j1.set_attributes(a)
-        jid1 = self.server.submit(j1)
-
-        a = {'Resource_List.select': '1:ncpus=2'}
-        j2 = Job(TEST_USER)
-        j2.set_attributes(a)
-        jid2 = self.server.submit(j2)
-
-        a = {'Resource_List.select': '1:ncpus=1'}
-        j3 = Job(TEST_USER)
-        j3.set_attributes(a)
-        jid3 = self.server.submit(j3)
-
-        a = {'scheduling': 'True'}
-        self.server.manager(MGR_CMD_SET, SERVER, a)
-
-        job_comment = "Not Running: Job would break strict sorted order"
-        self.server.expect(JOB, {'comment': job_comment}, id=jid3, offset=2,
-                           max_attempts=2, interval=2)
-
-        # Now try the same scenario with backfilling set to one and check
-        # that first and third job runs but second gets calendared.
-        # since we want thrid job to backfill around second, we need to make
-        # sure that walltime of third job is less than the walltime of first
-        # job
-        a = {'scheduling': 'False'}
-        self.server.manager(MGR_CMD_SET, SERVER, a)
-        self.server.deljob([jid1, jid2, jid3])
-
-        a = {'backfill_depth': 1}
-        self.server.manager(MGR_CMD_SET, QUEUE, a, id="workq")
-
-        a = {'Resource_List.select': '1:ncpus=1',
-             'Resource_List.walltime': '100'}
-        j4 = Job(TEST_USER)
-        j4.set_attributes(a)
-        jid4 = self.server.submit(j4)
-
-        a = {'Resource_List.select': '1:ncpus=2'}
-        j5 = Job(TEST_USER)
-        j5.set_attributes(a)
-        jid5 = self.server.submit(j5)
-
-        a = {'Resource_List.select': '1:ncpus=1',
-             'Resource_List.walltime': '50'}
-        j6 = Job(TEST_USER)
-        j6.set_attributes(a)
-        jid6 = self.server.submit(j6)
-
-        a = {'scheduling': 'True'}
-        self.server.manager(MGR_CMD_SET, SERVER, a)
-
-        self.server.expect(JOB, {'job_state': 'R'}, id=jid4)
-        self.server.expect(JOB, {'job_state': 'R'}, id=jid6)
-        self.scheduler.log_match(jid5 + ";Job is a top job")
-
-    def test_zero_backfill_depth_on_one_queue(self):
-        """
-        Test if scheduler tries to run a job when strict ordering is enabled
-        and backfill_depth is set to 0 on one queue but backfill_depth is
-        enabled on another queue.
-        """
-        a = {'resources_available.ncpus': 1}
-        self.server.create_vnodes('vn', a, 1, self.mom, usenatvnode=True)
-
-        rv = self.scheduler.set_sched_config(
-            {'round_robin': 'false all', 'by_queue': 'false all',
-             'strict_ordering': 'true all',
-             'help_starving_jobs': 'false all'})
-        self.assertTrue(rv)
-
-        a = {'backfill_depth': 0}
-        self.server.manager(MGR_CMD_SET, QUEUE, a, id="workq")
-
-        a = {'queue_type': 'execution', 'started': 'True', 'enabled': 'True',
-             'priority': '100'}
-        self.server.manager(MGR_CMD_CREATE, QUEUE, a, id="workq2")
-
-        a = {'backfill_depth': 1}
-        self.server.manager(MGR_CMD_SET, QUEUE, a, id="workq2")
-
-        a = {'scheduling': 'False'}
-        self.server.manager(MGR_CMD_SET, SERVER, a)
-
-        a = {'Resource_List.select': '1:ncpus=1'}
-        j1 = Job(TEST_USER)
-        j1.set_attributes(a)
-        self.server.submit(j1)
-
-        j2 = Job(TEST_USER)
-        j2.set_attributes(a)
-        self.server.submit(j2)
-
-        j3 = Job(TEST_USER)
-        j3.set_attributes(a)
-        jid3 = self.server.submit(j3)
-
-        a = {'Resource_List.select': '1:ncpus=1', 'queue': 'workq2'}
-        j4 = Job(TEST_USER)
-        j4.set_attributes(a)
-        jid4 = self.server.submit(j4)
-
-        j5 = Job(TEST_USER)
-        j5.set_attributes(a)
-        self.server.submit(j5)
-
-        j6 = Job(TEST_USER)
-        j6.set_attributes(a)
-        self.server.submit(j6)
-
-        a = {'scheduling': 'True'}
-        self.server.manager(MGR_CMD_SET, SERVER, a)
-        job_comment = "Not Running: Job would break strict sorted order"
-        self.server.expect(JOB, {'comment': job_comment}, id=jid3, offset=2,
-                           max_attempts=2, interval=2)
-        self.scheduler.log_match(jid4 + ";Job is a top job")

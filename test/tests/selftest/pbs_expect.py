@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -57,8 +57,7 @@ class TestExpect(TestSelf):
         # Set the Priority attribute on the queue but provide 'p' lowercase
         # Set other attributes normally
         a = {'enabled': 'True', 'started': 'True', 'priority': 150}
-        self.server.manager(MGR_CMD_SET, QUEUE, a, 'expressq')
-        self.server.expect(QUEUE, a, id='expressq')
+        self.server.manager(MGR_CMD_SET, QUEUE, a, 'expressq', expect=True)
 
     def test_unsupported_operator(self):
         """

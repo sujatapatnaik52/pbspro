@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -428,7 +428,7 @@ preempt_targets_action(resource *presc, attribute *pattr, void *pobject, int typ
 
 		if (!strncasecmp(name, TARGET_NONE, strlen(TARGET_NONE)))
 		{
-			if (presc->rs_value.at_val.at_arst->as_usedptr > 1)
+			if (presc->rs_value.at_val.at_arst->as_npointers > 1)
 			    return PBSE_BADATVAL;
 			return PBSE_NONE;
 		}

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -222,7 +222,6 @@ extern pbs_list_head svr_exechost_startup_hooks;
 extern pbs_list_head svr_execjob_launch_hooks;
 extern pbs_list_head svr_execjob_attach_hooks;
 extern pbs_list_head svr_execjob_resize_hooks;
-extern pbs_list_head svr_execjob_abort_hooks;
 extern	time_t	time_now;
 extern 	struct python_interpreter_data  svr_interp_data;
 extern	pbs_list_head task_list_event;
@@ -3858,11 +3857,13 @@ process_hooks(struct batch_request *preq, char *hook_msg, size_t msg_len,
 
 		jobid = ((struct rq_runjob *)(req_ptr.rq_run))->rq_jid;
 		t = is_job_array(jobid);
-		if ((t == IS_ARRAY_Single) || (t == IS_ARRAY_NO)) {
-			pjob = find_job(jobid); /* regular job and single subjob */
+		if (t == IS_ARRAY_NO) {
+			pjob = find_job(jobid); /* regular job */
+		} else if ((t == IS_ARRAY_Single) || (t == IS_ARRAY_Range)) {
+			pjob = find_arrayparent(jobid); /* subjob(s) */
 		}
 
-		/* an array job or range of subjobs will fall through with pjob set to NULL */
+		/* an array job will fall through with pjob set to NULL */
 
 		if (pjob == NULL) {
 			log_event(PBSEVENT_DEBUG2,
@@ -6703,13 +6704,6 @@ add_pending_mom_allhooks_action(void *minfo, unsigned int action)
 		add_pending_mom_hook_action((mominfo_t *)minfo,
 			phook->hook_name, action);
 		phook = (hook *)GET_NEXT(phook->hi_execjob_resize_hooks);
-	}
-
-	phook = (hook *)GET_NEXT(svr_execjob_abort_hooks);
-	while (phook) {
-		add_pending_mom_hook_action((mominfo_t *)minfo,
-			phook->hook_name, action);
-		phook = (hook *)GET_NEXT(phook->hi_execjob_abort_hooks);
 	}
 
 }

@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -108,13 +108,14 @@ e.reject()
              'resources_available.ncpus': '2',
              'resources_available.aoe': 'App1,osimage1'}
         self.server.manager(
-            MGR_CMD_SET, NODE, a, id=self.hostA)
+            MGR_CMD_SET, NODE, a, id=self.hostA, expect=True)
         self.server.manager(MGR_CMD_UNSET, NODE, id=self.hostA,
-                            attrib='current_aoe')
+                            attrib='current_aoe', expect=True)
 
         # Set hostB ncpus to 12
         a = {'resources_available.ncpus': '12'}
-        self.server.manager(MGR_CMD_SET, NODE, a, id=self.hostB)
+        self.server.manager(
+            MGR_CMD_SET, NODE, a, id=self.hostB, expect=True)
 
         # Setup provisioning hook.
         a = {'event': 'provision', 'enabled': 'True', 'alarm': '300'}
@@ -122,7 +123,8 @@ e.reject()
             'fake_prov_hook', a, self.fake_prov_hook, overwrite=True)
         self.assertTrue(rv)
 
-        self.server.manager(MGR_CMD_SET, SERVER, {'log_events': 2047})
+        self.server.manager(MGR_CMD_SET, SERVER, {'log_events': 2047},
+                            expect=True)
 
     def test_app_provisioning(self):
         """
@@ -369,7 +371,7 @@ e.reject()
         self.assertTrue(rv)
         # Set current aoe to App1
         self.server.manager(MGR_CMD_SET, NODE, id=self.hostA,
-                            attrib={'current_aoe': 'App1'})
+                            attrib={'current_aoe': 'App1'}, expect=True)
 
         # Turn on scheduling
         self.server.manager(MGR_CMD_SET,
@@ -403,7 +405,7 @@ e.reject()
 
         # Set current aoe to osimage1
         self.server.manager(MGR_CMD_SET, NODE, id=self.hostA,
-                            attrib={'current_aoe': 'osimage1'})
+                            attrib={'current_aoe': 'osimage1'}, expect=True)
 
         # submit one job that will run on local node
         a = {'Resource_List.select': '1:ncpus=10'}

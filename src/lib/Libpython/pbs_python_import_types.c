@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -91,6 +91,18 @@ static char svr_types_module_doc[]=
 \tavailable in the PBS Python Server modules.\n\
 ";
 
+static struct PyModuleDef svr_types_module = {
+	PyModuleDef_HEAD_INIT,
+	PBS_PYTHON_V1_MODULE_EXTENSION_NAME ".svr_types",
+	svr_types_module_doc,
+	-1,
+	svr_types_module_methods,
+	NULL,
+	NULL,
+	NULL,
+	NULL
+};
+
 /**
  * @brief
  * 	ppsvr_create_types_module-creates and returns svr)types module object
@@ -106,9 +118,7 @@ ppsvr_create_types_module(void)
 	PyObject *mdict = NULL; /* module dict  */
 
 
-	m = Py_InitModule3(PBS_PYTHON_V1_MODULE_EXTENSION_NAME ".svr_types",
-		svr_types_module_methods,
-		svr_types_module_doc);
+	m = PyModule_Create(&svr_types_module);
 
 	if (m == NULL)
 		return m;

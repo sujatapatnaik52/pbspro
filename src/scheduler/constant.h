@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -328,7 +328,6 @@ enum misc_constants
 	NO_FLAGS = 0,
 	IGNORE_DISABLED_EVENTS = 1,
 	FORCE,
-	SET_RESRESV_INDEX = 4,
 	ALL_MASK = 0xffffffff
 };
 
@@ -446,6 +445,15 @@ enum preempt
 	PREEMPT_QRUN,			/* job is being qrun */
 	PREEMPT_ERR,			/* error occurred during preempt computation */
 	PREEMPT_HIGH
+};
+
+enum preempt_method
+{
+	PREEMPT_METHOD_LOW,
+	PREEMPT_METHOD_SUSPEND,
+	PREEMPT_METHOD_CHECKPOINT,
+	PREEMPT_METHOD_REQUEUE,
+	PREEMPT_METHOD_HIGH
 };
 
 enum schd_simulate_cmd

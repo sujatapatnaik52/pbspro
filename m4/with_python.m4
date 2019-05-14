@@ -1,6 +1,6 @@
 
 #
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -46,9 +46,9 @@ AC_DEFUN([PBS_AC_WITH_PYTHON],
   AS_IF([test "x$with_python" != "x"],
     [PYTHON="$with_python/bin/python"]
   )
-  AM_PATH_PYTHON([2.6])
-  AS_IF([test "$PYTHON_VERSION" != "2.6" -a "$PYTHON_VERSION" != "2.7"],
-    AC_MSG_ERROR([Python must be version 2.6 or 2.7]))
+  AM_PATH_PYTHON([3.6])
+  AS_IF([test "$PYTHON_VERSION" != "3.6" ],
+    AC_MSG_ERROR([Python must be version 3.6]))
   [PYTHON_INCLUDES=`$PYTHON ${srcdir}/buildutils/python-autoconf.py --includes`]
   AC_SUBST(PYTHON_INCLUDES)
   [PYTHON_CFLAGS=`$PYTHON ${srcdir}/buildutils/python-autoconf.py --cflags`]
@@ -57,12 +57,6 @@ AC_DEFUN([PBS_AC_WITH_PYTHON],
   AC_SUBST(PYTHON_LDFLAGS)
   [PYTHON_LIBS=`$PYTHON ${srcdir}/buildutils/python-autoconf.py --libs`]
   AC_SUBST(PYTHON_LIBS)
-  [PYTHON_STD_LIBDIR=`$PYTHON ${srcdir}/buildutils/python-autoconf.py --stdlibdir`]
-  AC_SUBST(PYTHON_STD_LIBDIR)
-  [PYTHON_STD_MODULE_DIR=`$PYTHON ${srcdir}/buildutils/python-autoconf.py --stdlibmoddir`]
-  AC_SUBST(PYTHON_STD_MODULE_DIR)
-  [PYTHON_STD_MODULE_SHARED_DIR=`$PYTHON ${srcdir}/buildutils/python-autoconf.py --stdlibmodshareddir`]
-  AC_SUBST(PYTHON_STD_MODULE_SHARED_DIR)
   [PBS_PYTHON_DESTLIB="python/altair"]
   AC_SUBST(PBS_PYTHON_DESTLIB)
   [PYTHON_STD_DESTLIB="python/python${PYTHON_VERSION}"]

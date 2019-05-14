@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -313,8 +313,11 @@ class TestFairshare(TestFunctional):
         J2 = Job(TEST_USER1)
         jid2 = self.server.submit(J2)
 
+        t = int(time.time())
         self.server.manager(MGR_CMD_SET, SERVER, {'scheduling': 'True'})
-        self.server.manager(MGR_CMD_SET, SERVER, {'scheduling': 'False'})
+
+        self.scheduler.log_match('Leaving Scheduling Cycle', starttime=t,
+                                 max_attempts=10)
 
         c = self.scheduler.cycles(lastN=1)[0]
         job_order = [jid2, jid1]
@@ -325,13 +328,9 @@ class TestFairshare(TestFunctional):
         self.server.deljob(id=jid2, wait=True)
         self.scheduler.revert_to_defaults()
 
-        # revert_to_defaults() will set the default scheduler's scheduling
-        # back to true.  Need to turn it off again
-        self.server.manager(MGR_CMD_SET, SERVER, {'scheduling': 'False'})
-
         # Set TEST_USER1 to 50.  If revert_to_defaults() has affected the
         # scheduler's view of the fairshare usage, it's the only entity with
-        # usage.  Its job will run second.  If revert_to_defaults() did
+        # usage.  It's job will run second.  If revert_to_defaults() did
         # nothing, 50 is less than 100, so TEST_USER1's job will run first
         self.scheduler.add_to_resource_group(TEST_USER, 11, 'root', 10)
         self.scheduler.add_to_resource_group(TEST_USER1, 12, 'root', 10)
@@ -339,13 +338,18 @@ class TestFairshare(TestFunctional):
 
         self.scheduler.set_fairshare_usage(TEST_USER1, 50)
 
+        self.server.manager(MGR_CMD_SET, SERVER, {'scheduling': 'False'},
+                            expect=True)
         J3 = Job(TEST_USER)
         jid3 = self.server.submit(J3)
         J4 = Job(TEST_USER1)
         jid4 = self.server.submit(J4)
 
+        t = int(time.time())
         self.server.manager(MGR_CMD_SET, SERVER, {'scheduling': 'True'})
-        self.server.manager(MGR_CMD_SET, SERVER, {'scheduling': 'False'})
+
+        self.scheduler.log_match('Leaving Scheduling Cycle', starttime=t,
+                                 max_attempts=10)
 
         c = self.scheduler.cycles(lastN=1)[0]
         job_order = [jid3, jid4]

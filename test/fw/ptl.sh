@@ -1,6 +1,6 @@
 #!/usr/bin/sh
 #
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -37,15 +37,9 @@
 
 # This file will set path variables in case of ptl installation
 
-if [ -f "/etc/debian_version" ]; then
-	ptl_prefix_lib=$( dpkg -L pbspro-ptl 2>/dev/null | grep -m 1 lib$ 2>/dev/null )
-else
-	ptl_prefix_lib=$( rpm -ql pbspro-ptl 2>/dev/null | grep -m 1 lib$ 2>/dev/null )
-fi
-if [ "x${ptl_prefix_lib}" != "x" ]; then
-	python_dir=$( /bin/ls -1 ${ptl_prefix_lib} )
-	prefix=$( dirname ${ptl_prefix_lib} )
+ptl_prefix_lib=$( rpm -ql pbspro-ptl | grep -m 1 lib$ )
+python_dir=$( /bin/ls -1 ${ptl_prefix_lib} )
+prefix=$( dirname ${ptl_prefix_lib} )
 
-	export PATH=${prefix}/bin/:${PATH} 
-	export PYTHONPATH=${prefix}/lib/${python_dir}/site-packages/:$PYTHONPATH 
-fi
+export PATH=${prefix}/bin/:${PATH}
+export PYTHONPATH=${prefix}/lib/${python_dir}/site-packages/:$PYTHONPATH

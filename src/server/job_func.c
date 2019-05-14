@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -255,7 +255,7 @@ job_abt(job *pjob, char *text)
 	if ((old_state == JOB_STATE_RUNNING) && (old_substate != JOB_SUBSTATE_PROVISION)) {
 		(void)svr_setjobstate(pjob,
 			JOB_STATE_RUNNING, JOB_SUBSTATE_ABORT);
-		rc = issue_signal(pjob, "SIGKILL", release_req, 0, NULL);
+		rc = issue_signal(pjob, "SIGKILL", release_req, 0);
 		if (rc != 0) {
 			(void)sprintf(log_buffer, msg_abt_err,
 				pjob->ji_qs.ji_jobid, old_substate);
@@ -362,7 +362,6 @@ job_alloc(void)
 	pj->ji_parent2child_job_update_status_pipe = -1;
 	pj->ji_parent2child_moms_status_pipe = -1;
 	pj->ji_updated = 0;
-	pj->ji_hook_running_bg_on = 0;
 #ifdef WIN32
 	pj->ji_hJob = NULL;
 	pj->ji_user = NULL;

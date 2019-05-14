@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -195,13 +195,6 @@ encode_attr_db(struct attribute_def *padef, struct attribute *pattr, int numattr
 		pal = (svrattrl *)GET_NEXT(pal->al_link);
 		count++;
 	}
-
-	if (count == 0) {
-		attr_list->attributes = NULL;
-		attr_list->attr_count = 0;
-		return 0;
-	}
-
 	attr_list->attributes = calloc(count, sizeof(pbs_db_attr_info_t));
 	if (!attr_list->attributes)
 		return -1;

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -58,12 +58,13 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <wchar.h>
 
-extern void init_pbs_ifl(void);
+extern PyObject* PyInit__pbs_ifl(void);
 
 static struct _inittab pbs_python_inittab_modules[] = {
 	{PBS_PYTHON_V1_MODULE_EXTENSION_NAME, pbs_v1_module_inittab},
-	{"_pbs_ifl", init_pbs_ifl},
+	{"_pbs_ifl", PyInit__pbs_ifl},
 	{NULL, NULL}                    /* sentinel */
 };
 
@@ -174,8 +175,12 @@ pbs_python_ext_start_interpreter(
 	Py_FrozenFlag = 1;
 	Py_OptimizeFlag = 2;            /* TODO make this a compile flag variable */
 	Py_IgnoreEnvironmentFlag = 1;   /* ignore PYTHONPATH and PYTHONHOME */
-	if (file_exists(pbs_python_home))
-		Py_SetPythonHome(pbs_python_home);
+	if (file_exists(pbs_python_home)) {
+		wchar_t tmp_pbs_python_home[MAXPATHLEN+1];
+		wmemset((wchar_t *)tmp_pbs_python_home, '\0', MAXPATHLEN+1);
+		mbstowcs(tmp_pbs_python_home, pbs_python_home, MAXPATHLEN+1);
+		Py_SetPythonHome(tmp_pbs_python_home);
+	}
 
 	/* we make sure our top level module is initialized */
 	if ((PyImport_ExtendInittab(pbs_python_inittab_modules) != 0)) {
@@ -317,8 +322,12 @@ pbs_python_ext_quick_start_interpreter(void)
 	Py_FrozenFlag = 1;
 	Py_OptimizeFlag = 2;            /* TODO make this a compile flag variable */
 	Py_IgnoreEnvironmentFlag = 1;   /* ignore PYTHONPATH and PYTHONHOME */
-	if (file_exists(pbs_python_home))
-		Py_SetPythonHome(pbs_python_home);
+	if (file_exists(pbs_python_home)) {
+		wchar_t tmp_pbs_python_home[MAXPATHLEN+1];
+		wmemset((wchar_t *)tmp_pbs_python_home, '\0', MAXPATHLEN+1);
+		mbstowcs(tmp_pbs_python_home, pbs_python_home, MAXPATHLEN+1);
+		Py_SetPythonHome(tmp_pbs_python_home);
+	}
 
 	/* we make sure our top level module is initialized */
 	if ((PyImport_ExtendInittab(pbs_python_inittab_modules) != 0)) {
@@ -724,7 +733,7 @@ pbs_python_run_code_in_namespace(struct python_interpreter_data *interp_data,
 
 	PyErr_Clear(); /* clear any exceptions before starting code */
 	/* precompile strings of code to bytecode objects */
-	(void) PyEval_EvalCode((PyCodeObject *)py_script->py_code_obj,
+	(void) PyEval_EvalCode((PyObject *)py_script->py_code_obj,
 		pdict, pdict);
 	/* check for exception */
 	if (PyErr_Occurred()) {
@@ -739,7 +748,7 @@ pbs_python_run_code_in_namespace(struct python_interpreter_data *interp_data,
 
 			if (pvalue) {
 				pobjStr = PyObject_Str(pvalue); /* new ref */
-				pStr = PyString_AsString(pobjStr);
+				pStr = PyUnicode_AsUTF8(pobjStr);
 				rc = (int) atol(pStr);
 				Py_XDECREF(pobjStr);
 			}

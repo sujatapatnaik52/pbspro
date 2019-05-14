@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -45,6 +45,8 @@
 
 #ifdef PYTHON
 #include <Python.h>
+#include <pythonrun.h>
+#include <wchar.h>
 #endif
 
 #ifdef	WIN32
@@ -360,7 +362,6 @@ pbs_list_head	svr_exechost_periodic_hooks;
 pbs_list_head	svr_exechost_startup_hooks;
 pbs_list_head	svr_execjob_attach_hooks;
 pbs_list_head	svr_execjob_resize_hooks;
-pbs_list_head	svr_execjob_abort_hooks;
 
 /* the task lists */
 pbs_list_head	task_list_immed;
@@ -3417,13 +3418,10 @@ set_suspend_signal(char *str)
  * @param[in] file - filename
  * @param[in] linenum - line number in file
  *
- * @return int
- *
- * @retval  1 - In case of error
- * @retval  0 - In case of success
+ * @return Void
  *
  */
-static int
+static void
 add_static(char *str, char *file, int linenum)
 {
 	int	 i;
@@ -3433,27 +3431,8 @@ add_static(char *str, char *file, int linenum)
 
 	str = TOKCPY(str, name);/* resource name */
 	str = skipwhite(str);	/* resource value */
-	if (*str == '!') {	/* shell escape command */
-		int err;
-		char *filename;
+	if (*str == '!')	/* shell escape command */
 		rmnl(str);
-		filename = get_script_name(&str[1]);
-		if (filename == NULL)
-			return 1;
-#ifdef  WIN32
-		err = tmp_file_sec(filename, 0, 1, WRITES_MASK, 1);
-#else
-		err = tmp_file_sec(filename, 0, 1, S_IWGRP|S_IWOTH, 1);
-#endif
-		if (err != 0) {
-			snprintf(log_buffer, sizeof(log_buffer),
-				"error: %s file has a non-secure file access, errno: %d", filename, err);
-			log_event(PBSEVENT_SECURITY, PBS_EVENTCLASS_SERVER, LOG_ERR, __func__, log_buffer);
-			free(filename);
-			return 1;
-		}
-		free(filename);
-	}
 	else {			/* get the value */
 		i = strlen(str);
 		while (--i) {	/* strip trailing blanks */
@@ -3472,12 +3451,11 @@ add_static(char *str, char *file, int linenum)
 	cp->c.c_u.c_value = strdup(str);
 	memcheck(cp->c.c_u.c_value);
 
-	snprintf(log_buffer, sizeof(log_buffer), "%s[%d] add name %s value %s",
+	sprintf(log_buffer, "%s[%d] add name %s value %s",
 		file, linenum, name, str);
 	log_event(PBSEVENT_DEBUG, 0, LOG_DEBUG, "add_static", log_buffer);
 
 	config_list = cp;
-	return 0;
 }
 
 /**
@@ -3507,8 +3485,7 @@ setidealload(char *value)
 	if (max_load_val < 0.0)
 		max_load_val = val;	/* set a default */
 	(void)strcat(newstr, value);
-	if (add_static(newstr, "config", 0))
-		return HANDLER_FAIL;
+	add_static(newstr, "config", 0);
 	nconfig++;
 	return HANDLER_SUCCESS;
 }
@@ -3545,8 +3522,7 @@ setmaxload(char *value)
 	if (ideal_load_val < 0.0)
 		ideal_load_val = val;
 	(void)strncat(newstr, value, 40);
-	if (add_static(newstr, "config", 0))
-		return HANDLER_FAIL;
+	add_static(newstr, "config", 0);
 	nconfig++;
 
 	if (*endptr != '\0') {
@@ -4571,8 +4547,7 @@ parse_config(char *file)
 			continue;
 		}
 
-		if (add_static(str, file, linenum))
-			continue;
+		add_static(str, file, linenum);
 		num_newstaticdefs++;
 	}
 	nconfig += num_newstaticdefs;
@@ -5471,7 +5446,6 @@ conf_res(char *s, struct rm_attribute *attr)
 	int	used[RM_NPARM];
 	char	param[256], *d;
 	int	i,  len;
-	char	*filename = NULL;
 #ifdef	WIN32
 	pio_handles     child;
 #else
@@ -5481,7 +5455,6 @@ conf_res(char *s, struct rm_attribute *attr)
 	char	*child_spot;
 	int	child_len;
 	int	secondalarm = 0;
-	int	err;
 
 	if (*s != '!') {	/* static value */
 		if (attr) {
@@ -5549,22 +5522,6 @@ conf_res(char *s, struct rm_attribute *attr)
 
 	*d = '\0';
 	DBPRT(("command: %s\n", ret_string))
-
-	filename = get_script_name(ret_string);
-	if (filename == NULL)
-		return NULL;
-	/* Make sure file does not have open permissions */
-#ifdef  WIN32
-	err = tmp_file_sec(filename, 0, 1, WRITES_MASK, 1);
-#else
-	err = tmp_file_sec(filename, 0, 1, S_IWGRP|S_IWOTH, 1);
-#endif
-	if (err != 0) {
-		snprintf(log_buffer, sizeof(log_buffer),
-			"error: %s file has a non-secure file access, errno: %d", filename, err);
-		log_event(PBSEVENT_SECURITY, PBS_EVENTCLASS_SERVER, LOG_ERR, __func__, log_buffer);
-		goto done;
-	}
 
 #ifdef	WIN32
 	if (!win_popen(ret_string, "w", &child, NULL)) {
@@ -5671,7 +5628,6 @@ done:
 		free(name[i]);
 		free(value[i]);
 	}
-	free(filename);
 	return ret_string;
 }
 
@@ -7002,8 +6958,7 @@ set_spoolsize(char *value)
 
 	spoolsize = val;
 	(void) strncat(newstr, value, 39);
-	if (add_static(newstr, "config", 0))
-		return HANDLER_FAIL;
+	add_static(newstr, "config", 0);
 	nconfig++;
 	return HANDLER_SUCCESS;
 }
@@ -8251,7 +8206,7 @@ main(int argc, char *argv[])
 		(void)close(c);	/* close any file desc left open by parent */
 
 	/* the real deal or version and exit? */
-	PRINT_VERSION_AND_EXIT(argc, argv);
+	execution_mode(argc, argv);
 #endif
 
 	/* If we are not run with real and effective uid of 0, forget it */
@@ -8801,9 +8756,7 @@ main(int argc, char *argv[])
 #endif  /* not DEBUG and not NO_SECURITY_CHECK */
 
 #ifdef	WIN32
-	if (winsock_init()) {
-		return 1;
-	}
+	winsock_init();
 
 	/* Under WIN32, create structure that will be used to track child processes. */
 	if (initpids() == 0) {
@@ -9176,7 +9129,6 @@ main(int argc, char *argv[])
 	CLEAR_HEAD(svr_exechost_startup_hooks);
 	CLEAR_HEAD(svr_execjob_attach_hooks);
 	CLEAR_HEAD(svr_execjob_resize_hooks);
-	CLEAR_HEAD(svr_execjob_abort_hooks);
 
 	CLEAR_HEAD(task_list_immed);
 	CLEAR_HEAD(task_list_timed);
@@ -9535,7 +9487,6 @@ main(int argc, char *argv[])
 	print_hooks(HOOK_EVENT_EXECHOST_STARTUP);
 	print_hooks(HOOK_EVENT_EXECJOB_ATTACH);
 	print_hooks(HOOK_EVENT_EXECJOB_RESIZE);
-	print_hooks(HOOK_EVENT_EXECJOB_ABORT);
 
 	/* cleanup the hooks work directory */
 	cleanup_hooks_workdir(0);
@@ -9544,33 +9495,47 @@ main(int argc, char *argv[])
 #ifdef PYTHON
 	Py_NoSiteFlag = 1;
 	Py_FrozenFlag = 1;
+
+        /* Setting PYTHONHOME */
+        Py_IgnoreEnvironmentFlag = 1;
+        char pbs_python_home[MAXPATHLEN+1];
+        memset((char *)pbs_python_home, '\0', MAXPATHLEN+1);
+        snprintf(pbs_python_home, MAXPATHLEN, "%s/python",
+                pbs_conf.pbs_exec_path);
+        if (file_exists(pbs_python_home)) {
+                wchar_t tmp_pbs_python_home[MAXPATHLEN+1];
+                wmemset((wchar_t *)tmp_pbs_python_home, '\0', MAXPATHLEN+1);
+                mbstowcs(tmp_pbs_python_home, pbs_python_home, MAXPATHLEN+1);
+                Py_SetPythonHome(tmp_pbs_python_home);
+        }
+
 	Py_Initialize();
 
 	path = PySys_GetObject("path");
 #ifdef WIN32
 	snprintf(buf, sizeof(buf), "%s/python/Lib", pbs_conf.pbs_exec_path);
 
-	PyList_Append(path, PyString_FromString(buf));
+	PyList_Append(path, PyUnicode_FromString(buf));
 
 #else
 	/* list of possible paths to Python modules (mom imports json) */
-	snprintf(buf, sizeof(buf), "%s/python/lib/python2.7", pbs_conf.pbs_exec_path);
-	PyList_Append(path, PyString_FromString(buf));
+	snprintf(buf, sizeof(buf), "%s/python/lib/python3.6", pbs_conf.pbs_exec_path);
+	PyList_Append(path, PyUnicode_FromString(buf));
 
-	snprintf(buf, sizeof(buf), "%s/python/lib/python2.7/lib-dynload", pbs_conf.pbs_exec_path);
-	PyList_Append(path, PyString_FromString(buf));
+	snprintf(buf, sizeof(buf), "%s/python/lib/python3.6/lib-dynload", pbs_conf.pbs_exec_path);
+	PyList_Append(path, PyUnicode_FromString(buf));
 
-	snprintf(buf, sizeof(buf), "/usr/lib/python/python2.7");
-	PyList_Append(path, PyString_FromString(buf));
+	snprintf(buf, sizeof(buf), "/usr/lib/python/python3.6");
+	PyList_Append(path, PyUnicode_FromString(buf));
 
-	snprintf(buf, sizeof(buf), "/usr/lib/python/python2.7/lib-dynload");
-	PyList_Append(path, PyString_FromString(buf));
+	snprintf(buf, sizeof(buf), "/usr/lib/python/python3.6/lib-dynload");
+	PyList_Append(path, PyUnicode_FromString(buf));
 
-	snprintf(buf, sizeof(buf), "/usr/lib64/python/python2.7");
-	PyList_Append(path, PyString_FromString(buf));
+	snprintf(buf, sizeof(buf), "/usr/lib64/python/python3.6");
+	PyList_Append(path, PyUnicode_FromString(buf));
 
-	snprintf(buf, sizeof(buf), "/usr/lib64/python/python2.7/lib-dynload");
-	PyList_Append(path, PyString_FromString(buf));
+	snprintf(buf, sizeof(buf), "/usr/lib64/python/python3.6/lib-dynload");
+	PyList_Append(path, PyUnicode_FromString(buf));
 #endif
 	PySys_SetObject("path", path);
 #endif
@@ -9694,7 +9659,7 @@ main(int argc, char *argv[])
 #endif	/* MOM_CPUSET */
 
 	/* record the fact that we are up and running */
-	(void)sprintf(log_buffer, msg_startup1, PBS_VERSION, recover);
+	(void)sprintf(log_buffer, msg_startup1, pbs_version, recover);
 	log_event(PBSEVENT_SYSTEM | PBSEVENT_ADMIN | PBSEVENT_FORCE,
 		LOG_NOTICE, PBS_EVENTCLASS_SERVER, msg_daemonname, log_buffer);
 	(void)sprintf(log_buffer,
@@ -10311,7 +10276,7 @@ main(int argc, char *argv[])
 	TCHAR	szFileName[MAX_PATH];
 
 	/*the real deal or version and exit?*/
-	PRINT_VERSION_AND_EXIT(argc, argv);
+	execution_mode(argc, argv);
 
 	if (argc > 1) {
 		if (strcmp(argv[1], "-R") == 0)
@@ -10329,7 +10294,6 @@ main(int argc, char *argv[])
 		schManager = OpenSCManager(0, 0, SC_MANAGER_ALL_ACCESS);
 		if (schManager == 0) {
 			ErrorMessage("OpenSCManager");
-			return 1;
 		}
 
 		if (reg) {
@@ -10351,7 +10315,6 @@ main(int argc, char *argv[])
 
 			} else {
 				ErrorMessage("CreateService");
-				return 1;
 			}
 
 			if (schSelf != 0)
@@ -10365,11 +10328,9 @@ main(int argc, char *argv[])
 					printf("Service %s uninstalled successfully!\n", g_PbsMomName);
 				} else {
 					ErrorMessage("DeleteService");
-					return 1;
 				}
 			} else {
 				ErrorMessage("OpenService failed");
-				return 1;
 			}
 			if (schSelf != 0)
 				CloseServiceHandle(schSelf);
@@ -10386,7 +10347,6 @@ main(int argc, char *argv[])
 		pap = create_arg_param();
 		if (pap == NULL)
 			ErrorMessage("create_arg_param");
-			return 1;
 
 		pap->argc = argc-1;	/* don't pass the second argument */
 		for (i=j=0; i < argc; i++) {
@@ -10395,7 +10355,6 @@ main(int argc, char *argv[])
 			if ((pap->argv[j] = strdup(argv[i])) == NULL) {
 				free_arg_param(pap);
 				ErrorMessage("strdup");
-				return 1;
 			}
 			j++;
 		}
@@ -10434,7 +10393,6 @@ main(int argc, char *argv[])
 		if (!StartServiceCtrlDispatcher(ServiceTable)) {
 			log_err(-1, "main", "StartServiceCtrlDispatcher");
 			ErrorMessage("StartServiceCntrlDispatcher");
-			return 1;
 		}
 		CloseHandle(hStop);
 	}
@@ -10467,7 +10425,6 @@ PbsMomMain(DWORD dwArgc, LPTSTR *rgszArgv)
 	g_ssHandle = RegisterServiceCtrlHandler(g_PbsMomName, PbsMomHandler);
 	if (g_ssHandle == 0) {
 		ErrorMessage("RegisterServiceCtrlHandler");
-		return 1;
 	}
 
 	pap = create_arg_param();
@@ -10479,7 +10436,6 @@ PbsMomMain(DWORD dwArgc, LPTSTR *rgszArgv)
 		if ((pap->argv[i] = strdup(rgszArgv[i])) == NULL) {
 			free_arg_param(pap);
 			ErrorMessage("strdup");
-			return 1;
 		}
 	}
 
@@ -10487,14 +10443,12 @@ PbsMomMain(DWORD dwArgc, LPTSTR *rgszArgv)
 	if (g_hthreadMain == 0) {
 		(void)free_arg_param(pap);
 		ErrorMessage("CreateThread");
-		return 1;
 	}
 
 	dwWait = WaitForSingleObject(g_hthreadMain, INFINITE);
 	if (dwWait != WAIT_OBJECT_0) {
 		(void)free_arg_param(pap);
 		ErrorMessage("WaitForSingleObject");
-		return 1;
 	}
 
 	// NOTE: Update the global service state variable to indicate
@@ -11054,6 +11008,13 @@ mom_topology(void)
 			char	attrbuf[1024];
 			char	valbuf[1024];
 			char	*memstr = physmem(NULL);
+
+			if  (vnl_alloc(&vnlp) == NULL) {
+				log_err(PBSE_SYSTEM, __func__, "vnl_alloc failed");
+				vnl_free(vtp);
+				free(lbuf);
+				goto bad;
+			}
 
 			sprintf(attrbuf, "%s.%s", ATTR_rescavail, "mem");
 			sprintf(valbuf, "%s", memstr != NULL ? memstr : "0");

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -277,7 +277,7 @@ parse_config_line(FILE *fp, char **key, char **val)
  * @retval 0 Failure
  */
 int
-__pbs_loadconf(int reload)
+pbs_loadconf(int reload)
 {
 	FILE *fp;
 	char buf[256];

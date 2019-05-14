@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -165,12 +165,7 @@ class TestPBSTestSuite(TestSelf):
         # Send SIGSEGV to pbs_mom
         self.assertTrue(self.mom.isUp())
         self.mom.signal("-SEGV")
-        for _ in range(20):
-            ret = self.mom.isUp(max_attempts=1)
-            if not ret:
-                break
-            time.sleep(1)
-        self.assertFalse(ret, "Mom was expected to go down but it didn't")
+        self.assertFalse(self.mom.isUp())
 
         # Confirm that no core file was generated
         mom_priv_filenames = self.du.listdir(self.server.hostname,
@@ -193,12 +188,7 @@ class TestPBSTestSuite(TestSelf):
         # Send another SIGSEGV to pbs_mom
         self.assertTrue(self.mom.isUp())
         self.mom.signal("-SEGV")
-        for _ in range(20):
-            ret = self.mom.isUp(max_attempts=1)
-            if not ret:
-                break
-            time.sleep(1)
-        self.assertFalse(ret, "Mom was expected to go down but it didn't")
+        self.assertFalse(self.mom.isUp())
 
         # Confirm that a core file was generated this time
         mom_priv_filenames = self.du.listdir(self.server.hostname,
@@ -268,22 +258,3 @@ class TestPBSTestSuite(TestSelf):
         # Confirm that the variable was set again
         pbs_conf_val = self.du.parse_pbs_config(self.server.hostname)
         self.assertIn("PBS_CORE_LIMIT", pbs_conf_val)
-
-    def test_revert_moms_default_conf(self):
-        """
-        Test if PBSTestSuite.revert_moms() reverts the mom configuration
-        setting to defaults
-        """
-        c1 = self.mom.parse_config()
-        # Save a copy of default config to check it was reverted
-        # correctly later
-        c2 = c1.copy()
-
-        a = {'$prologalarm': '280'}
-        self.mom.add_config(a)
-        c1.update(a)
-        self.assertEqual(self.mom.parse_config(), c1)
-        self.mom.revert_to_defaults()
-
-        # Make sure the default config is back
-        self.assertEqual(self.mom.parse_config(), c2)

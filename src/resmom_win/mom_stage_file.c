@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -109,7 +109,7 @@ main(int argc, char *argv[])
 	cpy_files stage_inout = {0};
 	char *prmt = NULL;
 
-	PRINT_VERSION_AND_EXIT(argc, argv);
+	execution_mode(argc, argv);
 
 	if(set_msgdaemonname("PBS_stage_file")) {
 		fprintf(stderr, "Out of memory\n");
@@ -128,9 +128,7 @@ main(int argc, char *argv[])
 		exit(STAGEFILE_FATAL);
 	}
 
-	if (winsock_init()) {
-		return 1;
-	}
+	winsock_init();
 
 	connection_init();
 

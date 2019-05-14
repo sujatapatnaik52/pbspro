@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -49,8 +49,6 @@ extern int __pbs_asyrunjob(int, char *, char *, char *);
 
 extern int __pbs_alterjob(int, char *, struct attrl *, char *);
 
-extern int __pbs_confirmresv(int, char *, char *, unsigned long, char *);
-
 extern int __pbs_connect(char *);
 
 extern int __pbs_connect_extend(char *, char *);
@@ -64,8 +62,6 @@ extern int __pbs_disconnect(int);
 extern char *__pbs_geterrmsg(int);
 
 extern int __pbs_holdjob(int, char *, char *, char *);
-
-extern int __pbs_loadconf(int);
 
 extern char *__pbs_locjob(int, char *, char *);
 
@@ -120,8 +116,6 @@ extern char *__pbs_submit_resv(int, struct attropl *, char *);
 extern int __pbs_delresv(int, char *, char *);
 
 extern int __pbs_terminate(int, int, char *);
-
-extern preempt_job_info *__pbs_preempt_jobs(int, char **);
 
 #ifdef	__cplusplus
 }

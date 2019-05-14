@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -74,9 +74,7 @@ main(int argc, char *argv[])
 	char *req;
 
 #ifdef WIN32
-	if (winsock_init()) {
-		return 1;
-	}
+	winsock_init();
 #endif
 	if (gethostname(mom_name, (sizeof(mom_name) - 1)) < 0  )
 		mom_name[0] = '\0';

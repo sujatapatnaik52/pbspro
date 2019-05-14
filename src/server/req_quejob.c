@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -572,7 +572,7 @@ req_quejob(struct batch_request *preq)
 		/* unlink job from svr_alljobs since will be place on newjobs */
 		delete_link(&pj->ji_alljobs);
 	} else {
-		char basename[MAXPATHLEN + 1] = {0};
+		char basename[MAXPATHLEN + 1];
 
 		/* if not already here, allocate job struct */
 
@@ -588,7 +588,7 @@ req_quejob(struct batch_request *preq)
 		psatl = (svrattrl *)GET_NEXT(preq->rq_ind.rq_queuejob.rq_attr);
 		while (psatl) {
 			if (!strcmp(psatl->al_name, ATTR_hashname)) {
-				strncpy(basename, psatl->al_value, MAXPATHLEN);
+				(void)strcpy(basename, psatl->al_value);
 				if (strlen(basename) <= PBS_JOBBASE)
 					strcpy(pj->ji_qs.ji_fileprefix, basename);
 				else
@@ -597,13 +597,10 @@ req_quejob(struct batch_request *preq)
 			}
 			psatl = (svrattrl *)GET_NEXT(psatl->al_link);
 		}
-		snprintf(namebuf, MAXPATHLEN + 1, "%s%s%s", path_jobs, basename, JOB_TASKDIR_SUFFIX);
+		(void)strcpy(namebuf, path_jobs);      /* job directory path */
+		(void)strcat(namebuf, basename);
+		(void)strcat(namebuf, JOB_TASKDIR_SUFFIX);
 		if (mkdir(namebuf, 0700) == -1) {
-			pj->ji_qs.ji_un.ji_momt.ji_exitstat = -1;
-			if (*pj->ji_qs.ji_fileprefix == '\0'
-					&& *pj->ji_qs.ji_jobid == '\0') {
-				strncpy(pj->ji_qs.ji_jobid, jid, PBS_MAXSVRJOBID);
-			}
 			job_purge(pj);
 			req_reject(PBSE_SYSTEM, 0, preq);
 			return;

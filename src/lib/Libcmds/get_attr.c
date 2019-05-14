@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -79,30 +79,61 @@ get_attr(struct attrl *pattrl, char *name, char *resc)
 
 /*
  * @brief
- *	check_max_job_sequence_id - retrieve the max_job_sequence_id attribute value
+ *	check_max_job_sequence_id - connect to the server and retrieve the
+ *	                            max_job_sequence_id attribute value
  *
- *	@param[in]server_attrs - Batch status
+ *	@param[in]cmd_name - PBS command name
  *
  *	@retval  1	success
- *	@retval  0	error/attribute is not set
+ *	@retval -1	error
  *
  */
-int
-check_max_job_sequence_id(struct batch_status *server_attrs)
+int check_max_job_sequence_id(char *cmd_name)
 {
-	char * value;
-	value = get_attr(server_attrs->attribs, ATTR_max_job_sequence_id, NULL);
-	if (value == NULL) {
-		/* if server is not configured for max_job_sequence_id
-		* or attribute is unset */
-		return 0;
-	} else {
-		/* if attribute is set set */
-		long long seq_id = 0;
-		seq_id = strtoul(value, NULL, 10);
-		if (seq_id > PBS_DFLT_MAX_JOB_SEQUENCE_ID) {
-			return 1;
+
+	struct batch_status *server_attrs;
+	int connect;
+	char server_out[MAXSERVERNAME];
+	server_out[0] = '\0';
+
+	connect = cnt2server(server_out);
+	if (connect <= 0) {
+			fprintf(stderr, "%s: cannot connect to server (errno=%d)\n", cmd_name,
+					pbs_errno);
+			return -1;
+	}
+	server_attrs = pbs_statserver(connect, NULL, NULL);
+	if (server_attrs == NULL) {
+		if (pbs_errno) {
+			char *errmsg;
+			errmsg = pbs_geterrmsg(connect);
+			if (errmsg != NULL)
+				fprintf(stderr, "%s: %s\n", cmd_name, errmsg);
+			else
+				fprintf(stderr, "%s: Error (%d) getting status of server ", cmd_name, pbs_errno);
 		}
-		return 0;
+		return -1;
+	} else {
+		struct attrl *attr;
+		char * value;
+		attr = server_attrs->attribs;
+		value = get_attr(attr, ATTR_max_job_sequence_id, NULL);
+		if (value == NULL) {
+			pbs_statfree(server_attrs);
+			pbs_disconnect(connect);
+			/* if server is not configured for max_job_sequence_id
+			* or attribute is unset */
+			return 0;
+		} else {
+			/* if value is set */
+			long long seq_id = 0;
+			seq_id = strtoul(value, NULL, 10);
+			if (seq_id > PBS_DFLT_MAX_JOB_SEQUENCE_ID) {
+				pbs_statfree(server_attrs);
+				pbs_disconnect(connect);
+				return 1;
+			}
+			return 0;
+		}
 	}
 }

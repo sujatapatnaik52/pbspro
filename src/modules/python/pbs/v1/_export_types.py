@@ -1,7 +1,7 @@
 # coding: utf-8
 """
 
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -55,9 +55,9 @@ Motivation:
     
 """
 
-import _base_types as pbs_types
-from _svr_types import (_queue, _job, _server, _resv, _vnode, _event, pbs_iter)
-from _exc_types import *
+from . import _base_types as pbs_types
+from ._svr_types import (_queue, _job, _server, _resv, _vnode, _event, pbs_iter)
+from ._exc_types import *
 
 
 #: IMPORTANT the keys are imported by the C code, make sure the mapping is

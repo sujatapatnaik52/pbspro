@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -197,7 +197,7 @@ class TestReservations(TestFunctional):
         """
         a = {'resources_available.ncpus': 2}
         self.server.manager(MGR_CMD_SET, NODE, a, id=self.mom.shortname,
-                            sudo=True)
+                            expect=True, sudo=True)
 
         now = int(time.time())
         a = {'Resource_List.select': "1:ncpus=2",

@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -358,9 +358,9 @@ install_pbsinitd() {
 				[ -f /etc/profile.d/pbs.sh ] || cp ${PBS_EXEC}/etc/pbs.sh /etc/profile.d
 			fi
 
-			pbs_unitfile="@_unitdir@/pbs.service"
+			pbs_unitfile="/usr/lib/systemd/system/pbs.service"
 			if [ -f "${pbs_unitfile}" ]; then
-				presetdir="@_unitdir@-preset"
+				presetdir="/usr/lib/systemd/system-preset"
 				eval "sed -i 's;\(^[[:space:]]*SourcePath=\)[^[:space:]]*;\1${PBS_EXEC}/libexec/pbs_init.d;' \"$pbs_unitfile\""
 				eval "sed -i 's;\(^[[:space:]]*ExecStart=\)[^[:space:]]*;\1${PBS_EXEC}/libexec/pbs_init.d;' \"$pbs_unitfile\""
 				eval "sed -i 's;\(^[[:space:]]*ExecStop=\)[^[:space:]]*;\1${PBS_EXEC}/libexec/pbs_init.d;' \"$pbs_unitfile\""
@@ -400,9 +400,6 @@ install_pbsinitd() {
 		if [ -f ${pbslibdir}/python/pbs_bootcheck.py ] ; then
 			cp ${pbslibdir}/python/pbs_bootcheck.py /var/tmp/pbs_bootcheck.py
 			chmod 0644 /var/tmp/pbs_bootcheck.py
-		fi
-		if [ -f /var/tmp/pbs_boot_check ] ; then
-			rm -f /var/tmp/pbs_boot_check
 		fi
 	fi
 	echo "***"

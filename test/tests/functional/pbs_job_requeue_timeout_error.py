@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -71,7 +71,8 @@ class TestJobRequeueTimeoutErrorMsg(TestFunctional):
         else:
             self.server.manager(MGR_CMD_CREATE, NODE, id=self.hostB)
 
-        self.server.manager(MGR_CMD_SET, SERVER, {'job_requeue_timeout': 1})
+        self.server.manager(MGR_CMD_SET, SERVER,
+                            {'job_requeue_timeout': 1}, expect=True)
 
     def test_error_message(self):
         j = Job(TEST_USER, attrs={ATTR_N: 'job_requeue_timeout'})

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -95,7 +95,7 @@ extern job  *chk_job_request(char *, struct batch_request *, int *);
  * @param[in]	pwt	-	work task structure which contains the reply from mom
  */
 
-void
+static void
 post_rerun(struct work_task *pwt)
 {
 	job	*pjob;
@@ -110,9 +110,6 @@ post_rerun(struct work_task *pwt)
 			log_event(PBSEVENT_JOB, PBS_EVENTCLASS_JOB, LOG_INFO,
 				preq->rq_ind.rq_signal.rq_jid, log_buffer);
 
-			if (preq->rq_nest)
-				reply_preempt_jobs_request(preq->rq_reply.brp_code, 1, preq);
-
 			if ((preq->rq_reply.brp_code == PBSE_UNKJOBID) &&
 				(preq->rq_extra == 0)) {
 				pjob->ji_qs.ji_substate = JOB_SUBSTATE_RERUN3;
@@ -120,9 +117,7 @@ post_rerun(struct work_task *pwt)
 				force_reque(pjob);
 			}
 		}
-	} else if (preq->rq_nest)
-		reply_preempt_jobs_request(PBSE_NONE, 3, preq);
-
+	}
 	release_req(pwt);
 	return;
 }
@@ -455,7 +450,7 @@ req_rerunjob2(struct batch_request *preq, job *pjob)
 
 	/* ask MOM to kill off the job */
 
-	rc = issue_signal(pjob, SIG_RERUN, post_rerun, force_rerun, NULL);
+	rc = issue_signal(pjob, SIG_RERUN, post_rerun, force_rerun);
 
 	/*
 	 * If force is set and request is from a PBS manager,

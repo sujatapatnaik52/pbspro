@@ -11,7 +11,7 @@
  *	Taken from NetBSD avltree-1.1.tar.gz.
  */
 /* 
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -84,7 +84,7 @@ typedef struct {
 #define AVL_COUNT_DUPS	2	/* complete dups allowed, count repetitions */
 
 extern void *get_avl_tls(void);
-extern int	avl_create_index(AVL_IX_DESC *pix, int dup, int keylength);
+extern void	avl_create_index(AVL_IX_DESC *pix, int dup, int keylength);
 extern void	avl_destroy_index(AVL_IX_DESC *pix);
 extern int	avl_find_key(AVL_IX_REC *pe, AVL_IX_DESC *pix);
 extern int	avl_locate_key(AVL_IX_REC *pe, AVL_IX_DESC *pix);

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -135,7 +135,6 @@ find_vmapent_byID(void *ctx, const char *vnid)
 #endif	/* DEBUG */
 	}
 
-	free (pe);
 	return NULL;
 }
 
@@ -166,14 +165,12 @@ add_vmapent_byID(void *ctx, const char *vnid, void *data)
 			(void) sprintf(log_buffer, "avl_add_key IX_OK");
 			log_event(PBSEVENT_DEBUG, 0, LOG_DEBUG, __func__, log_buffer);
 #endif	/* DEBUG */
-			free (pe);
 			return (1);
 		} else {
 #ifdef	DEBUG
 			(void) sprintf(log_buffer, "avl_add_key not IX_OK");
 			log_event(PBSEVENT_DEBUG, 0, LOG_DEBUG, __func__, log_buffer);
 #endif	/* DEBUG */
-			free (pe);
 			return (0);
 		}
 	} else

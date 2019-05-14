@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -139,14 +139,14 @@ set_resources(struct attrl **attrib, char *resources, int add, char **erptr)
 		attr = new_attrl();
 		if (attr == NULL) {
 			fprintf(stderr, "Out of memory\n");
-			return 2;
+			exit(2);
 		}
 
 		/* Allocate memory for the attribute name and copy */
 		str = (char *) malloc(strlen(ATTR_l)+1);
 		if (str == NULL) {
 			fprintf(stderr, "Out of memory\n");
-			return 2;
+			exit(2);
 		}
 		strcpy(str, ATTR_l);
 		attr->name = str;
@@ -155,7 +155,7 @@ set_resources(struct attrl **attrib, char *resources, int add, char **erptr)
 		str = (char *) malloc(len + 1);
 		if (str == NULL) {
 			fprintf(stderr, "Out of memory\n");
-			return 2;
+			exit(2);
 		}
 		strncpy(str, r, len);
 		str[len] = '\0';
@@ -168,7 +168,7 @@ set_resources(struct attrl **attrib, char *resources, int add, char **erptr)
 			str = (char *) malloc(1);
 			if (str == NULL) {
 				fprintf(stderr, "Out of memory\n");
-				return 2;
+				exit(2);
 			}
 			str[0] = '\0';
 			attr->value = str;

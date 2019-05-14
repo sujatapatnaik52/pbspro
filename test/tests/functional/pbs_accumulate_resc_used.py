@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -539,11 +539,14 @@ for jk in e.job_list.keys():
         self.assertTrue(rv)
 
         a = {'resources_available.ncpus': '2'}
-        self.server.manager(MGR_CMD_SET, NODE, a, self.hostA)
+        self.server.manager(MGR_CMD_SET, NODE, a, self.hostA,
+                            expect=True)
 
-        self.server.manager(MGR_CMD_SET, NODE, a, self.hostB)
+        self.server.manager(MGR_CMD_SET, NODE, a, self.hostB,
+                            expect=True)
 
-        self.server.manager(MGR_CMD_SET, NODE, a, self.hostC)
+        self.server.manager(MGR_CMD_SET, NODE, a, self.hostC,
+                            expect=True)
 
         a = {'Resource_List.select': '3:ncpus=1',
              'Resource_List.place': 'scatter'}

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -579,37 +579,36 @@ update_buckets_for_node_array(node_bucket **bkts, node_info **ninfo_arr) {
 	for (i = 0; ninfo_arr[i] != NULL; i++) {
 		for (j = 0; bkts[j] != NULL; j++) {
 			int node_ind = ninfo_arr[i]->node_ind;
-
-			/* Is this node in the bucket? */
 			if (pbs_bitmap_get_bit(bkts[j]->bkt_nodes, node_ind)) {
-				/* First turn off the current bit */
-				if (pbs_bitmap_get_bit(bkts[j]->free_pool->truth, node_ind)) {
-					pbs_bitmap_bit_off(bkts[j]->free_pool->truth, node_ind);
-					bkts[j]->free_pool->truth_ct--;
-				} else if (pbs_bitmap_get_bit(bkts[j]->busy_later_pool->truth, node_ind)) {
-					pbs_bitmap_bit_off(bkts[j]->busy_later_pool->truth, node_ind);
-					bkts[j]->busy_later_pool->truth_ct--;
-				}  else if (pbs_bitmap_get_bit(bkts[j]->busy_pool->truth, node_ind)) {
-					pbs_bitmap_bit_off(bkts[j]->busy_pool->truth, node_ind);
-					bkts[j]->busy_pool->truth_ct--;
-				}
-
-				/* Next, turn on the correct bit */
 				if (ninfo_arr[i]->num_jobs > 0 || ninfo_arr[i]->num_run_resv > 0) {
+					if (pbs_bitmap_get_bit(bkts[j]->free_pool->truth, node_ind)) {
+						pbs_bitmap_bit_off(bkts[j]->free_pool->truth, node_ind);
+						bkts[j]->free_pool->truth_ct--;
+					} else if(pbs_bitmap_get_bit(bkts[j]->busy_later_pool->truth, node_ind)) {
+						pbs_bitmap_bit_off(bkts[j]->busy_later_pool->truth, node_ind);
+						bkts[j]->busy_later_pool->truth_ct--;
+					}
 					pbs_bitmap_bit_on(bkts[j]->busy_pool->truth, node_ind);
 					bkts[j]->busy_pool->truth_ct++;
-				} else {
+				} else if (pbs_bitmap_get_bit(bkts[j]->busy_pool->truth, node_ind)) {
+					pbs_bitmap_bit_off(bkts[j]->busy_pool->truth, node_ind);
+					bkts[j]->busy_pool->truth_ct--;
+
 					if (ninfo_arr[i]->node_events != NULL) {
 						pbs_bitmap_bit_on(bkts[j]->busy_later_pool->truth, node_ind);
 						bkts[j]->busy_later_pool->truth_ct++;
-					} else {
+					}
+					else {
 						pbs_bitmap_bit_on(bkts[j]->free_pool->truth, node_ind);
 						bkts[j]->free_pool->truth_ct++;
 					}
 				}
+
+				break;
 			}
 		}
 	}
+
 }
 
 /**
@@ -631,7 +630,7 @@ update_buckets_for_node_array(node_bucket **bkts, node_info **ninfo_arr) {
  *
  */
 int
-node_partition_update_array(status *policy, node_partition **nodepart)
+node_partition_update_array(status *policy, node_partition **nodepart, node_info **ninfo_arr)
 {
 	int i;
 	int cur_rc = 0;
@@ -644,7 +643,7 @@ node_partition_update_array(status *policy, node_partition **nodepart)
 		cur_rc = node_partition_update(policy, nodepart[i]);
 		if (cur_rc == 0)
 			rc = 0;
-		update_buckets_for_node_array(nodepart[i]->bkts, nodepart[i]->ninfo_arr);
+		update_buckets_for_node_array(nodepart[i]->bkts, ninfo_arr);
 	}
 
 	return rc;
@@ -1037,8 +1036,6 @@ resresv_can_fit_nodepart(status *policy, node_partition *np, resource_resv *resr
 				INSUFFICIENT_RESOURCE, err) == 0) {
 		if ((flags & RETURN_ALL_ERR)) {
 			can_fit = 0;
-			for (; err->next != NULL; err = err->next)
-				;
 			err->next = new_schd_error();
 			prev_err = err;
 			err = err->next;
@@ -1064,8 +1061,6 @@ resresv_can_fit_nodepart(status *policy, node_partition *np, resource_resv *resr
 					INSUFFICIENT_RESOURCE, err) == 0) {
 			if ((flags & RETURN_ALL_ERR)) {
 				can_fit = 0;
-				for (; err->next != NULL; err = err->next)
-					;
 				err->next = new_schd_error();
 				prev_err = err;
 				err = err->next;
@@ -1073,7 +1068,7 @@ resresv_can_fit_nodepart(status *policy, node_partition *np, resource_resv *resr
 				return 0;
 		}
 	}
-	if ((flags & RETURN_ALL_ERR)) {
+	if((flags&RETURN_ALL_ERR)) {
 		if(prev_err != NULL) {
 			prev_err->next = NULL;
 			free(err);
@@ -1258,6 +1253,7 @@ create_placement_sets(status *policy, server_info *sinfo)
  *
  *	  @param[in] policy - policy info
  *	  @param[in] sinfo - server info
+ *	  @param[in] resresv- the job that was just run
  *	  @param[in] flags - flags to modify behavior
  *	  			NO_ALLPART - do not update the metadata in the allpart.
  *	  				     There are circumstances (e.g., calendaring) where
@@ -1268,19 +1264,20 @@ create_placement_sets(status *policy, server_info *sinfo)
  *
  */
 void
-update_all_nodepart(status *policy, server_info *sinfo, unsigned int flags)
+update_all_nodepart(status *policy, server_info *sinfo, resource_resv *resresv, unsigned int flags)
 {
 	queue_info *qinfo;
+	int update_allpart = 1;
 	int i;
 
-	if (sinfo == NULL || sinfo->queues == NULL)
+	if (sinfo == NULL || sinfo->queues == NULL || resresv == NULL)
 		return;
 
 	if(sinfo->allpart == NULL)
 		return;
 
 	if (sinfo->node_group_enable && sinfo->node_group_key != NULL) {
-		node_partition_update_array(policy, sinfo->nodepart);
+		node_partition_update_array(policy, sinfo->nodepart, resresv->ninfo_arr);
 		qsort(sinfo->nodepart, sinfo->num_parts,
 			sizeof(node_partition *), cmp_placement_sets);
 	}
@@ -1290,7 +1287,7 @@ update_all_nodepart(status *policy, server_info *sinfo, unsigned int flags)
 		qinfo = sinfo->queues[i];
 
 		if (sinfo->node_group_enable && qinfo->node_group_key != NULL) {
-			node_partition_update_array(policy, qinfo->nodepart);
+			node_partition_update_array(policy, qinfo->nodepart, resresv->ninfo_arr);
 
 			qsort(qinfo->nodepart, qinfo->num_parts,
 			   sizeof(node_partition *), cmp_placement_sets);
@@ -1302,16 +1299,26 @@ update_all_nodepart(status *policy, server_info *sinfo, unsigned int flags)
 	}
 
 	/* Update and resort the hostsets */
-	node_partition_update_array(policy, sinfo->hostsets);
+	node_partition_update_array(policy, sinfo->hostsets, NULL);
 	if (policy->node_sort[0].res_name != NULL &&
 	    conf.node_sort_unused && sinfo->hostsets != NULL) {
 		/* Resort the nodes in host sets to correctly reflect unused resources */
 		qsort(sinfo->hostsets, sinfo->num_hostsets, sizeof(node_partition*), multi_nodepart_sort);
 	}
 
-	if ((flags & NO_ALLPART) == 0)
-			node_partition_update(policy, sinfo->allpart);
+	if ((flags & NO_ALLPART) == 0) {
+		/* If the job is in a queue with nodes, we only need to update
+		 * the allpart of that queue.  This has already happened above.
+		 * */
+		if (resresv != NULL && resresv ->is_job) {
+			if (resresv->job != NULL)
+				if (resresv->job->queue->has_nodes)
+					update_allpart = 0;
+		}
 
-	sinfo->pset_metadata_stale = 0;
+		/* Otherwise, update the server's allpart */
+		if (update_allpart || sinfo->allpart->res == NULL)
+			node_partition_update(policy, sinfo->allpart);
+	}
 
 }

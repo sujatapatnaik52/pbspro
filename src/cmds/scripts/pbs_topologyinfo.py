@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -114,14 +114,14 @@ try:
                 files = os.listdir(dirs)
             except (IOError, OSError) as err:
                 (e, strerror) = err.args
-                print "%s:  %s (%s)" % (dirs, strerror, e)
+                print("%s:  %s (%s)" % (dirs, strerror, e))
                 return
         else:
             compute_socket_nodelist = False
         try:
-            maxwidth = max(map(len, files))
-        except StandardError, e:
-            print 'max/map failed: %s' % e
+            maxwidth = max(list(map(len, files)))
+        except Exception as e:
+            print('max/map failed: %s' % e)
             return
         for name in files:
             pathname = os.sep.join((dirs, name))
@@ -142,26 +142,26 @@ try:
                             p.StartElementHandler = socketXMLstart
                             p.ParseFile(f)
                         except ExpatError as e:
-                            print "%s:  parsing error at line %d, column %d" \
-                                % (name, e.lineno, e.offset)
+                            print("%s:  parsing error at line %d, column %d" \
+                                % (name, e.lineno, e.offset))
 
                     if options.sockets:
-                        print "%-*s%d" % (maxwidth + 1, name,
-                                          socketXMLstart.nsockets)
+                        print("%-*s%d" % (maxwidth + 1, name,
+                                          socketXMLstart.nsockets))
                     else:
                         total = socketXMLstart.nsockets + \
                             socketXMLstart.ngpus + socketXMLstart.ncoproc
-                        print "%-*s%d" % (maxwidth + 1, name,
-                                          int(math.ceil(total / 4.0)))
+                        print("%-*s%d" % (maxwidth + 1, name,
+                                          int(math.ceil(total / 4.0))))
             except IOError as err:
                 (e, strerror) = err.args
                 if e == errno.ENOENT:
                     if not compute_socket_nodelist:
-                        print "no socket information available for node %s" \
-                            % name
+                        print("no socket information available for node %s" \
+                            % name)
                     continue
                 else:
-                    print "%s:  %s (%s)" % (pathname, strerror, e)
+                    print("%s:  %s (%s)" % (pathname, strerror, e))
                     raise
 
 except ImportError:
@@ -191,14 +191,14 @@ except ImportError:
                 files = os.listdir(dirs)
             except (IOError, OSError) as err:
                 (e, strerror) = err.args
-                print "%s:  %s (%s)" % (dirs, strerror, e)
+                print("%s:  %s (%s)" % (dirs, strerror, e))
                 return
         else:
             compute_socket_nodelist = False
         try:
-            maxwidth = max(map(len, files))
-        except StandardError, e:
-            print 'max/map failed: %s' % e
+            maxwidth = max(list(map(len, files)))
+        except Exception as e:
+            print('max/map failed: %s' % e)
             return
         for name in files:
             pathname = os.sep.join((dirs, name))
@@ -238,20 +238,20 @@ except ImportError:
                                 if re.search(craygpupattern, line):
                                     ngpus += 1
                     if options.sockets:
-                        print "%-*s%d" % (maxwidth + 1, name, nsockets)
+                        print("%-*s%d" % (maxwidth + 1, name, nsockets))
                     else:
                         total = nsockets + ngpus + ncoproc
-                        print "%-*s%d" % (maxwidth + 1, name,
-                                          int(math.ceil(total / 4.0)))
+                        print("%-*s%d" % (maxwidth + 1, name,
+                                          int(math.ceil(total / 4.0))))
             except IOError as err:
                 (e, strerror) = err.args
                 if e == errno.ENOENT:
                     if not compute_socket_nodelist:
-                        print "no socket information available for node %s" \
-                            % name
+                        print("no socket information available for node %s" \
+                            % name)
                     continue
                 else:
-                    print "%s:  %s (%s)" % (pathname, strerror, e)
+                    print("%s:  %s (%s)" % (pathname, strerror, e))
                     raise
 
 if __name__ == "__main__":
@@ -269,7 +269,7 @@ if __name__ == "__main__":
         topology_dir = os.sep.join((os.environ["PBS_HOME"], "server_priv",
                                     "topology"))
     except KeyError:
-        print "PBS_HOME must be present in the caller's environment"
+        print("PBS_HOME must be present in the caller's environment")
         sys.exit(1)
     if not (options.sockets or options.license):
         sys.exit(1)

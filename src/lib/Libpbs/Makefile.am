@@ -1,6 +1,6 @@
 
 #
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -169,7 +169,6 @@ libpbs_la_SOURCES = \
 	../Libifl/dec_rpyc.c \
 	../Libifl/dec_svrattrl.c \
 	../Libifl/dec_ModifyResv.c \
-	../Libifl/dec_PreemptJobs.c \
 	../Libifl/enc_CopyHookFile.c \
 	../Libifl/enc_CpyFil.c \
 	../Libifl/enc_DelHookFile.c \
@@ -194,9 +193,9 @@ libpbs_la_SOURCES = \
 	../Libifl/enc_reply.c \
 	../Libifl/enc_SubmitResv.c \
 	../Libifl/enc_ModifyResv.c \
-	../Libifl/enc_PreemptJobs.c \
 	../Libifl/enc_svrattrl.c \
 	../Libifl/entlim_parse.c \
+	../Libifl/execution_mode.c \
 	../Libifl/get_hostname.c \
 	../Libifl/get_svrport.c \
 	../Libifl/grunt_parse.c \
@@ -213,7 +212,6 @@ libpbs_la_SOURCES = \
 	../Libifl/int_status.c \
 	../Libifl/int_ucred.c \
 	../Libifl/int_modify_resv.c \
-	../Libifl/int_preempt_jobs.c \
 	../Libifl/list_link.c \
 	../Libifl/PBS_attr.c \
 	../Libifl/PBS_data.c \
@@ -257,9 +255,7 @@ libpbs_la_SOURCES = \
 	../Libifl/pbsD_defschreply.c \
 	../Libifl/pbsD_statrsc.c \
 	../Libifl/pbsD_modify_resv.c \
-	../Libifl/pbsD_Preempt_Jobs.c \
 	../Libifl/ifl_impl.c \
-	../Libifl/ifl_pointers.c \
 	../Libifl/rpp.c \
 	../Libifl/strsep.c \
 	../Libifl/tcp_dis.c \

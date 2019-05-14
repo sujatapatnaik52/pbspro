@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -44,7 +44,8 @@ class TestqstatStateCount(TestFunctional):
         TestFunctional.setUp(self)
         # set ncpus to a known value, 2 here
         a = {'resources_available.ncpus': 2}
-        self.server.manager(MGR_CMD_SET, NODE, a, self.mom.shortname)
+        self.server.manager(MGR_CMD_SET, NODE, a,
+                            self.mom.shortname, expect=True)
 
     def submit_waiting_job(self, timedelta):
         """
@@ -163,7 +164,8 @@ class TestqstatStateCount(TestFunctional):
                 'queue_type': 'Execution',
                 'enabled': 'True',
                 'started': 'True'}
-            self.server.manager(MGR_CMD_CREATE, QUEUE, a, que)
+            self.server.manager(MGR_CMD_CREATE, QUEUE,
+                                a, que, expect=True)
 
         q1_attr = {ATTR_queue: 'workq1'}
         q2_attr = {ATTR_queue: 'workq2'}
@@ -197,7 +199,8 @@ class TestqstatStateCount(TestFunctional):
                 'queue_type': 'Execution',
                 'enabled': 'True',
                 'started': 'True'}
-            self.server.manager(MGR_CMD_CREATE, QUEUE, a, que)
+            self.server.manager(MGR_CMD_CREATE, QUEUE,
+                                a, que, expect=True)
 
         q1_attr = {ATTR_queue: 'workq1'}
         q2_attr = {ATTR_queue: 'workq2'}

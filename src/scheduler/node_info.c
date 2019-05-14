@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -124,6 +124,7 @@
 #include <ctype.h>
 #include <sys/types.h>
 #include <errno.h>
+#include <time.h>
 #include <math.h>
 #include <errno.h>
 #include <pbs_ifl.h>
@@ -244,7 +245,6 @@ query_nodes(int pbs_sd, server_info *sinfo)
 	if (nidx == 0) {
 		snprintf(log_buffer, sizeof(log_buffer), "No nodes found in partitions serviced by scheduler");
 		schdlog(PBSEVENT_SCHED, PBS_EVENTCLASS_SERVER, LOG_INFO, __func__, log_buffer);
-		pbs_statfree(nodes);
 		free(ninfo_arr);
 		return NULL;
 	}
@@ -284,6 +284,8 @@ query_node_info(struct batch_status *node, server_info *sinfo)
 	sch_resource_t count;		/* used to convert str->num */
 	char *endp;			/* end pointer for strtol */
 	char logbuf[256];		/* log buffer */
+	int check_expiry = 0;
+	time_t expiry = 0;
 
 	if ((ninfo = new_node_info()) == NULL)
 		return NULL;
@@ -377,12 +379,18 @@ query_node_info(struct batch_status *node, server_info *sinfo)
 					ninfo->lic_lock = 1;
 					sinfo->has_nonCPU_licenses = 1;
 					break;
+				case ND_LIC_TYPE_cloud:
+					check_expiry = 1;
+					break;
 				default:
 					sprintf(logbuf, "Unknown license type: %c", attrp->value[0]);
 					schdlog(PBSEVENT_SCHED, PBS_EVENTCLASS_NODE, LOG_INFO,
 						ninfo->name, logbuf);
 			}
 		} else if (!strcmp(attrp->name, ATTR_rescavail)) {
+			if (!strcmp(attrp->resource, ND_RESC_LicSignature)) {
+				expiry = strtol(attrp->value, &endp, 10);
+			}
 			res = find_alloc_resource_by_str(ninfo->res, attrp->resource);
 
 			if (res != NULL) {
@@ -458,6 +466,12 @@ query_node_info(struct batch_status *node, server_info *sinfo)
 			ninfo->resvs = break_comma_list(attrp->value);
 		}
 		attrp = attrp->next;
+	}
+	if (check_expiry) {
+		if (time(NULL) < expiry) {
+			ninfo->lic_lock = 1;
+			sinfo->has_nonCPU_licenses = 1;
+		}
 	}
 	return ninfo;
 }
@@ -1602,7 +1616,7 @@ update_node_on_run(nspec *ns, resource_resv *resresv, char *job_state)
 	if (resresv->is_job) {
 		ninfo->num_jobs++;
 		if (find_resource_resv_by_indrank(ninfo->job_arr, resresv->rank, resresv->resresv_ind) == NULL) {
-			tmp_arr = add_resresv_to_array(ninfo->job_arr, resresv, NO_FLAGS);
+			tmp_arr = add_resresv_to_array(ninfo->job_arr, resresv);
 			if (tmp_arr == NULL)
 				return;
 
@@ -1613,7 +1627,7 @@ update_node_on_run(nspec *ns, resource_resv *resresv, char *job_state)
 	else if (resresv->is_resv) {
 		ninfo->num_run_resv++;
 		if (find_resource_resv_by_indrank(ninfo->run_resvs_arr, resresv->rank, resresv->resresv_ind) == NULL) {
-			tmp_arr = add_resresv_to_array(ninfo->run_resvs_arr, resresv, NO_FLAGS);
+			tmp_arr = add_resresv_to_array(ninfo->run_resvs_arr, resresv);
 			if (tmp_arr == NULL)
 				return;
 
@@ -5378,11 +5392,14 @@ node_up_event(node_info *node, void *arg)
 
 	sinfo = node->server;
 	if (sinfo->node_group_enable && sinfo->node_group_key != NULL) {
-		node_partition_update_array(sinfo->policy, sinfo->nodepart);
+		node_info *arr[2];
+		arr[0] = node;
+		arr[1] = NULL;
+		node_partition_update_array(sinfo->policy, sinfo->nodepart, (node_info **) arr);
 		qsort(sinfo->nodepart, sinfo->num_parts,
 			sizeof(node_partition *), cmp_placement_sets);
 	}
-	update_all_nodepart(sinfo->policy, sinfo, NO_ALLPART);
+	update_all_nodepart(sinfo->policy, sinfo, NULL, NO_ALLPART);
 
 	return 1;
 }
@@ -5426,11 +5443,14 @@ node_down_event(node_info *node, void *arg)
 	set_node_info_state(node, ND_down);
 
 	if (sinfo->node_group_enable && sinfo->node_group_key != NULL) {
-		node_partition_update_array(sinfo->policy, sinfo->nodepart);
+		node_info *arr[2];
+		arr[0] = node;
+		arr[1] = NULL;
+		node_partition_update_array(sinfo->policy, sinfo->nodepart, (node_info **) arr);
 		qsort(sinfo->nodepart, sinfo->num_parts,
 			sizeof(node_partition *), cmp_placement_sets);
 	}
-	update_all_nodepart(sinfo->policy, sinfo, NO_ALLPART);
+	update_all_nodepart(sinfo->policy, sinfo, NULL, NO_ALLPART);
 
 	return 1;
 }

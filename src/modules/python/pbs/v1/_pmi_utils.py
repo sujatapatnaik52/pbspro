@@ -1,6 +1,6 @@
 """
 
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -113,8 +113,8 @@ def _get_hosts(job):
     not accept FQDNs.
     """
     hosts = str(job.exec_host2)
-    pbs_nodes = sorted(set([x.partition(':')[0].partition('.')[0]
-                            for x in hosts.split('+')]))
+    pbs_nodes = sorted({x.partition(':')[0].partition('.')[0]
+                            for x in hosts.split('+')})
     return pbs_nodes
 
 
@@ -134,8 +134,8 @@ def _get_vnode_names(job):
     Return a list of vnodes being used for a job.
     """
     exec_vnode = str(job.exec_vnode).replace("(", "").replace(")", "")
-    vnodes = sorted(set([x.partition(':')[0]
-                        for x in exec_vnode.split('+')]))
+    vnodes = sorted({x.partition(':')[0]
+                        for x in exec_vnode.split('+')})
     return vnodes
 
 

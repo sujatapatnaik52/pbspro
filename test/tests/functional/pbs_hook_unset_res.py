@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -59,7 +59,8 @@ class TestHookUnsetRes(TestFunctional):
         rv = self.server.create_import_hook(
             hook_name, a, hook_body, overwrite=True)
         self.assertTrue(rv)
-        self.server.manager(MGR_CMD_SET, SERVER, {'log_events': 2047})
+        self.server.manager(MGR_CMD_SET, SERVER, {
+                            'log_events': 2047}, expect=True)
         j = Job(TEST_USER, attrs={
                 'Resource_List.select': '1:ncpus=1', ATTR_h: None})
         jid = self.server.submit(j)

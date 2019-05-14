@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 1994-2019 Altair Engineering, Inc.
+* Copyright (C) 1994-2018 Altair Engineering, Inc.
 * For more information, contact Altair at www.altair.com.
 *
 * This file is part of the PBS Professional ("PBS Pro") software.
@@ -201,6 +201,8 @@ add_json_node(JsonNodeType ntype, JsonValueType vtype, JsonEscapeType esc_type, 
 	int 	  rc = 0;
 	char	  *ptr = NULL;
 	char 	  *pc  = NULL;
+	double    val  = 0;
+	long int  ivalue = 0;
 	JsonNode  *node = NULL;
 
 	node = create_json_node();
@@ -218,7 +220,7 @@ add_json_node(JsonNodeType ntype, JsonValueType vtype, JsonEscapeType esc_type, 
 		node->key = ptr;
 	}
 	if (vtype == JSON_NULL && value != NULL) {
-		(void)strtod(value, &pc);
+		val = strtod(value, &pc);
 		while (pc) {
 			if (isspace(*pc))
 				pc++;
@@ -226,21 +228,26 @@ add_json_node(JsonNodeType ntype, JsonValueType vtype, JsonEscapeType esc_type, 
 				break;
 		}
 		if (strcmp(pc, "") == 0) {
-			node->value_type = JSON_NUMERIC;
-			ptr = strdup(value);
-			if (ptr == NULL)
-				return NULL;
-			node->value.string = ptr;
+			ivalue = (long int) val;
+			if (val == ivalue) {/* This checks if value have any non zero fractional part after decimal. If not then value has to be represented as integer otherwise as float. */
+				node->value_type = JSON_INT;
+				node->value.inumber = ivalue;
+			} else {
+				node->value_type = JSON_FLOAT;
+				node->value.fnumber = val;
+			}
 		} else
 			node->value_type = JSON_STRING;
-   	} else {
+	}
+	else {
 		node->value_type = vtype;
 		if (node->value_type == JSON_INT)
 			node->value.inumber = *((long int *)value);
 		else if (node->value_type == JSON_FLOAT)
 			node->value.fnumber = *((double *)value);
-    	}
-            
+	}
+
+
 	if (node->value_type == JSON_STRING) {
 		if (value != NULL) {
 			ptr = strdup_escape(esc_type, value);
@@ -270,7 +277,7 @@ free_json_node() {
 
 	JsonLink *link = head;
 	while (link != NULL) {
-		if ((link->node->value_type == JSON_STRING) || (link->node->value_type == JSON_NUMERIC )) {
+		if (link->node->value_type == JSON_STRING) {
 			if (link->node->value.string != NULL)
 				free(link->node->value.string);
 		}
@@ -370,9 +377,9 @@ generate_json(FILE * stream) {
 				else
 					fprintf(stream, "\n");
 				if (arr_lvl[curnt_arr_lvl]==indent)
-					fprintf(stream, "%*.*s\"%s\"", indent, indent, " ", show_nonprint_chars(node->value.string));
+					fprintf(stream, "%*.*s\"%s\"", indent, indent, " ", node->value.string);
 				else
-					fprintf(stream, "%*.*s\"%s\":\"%s\"", indent, indent, " ", node->key, show_nonprint_chars(node->value.string));
+					fprintf(stream, "%*.*s\"%s\":\"%s\"", indent, indent, " ", node->key, node->value.string);
 				prnt_comma = 1;
 				break;
 
@@ -401,19 +408,6 @@ generate_json(FILE * stream) {
 					fprintf(stream, "%*.*s\"%s\":%lf", indent, indent, " ", node->key, node->value.fnumber);
 				prnt_comma = 1;
 				break;
-			case JSON_NUMERIC:
-				if (prnt_comma)
-					fprintf(stream, ",\n");
-				else
-					fprintf(stream, "\n");
-
-				if (arr_lvl[curnt_arr_lvl] == indent)
-					fprintf(stream, "%*.*s%s", indent, indent, " ", node->value.string);      /*print the string but type remain same*/
-				else
-					fprintf(stream, "%*.*s\"%s\":%s", indent, indent, " ", node->key, node->value.string); /* print the string but type remain same*/
-				prnt_comma = 1;
-				break;
-
 
 			case JSON_NULL:
 				break;

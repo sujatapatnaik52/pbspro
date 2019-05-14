@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -170,7 +170,7 @@ extern PyObject * pbs_python_import_name(const char *, const char *);
 /* declarations from module_pbs_v1.c */
 
 extern PyObject *pbs_v1_module_init(void);
-extern void pbs_v1_module_inittab(void);
+extern PyObject *pbs_v1_module_inittab(void);
 
 /* declrations from pbs_python_svr_internal.c */
 

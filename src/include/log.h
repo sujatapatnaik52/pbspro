@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2019 Altair Engineering, Inc.
+ * Copyright (C) 1994-2018 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -121,7 +121,6 @@ extern int  tmp_file_sec(char *path, int isdir, int sticky,
 extern int  chk_file_sec2(char *path, int isdir, int sticky,
 	int disallow, int fullpath, char *owner);
 #endif
-extern char *get_script_name(char *input);
 
 extern int  setup_env(char *filename);
 
@@ -140,9 +139,6 @@ extern int  setup_env(char *filename);
 #define PBSEVENT_DEBUG3		0x0400		/* less needed debug messages */
 #define PBSEVENT_DEBUG4		0x0800		/* rarely needed debugging    */
 #define PBSEVENT_FORCE		0x8000		/* set to force a messag      */
-#define SVR_LOG_DFLT		PBSEVENT_ERROR | PBSEVENT_SYSTEM | PBSEVENT_ADMIN | PBSEVENT_JOB \
-				| PBSEVENT_JOB_USAGE | PBSEVENT_SECURITY | PBSEVENT_SCHED \
-				| PBSEVENT_DEBUG | PBSEVENT_DEBUG2
 
 /* Event Object Classes, see array class_names[] in ../lib/Liblog/pbs_log.c   */
 

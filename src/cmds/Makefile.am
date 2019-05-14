@@ -1,6 +1,6 @@
 
 #
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -131,7 +131,7 @@ pbs_tmrsh_SOURCES = pbs_tmrsh.c
 
 pbs_ralter_CPPFLAGS = -I$(top_srcdir)/src/include
 pbs_ralter_LDADD = ${common_libs}
-pbs_ralter_SOURCES = pbs_ralter.c cmds_common.c
+pbs_ralter_SOURCES = pbs_ralter.c
 
 pbs_rdel_CPPFLAGS = -I$(top_srcdir)/src/include
 pbs_rdel_LDADD = ${common_libs}
@@ -143,7 +143,7 @@ pbs_rstat_SOURCES = pbs_rstat.c
 
 pbs_rsub_CPPFLAGS = -I$(top_srcdir)/src/include
 pbs_rsub_LDADD = ${common_libs}
-pbs_rsub_SOURCES = pbs_rsub.c cmds_common.c
+pbs_rsub_SOURCES = pbs_rsub.c
 
 pbs_migrate_users_CPPFLAGS = -I$(top_srcdir)/src/include
 pbs_migrate_users_LDADD = ${common_libs}
@@ -155,7 +155,7 @@ pbs_release_nodes_SOURCES = pbs_release_nodes.c
 
 qalter_CPPFLAGS = -I$(top_srcdir)/src/include
 qalter_LDADD = ${common_libs}
-qalter_SOURCES = qalter.c cmds_common.c
+qalter_SOURCES = qalter.c
 
 qdel_CPPFLAGS = -I$(top_srcdir)/src/include
 qdel_LDADD = ${common_libs}
@@ -179,7 +179,7 @@ qmgr_CPPFLAGS = \
 qmgr_LDADD = \
 	${common_libs} \
 	@editline_lib@
-qmgr_SOURCES = qmgr.c cmds_common.c
+qmgr_SOURCES = qmgr.c
 
 qmove_CPPFLAGS = -I$(top_srcdir)/src/include
 qmove_LDADD = ${common_libs}
@@ -227,7 +227,7 @@ qstop_SOURCES = qstop.c
 
 qsub_CPPFLAGS = -I$(top_srcdir)/src/include
 qsub_LDADD = ${common_libs}
-qsub_SOURCES = qsub.c cmds_common.c
+qsub_SOURCES = qsub.c
 
 qterm_CPPFLAGS = -I$(top_srcdir)/src/include
 qterm_LDADD = ${common_libs}

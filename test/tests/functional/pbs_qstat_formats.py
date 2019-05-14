@@ -1,6 +1,6 @@
-# coding: utf-8
+# coding: utf - 8
 
-# Copyright (C) 1994-2019 Altair Engineering, Inc.
+# Copyright (C) 1994-2018 Altair Engineering, Inc.
 # For more information, contact Altair at www.altair.com.
 #
 # This file is part of the PBS Professional ("PBS Pro") software.
@@ -409,41 +409,6 @@ class TestQstatFormats(TestFunctional):
         except ValueError:
             self.assertTrue(False)
 
-    def test_qstat_json_valid_multiple_jobs_p(self):
-        """
-        Test json output of qstat -f is in valid format when multiple jobs are
-        queried and make sure that attributes are displayed with `p` option.
-        When -p is passed, then only the Resource_List is requested. An
-        attribute with type resource list has to be the last attribute
-        in order to hit the bug.
-        """
-        a = {'resources_available.ncpus': 4}
-        self.server.manager(MGR_CMD_SET, NODE, a, self.mom.shortname)
-        j = Job(TEST_USER)
-        j.set_sleep_time(100)
-        jid = self.server.submit(j)
-        jid2 = self.server.submit(j)
-        jid3 = self.server.submit(j)
-        self.server.expect(JOB, {'job_state': 'R'}, id=jid)
-        self.server.expect(JOB, {'job_state': 'R'}, id=jid2)
-        self.server.expect(JOB, {'job_state': 'R'}, id=jid3)
-        qstat_cmd_json = os.path.join(self.server.pbs_conf['PBS_EXEC'], 'bin',
-                                      'qstat') + ' -fp -F json '
-        ret = self.du.run_cmd(self.server.hostname, cmd=qstat_cmd_json)
-        qstat_out = '\n'.join(ret['out'])
-        try:
-            js = json.loads(qstat_out)
-        except ValueError:
-            self.assertTrue(False, 'JSON failed to load.')
-
-        self.assertIn('Jobs', js)
-        self.assertIn(jid, js['Jobs'])
-        self.assertIn('Resource_List', js['Jobs'][jid])
-        self.assertIn(jid2, js['Jobs'])
-        self.assertIn('Resource_List', js['Jobs'][jid2])
-        self.assertIn(jid3, js['Jobs'])
-        self.assertIn('Resource_List', js['Jobs'][jid3])
-
     def test_qstat_json_valid_user(self):
         """
         Test json output of qstat -f is in valid format when queried as
@@ -550,24 +515,17 @@ class TestQstatFormats(TestFunctional):
         Test json output of qstat -Qf is in valid format when
         we query multiple queues
         """
-        a = {'queue_type': 'Execution', 'resources_max.walltime': '10:00:00'}
-        self.server.manager(MGR_CMD_CREATE, QUEUE, a, id='workq2')
-        self.server.manager(MGR_CMD_CREATE, QUEUE, a, id='workq3')
-        qstat_cmd_json = os.path.join(self.server.pbs_conf['PBS_EXEC'], 'bin',
-                                      'qstat') + ' -Q -f -F json'
+        q_attr = {'queue_type': 'execution', 'enabled': 'True'}
+        self.server.manager(MGR_CMD_CREATE, QUEUE, q_attr, id='workq1')
+        self.server.manager(MGR_CMD_CREATE, QUEUE, q_attr, id='workq2')
+        qstat_cmd_json = os.path.join(self.server.pbs_conf[
+            'PBS_EXEC'], 'bin', 'qstat') + ' -Qf -F json workq1 workq2'
         ret = self.du.run_cmd(self.server.hostname, cmd=qstat_cmd_json)
         qstat_out = "\n".join(ret['out'])
         try:
-            qs = json.loads(qstat_out)
-        except ValueError:
-            self.assertTrue(False, "Invalid JSON, failed to load")
-
-        self.assertIn('Queue', qs)
-        self.assertIn('workq', qs['Queue'])
-        self.assertIn('workq2', qs['Queue'])
-        self.assertIn('resources_max', qs['Queue']['workq2'])
-        self.assertIn('workq3', qs['Queue'])
-        self.assertIn('resources_max', qs['Queue']['workq3'])
+            json.loads(qstat_out)
+        except ValueError, e:
+            self.assertTrue(False)
 
     def test_qstat_json_valid_job_special_env(self):
         """
@@ -576,34 +534,6 @@ class TestQstatFormats(TestFunctional):
         """
         os.environ["DOUBLEQUOTES"] = 'hi"ha'
         os.environ["REVERSESOLIDUS"] = 'hi\ha'
-
-        self.server.manager(MGR_CMD_SET, SERVER,
-                            {'default_qsub_arguments': '-V'})
-
-        j = Job(self.du.get_current_user())
-        j.preserve_env = True
-        j.set_sleep_time(10)
-        jid = self.server.submit(j)
-        qstat_cmd_json = os.path.join(self.server.pbs_conf['PBS_EXEC'], 'bin',
-                                      'qstat') + \
-            ' -f -F json ' + str(jid)
-        ret = self.du.run_cmd(self.server.hostname, cmd=qstat_cmd_json)
-        qstat_out = "\n".join(ret['out'])
-        try:
-            json.loads(qstat_out)
-        except ValueError:
-            self.assertTrue(False)
-
-    def test_qstat_json_valid_job_longint_env(self):
-        """
-        Test if JSON output of qstat -f is in valid format
-        with longint in env
-        """
-        os.environ["LONGINT"] = '1111111111111111111111111111111111111111' + \
-                                '1111111111111111111111111111111111111111' + \
-                                '11111111111111111111111111111111111'
-        os.environ["LONGDOUBLE"] = '1111111111111111111111111111112.88888' + \
-                                   '8888888888888888'
 
         self.server.manager(MGR_CMD_SET, SERVER,
                             {'default_qsub_arguments': '-V'})

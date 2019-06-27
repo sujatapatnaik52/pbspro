@@ -217,12 +217,12 @@ class FileUtils:
             if (self._bytes - self._buf_size > 0):
                 self._fseek_ptr -= self._buf_size
                 self.fd.seek(self._fseek_ptr, 2)
-                data.append(self.fd.read(self._buf_size))
+                data.append(self.fd.read(self._buf_size).decode())
             else:
                 # file too small, start from beginning
                 self.fd.seek(0, 0)
                 # only read what was not read
-                data.append(self.fd.read(self._bytes))
+                data.append(self.fd.read(self._bytes).decode())
             linesFound = data[-1].count('\n')
             size -= linesFound
             self._bytes -= self._buf_size

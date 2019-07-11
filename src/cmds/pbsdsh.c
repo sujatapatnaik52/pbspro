@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -56,7 +56,7 @@ int	    numnodes;
 tm_task_id *tid;
 int	    verbose = 0;
 
-#ifndef WIN32
+#ifndef WIN64
 sigset_t	allsigs;
 #endif
 
@@ -125,7 +125,7 @@ wait_for_task(int first, int *nspawned)
 		}
 
 
-#ifdef WIN32
+#ifdef WIN64
 		rc = tm_poll(TM_NULL_EVENT, &eventpolled, 1, &tm_errno);
 #else
 		sigprocmask(SIG_UNBLOCK, &allsigs, NULL);
@@ -199,7 +199,7 @@ main(int argc, char *argv[], char *envp[])
 	int                     stop = 0;
 	int                     sync = 0;
 	char                    *pbs_environ = NULL;
-#ifndef WIN32
+#ifndef WIN64
 	struct	sigaction	act;
 #endif
 	extern int   optind;
@@ -209,7 +209,7 @@ main(int argc, char *argv[], char *envp[])
 
 	execution_mode(argc, argv);
 
-#ifdef WIN32
+#ifdef WIN64
 	winsock_init();
 #endif
 	while ((c = getopt(argc, argv, "c:n:svo")) != EOF) {
@@ -273,7 +273,7 @@ main(int argc, char *argv[], char *envp[])
 		return 1;
 	}
 
-#ifdef WIN32
+#ifdef WIN64
 	signal(SIGINT, bailout);
 	signal(SIGTERM, bailout);
 #else
@@ -295,7 +295,7 @@ main(int argc, char *argv[], char *envp[])
 	sigaction(SIGINT, &act, NULL);
 	sigaction(SIGTERM, &act, NULL);
 
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 
 #ifdef DEBUG
 	if (rootrot.tm_parent == TM_NULL_TASK) {
@@ -364,7 +364,7 @@ main(int argc, char *argv[], char *envp[])
 		stop  = numnodes;
 	}
 
-#ifndef WIN32
+#ifndef WIN64
 	sigprocmask(SIG_BLOCK, &allsigs, NULL);
 #endif
 
@@ -390,7 +390,7 @@ main(int argc, char *argv[], char *envp[])
 
 	if (sync == 0)
 		wait_for_task(0, &nspawned);	/* wait for all to finish */
-#ifdef WIN32
+#ifdef WIN64
 	/*
 	 * On Windows, in case of interactive jobs - pbs_demux is writing on stdout and stderr
 	 * in parallel to the interactive shell on which pbsdsh executes. Give pbs_demux some time to

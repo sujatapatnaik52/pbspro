@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -540,11 +540,11 @@ struct job {
 	int		ji_parent2child_moms_status_pipe;	/* write pipe for parent mom to send sister moms status to child starter process */
 	int		ji_updated;	/* set to 1 if job's node assignment was updated */
 	time_t		ji_walltime_stamp;	/* time stamp for accumulating walltime */
-#ifdef WIN32
+#ifdef WIN64
 	HANDLE		ji_momsubt;	/* process HANDLE to mom subtask */
-#else	/* not WIN32 */
+#else	/* not WIN64 */
 	pid_t		ji_momsubt;	/* pid of mom subtask   */
-#endif /* WIN32 */
+#endif /* WIN64 */
 	/* ptr to post processing func  */
 	void	      (*ji_mompost)(struct job *, int);
 	tm_event_t	ji_postevent;	/* event waiting on mompost */
@@ -570,10 +570,10 @@ struct job {
 	int		ji_flags;	/* mom only flags */
 	void	       *ji_setup;	/* save setup info */
 
-#ifdef WIN32
+#ifdef WIN64
 	HANDLE		ji_hJob;	/* handle for job */
 	struct passwd	*ji_user;	/* user info */
-#endif /* WIN32 */
+#endif /* WIN64 */
 	int		ji_stdout;	/* socket for stdout */
 	int		ji_stderr;	/* socket for stderr */
 	int		ji_ports[2];	/* ports for stdout/err */
@@ -746,7 +746,7 @@ typedef struct	pbs_task {
 	int		ti_protover;	/* protocol version number */
 	int		ti_flags;	/* task internal flags */
 
-#ifdef WIN32
+#ifdef WIN64
 	HANDLE		ti_hProc;	/* keep proc handle */
 #endif
 

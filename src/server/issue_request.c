@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -745,7 +745,7 @@ process_Dreply(int sock)
 	struct work_task	*ptask;
 	int			 rc;
 	struct batch_request	*request;
-#ifdef WIN32
+#ifdef WIN64
 	int                     i;
 #endif
 
@@ -758,7 +758,7 @@ process_Dreply(int sock)
 
 	ptask = (struct work_task *)GET_NEXT(task_list_event);
 
-#ifdef WIN32
+#ifdef WIN64
 	handle = -1;
 	for (i=0;i < PBS_MAX_CONNECTIONS; i++) {
 		if (connection[i].ch_inuse && connection[i].ch_socket == sock) {

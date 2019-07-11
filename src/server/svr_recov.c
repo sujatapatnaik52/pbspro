@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -124,7 +124,7 @@ svr_recov_fs(char *svrfile)
 	int sdb;
 	void recov_acl(attribute *, attribute_def *, char *, char *);
 
-#ifdef WIN32
+#ifdef WIN64
 	/* secure file as perms could be corrupted during windows shutdown */
 
 	fix_perms(svrfile);
@@ -136,7 +136,7 @@ svr_recov_fs(char *svrfile)
 		log_err(errno, "svr_recov", msg_svdbopen);
 		return (-1);
 	}
-#ifdef WIN32
+#ifdef WIN64
 	setmode(sdb, O_BINARY);
 #endif
 
@@ -217,7 +217,7 @@ svr_save_fs(struct server *ps, int mode)
 	int save_acl(attribute *, attribute_def *, char *, char *);
 	int		pmode;
 
-#ifdef WIN32
+#ifdef WIN64
 	pmode = _S_IWRITE | _S_IREAD;
 	fix_perms2(path_svrdb_new, path_svrdb);
 #else
@@ -230,7 +230,7 @@ svr_save_fs(struct server *ps, int mode)
 			log_err(errno, "svr_recov", msg_svdbopen);
 			return (-1);
 		}
-#ifdef WIN32
+#ifdef WIN64
 		secure_file(path_svrdb, "Administrators",
 			READS_MASK|WRITES_MASK|STANDARD_RIGHTS_REQUIRED);
 		setmode(sdb, O_BINARY);
@@ -242,7 +242,7 @@ svr_save_fs(struct server *ps, int mode)
 			log_err(errno, __func__, msg_svdbnosv);
 			return (-1);
 		}
-#ifdef WIN32
+#ifdef WIN64
 		if (_commit(sdb) != 0) {
 			log_err(errno, __func__, "flush server db file to disk failed!");
 			close(sdb);
@@ -259,7 +259,7 @@ svr_save_fs(struct server *ps, int mode)
 			log_err(errno, "svr_recov", msg_svdbopen);
 			return (-1);
 		}
-#ifdef WIN32
+#ifdef WIN64
 		secure_file(path_svrdb_new, "Administrators", READS_MASK|WRITES_MASK|STANDARD_RIGHTS_REQUIRED);
 		setmode(sdb, O_BINARY);
 #endif
@@ -281,7 +281,7 @@ svr_save_fs(struct server *ps, int mode)
 			return (-1);
 		}
 
-#ifdef WIN32
+#ifdef WIN64
 		if (_commit(sdb) != 0) {
 			log_err(errno, __func__, "flush server db file to disk failed!");
 			close(sdb);
@@ -290,7 +290,7 @@ svr_save_fs(struct server *ps, int mode)
 #endif
 		(void)close(sdb);
 
-#ifdef WIN32
+#ifdef WIN64
 		if (MoveFileEx(path_svrdb_new, path_svrdb,
 			MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) == 0) {
 
@@ -349,7 +349,7 @@ save_acl(attribute *attr, attribute_def *pdef, char *subdir, char *name)
 	pbs_list_head	head;
 	int		i;
 	svrattrl	*pentry;
-#ifdef WIN32
+#ifdef WIN64
 	int		pmode = _S_IWRITE | _S_IREAD;
 	char		*my_id = "save_acl";
 #else
@@ -377,7 +377,7 @@ save_acl(attribute *attr, attribute_def *pdef, char *subdir, char *name)
 	(void)strcpy(filename2, filename1);
 	(void)strcat(filename2, ".new");
 
-#ifdef WIN32
+#ifdef WIN64
 	fix_perms2(filename2, filename1);
 #endif
 
@@ -387,7 +387,7 @@ save_acl(attribute *attr, attribute_def *pdef, char *subdir, char *name)
 		return (-1);
 	}
 
-#ifdef WIN32
+#ifdef WIN64
 	secure_file(filename2, "Administrators", READS_MASK|WRITES_MASK|STANDARD_RIGHTS_REQUIRED);
 	setmode(fds, O_BINARY);
 #endif
@@ -416,7 +416,7 @@ save_acl(attribute *attr, attribute_def *pdef, char *subdir, char *name)
 		(void)free(pentry);
 	}
 
-#ifdef WIN32
+#ifdef WIN64
 	if (_commit(fds) != 0) {
 		log_err(errno, __func__, "flush server db file to disk failed!");
 		close(fds);
@@ -426,7 +426,7 @@ save_acl(attribute *attr, attribute_def *pdef, char *subdir, char *name)
 
 	(void)close(fds);
 
-#ifdef WIN32
+#ifdef WIN64
 	if (MoveFileEx(filename2, filename1,
 		MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) == 0) {
 		errno = GetLastError();
@@ -480,7 +480,7 @@ recov_acl(attribute *pattr, attribute_def *pdef, char *subdir, char *name)
 	attribute	tempat;
 	int		pmode;
 
-#ifdef WIN32
+#ifdef WIN64
 	pmode = _S_IWRITE | _S_IREAD;
 #else
 	pmode = 0600;
@@ -494,7 +494,7 @@ recov_acl(attribute *pattr, attribute_def *pdef, char *subdir, char *name)
 	}
 	strcat(filename1, name);
 
-#ifdef WIN32
+#ifdef WIN64
 	fix_perms(filename1);
 #endif
 
@@ -507,7 +507,7 @@ recov_acl(attribute *pattr, attribute_def *pdef, char *subdir, char *name)
 		}
 		return;
 	}
-#ifdef WIN32
+#ifdef WIN64
 	setmode(fds, O_BINARY);
 #endif
 
@@ -579,7 +579,7 @@ sched_recov_fs(char *svrfile)
 	int sdb;
 	void recov_acl(attribute *, attribute_def *, char *, char *);
 
-#ifdef WIN32
+#ifdef WIN64
 	/* secure file as perms could be corrupted during windows shutdown */
 
 	fix_perms(svrfile);
@@ -595,7 +595,7 @@ sched_recov_fs(char *svrfile)
 			return (-1);
 		}
 	}
-#ifdef WIN32
+#ifdef WIN64
 	setmode(sdb, O_BINARY);
 #endif
 
@@ -646,7 +646,7 @@ sched_save_fs(struct pbs_sched *ps, int mode)
 	int save_acl(attribute *, attribute_def *, char *, char *);
 	int		pmode;
 
-#ifdef WIN32
+#ifdef WIN64
 	pmode = _S_IWRITE | _S_IREAD;
 	fix_perms2(path_scheddb_new, path_scheddb);
 #else
@@ -663,7 +663,7 @@ sched_save_fs(struct pbs_sched *ps, int mode)
 		log_err(errno, __func__, schedemsg);
 		return (-1);
 	}
-#ifdef WIN32
+#ifdef WIN64
 	secure_file(path_scheddb_new, "Administrators",
 		READS_MASK|WRITES_MASK|STANDARD_RIGHTS_REQUIRED);
 	setmode(sdb, O_BINARY);
@@ -680,7 +680,7 @@ sched_save_fs(struct pbs_sched *ps, int mode)
 		return (-1);
 	}
 
-#ifdef WIN32
+#ifdef WIN64
 	if (_commit(sdb) != 0) {
 		log_err(errno, __func__, "flush server db file to disk failed!");
 		close(sdb);
@@ -689,7 +689,7 @@ sched_save_fs(struct pbs_sched *ps, int mode)
 #endif
 	(void)close(sdb);
 
-#ifdef WIN32
+#ifdef WIN64
 	if (MoveFileEx(path_scheddb_new, path_scheddb,
 		MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) == 0) {
 

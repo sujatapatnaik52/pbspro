@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -166,7 +166,7 @@ extern "C" {
 #define ATR_TRUE	"True"
 #define ATR_FALSE	"False"
 
-#ifdef WIN32
+#ifdef WIN64
 #define	ESC_CHAR	'^'	/* commonly used in windows cmd shell */
 #else
 #define	ESC_CHAR	'\\'
@@ -235,7 +235,7 @@ struct pbs_config
 	unsigned int pbs_comm_threads;	/* number of threads for router, default 4 */
 	char *pbs_mom_node_name;	/* mom short name used for natural node, default NULL */
 	unsigned int pbs_log_highres_timestamp; /* high resolution logging */
-#ifdef WIN32
+#ifdef WIN64
 	char *pbs_conf_remote_viewer; /* Remote viewer client executable for PBS GUI jobs, along with launch options */
 #endif
 };
@@ -298,7 +298,7 @@ extern struct pbs_config pbs_conf;
 #define PBS_CONF_SCHEDULER_MODIFY_EVENT	"PBS_SCHEDULER_MODIFY_EVENT"
 #define PBS_CONF_MOM_NODE_NAME	"PBS_MOM_NODE_NAME"
 #define PBS_CONF_LOG_HIGHRES_TIMESTAMP	"PBS_LOG_HIGHRES_TIMESTAMP"
-#ifdef WIN32
+#ifdef WIN64
 #define PBS_CONF_REMOTE_VIEWER "PBS_REMOTE_VIEWER"	/* Executable for remote viewer application alongwith its launch options, for PBS GUI jobs */
 #endif
 #define LOCALHOST_FULLNAME "localhost.localdomain"
@@ -374,7 +374,7 @@ enum accrue_types {
 #define IN_LOOPBACKNET	127
 #endif
 #define LOCALHOST_SHORTNAME "localhost"
-#ifdef WIN32
+#ifdef WIN64
 #define CLOSESOCKET(X) (void)closesocket(X)
 #define ERRORNO        WSAGetLastError()
 #else

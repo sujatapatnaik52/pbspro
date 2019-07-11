@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -55,7 +55,7 @@
 #include <time.h>
 #include <stdlib.h>
 
-#ifndef WIN32
+#ifndef WIN64
 #include <stdlib.h>
 #include <poll.h>
 #include <sys/resource.h>
@@ -264,7 +264,7 @@ init_network(unsigned int port)
 	int			i;
 	size_t		j;
 	int 		sd;
-#ifdef WIN32
+#ifdef WIN64
 	struct  linger		li;
 #endif
 	struct sockaddr_in	socname;
@@ -274,7 +274,7 @@ init_network(unsigned int port)
 
 	sd = socket(AF_INET, SOCK_STREAM, 0);
 	if (sd < 0) {
-#ifdef WIN32
+#ifdef WIN64
 		errno = WSAGetLastError();
 #endif
 		log_err(errno, __func__, "socket() failed");
@@ -284,7 +284,7 @@ init_network(unsigned int port)
 	i = 1;
 	setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, (char *)&i, sizeof(i));
 
-#ifdef WIN32
+#ifdef WIN64
 	li.l_onoff = 1;
 	li.l_linger = 5;
 	setsockopt(sd, SOL_SOCKET, SO_LINGER, (char *)&li, sizeof(li));
@@ -298,7 +298,7 @@ init_network(unsigned int port)
 	socname.sin_addr.s_addr = INADDR_ANY;
 	socname.sin_family = AF_INET;
 	if (bind(sd, (struct sockaddr *)&socname, sizeof(socname)) < 0) {
-#ifdef WIN32
+#ifdef WIN64
 		errno = WSAGetLastError();
 		(void)closesocket(sd);
 #else
@@ -355,7 +355,7 @@ init_network_add(int sd, void (*readfunc)(int))
 	 *         cn_authen to have bit PBS_NET_CONN_PRIVIL set
 	 */
 	if(add_conn(sd, type, (pbs_net_t)0, 0, accept_conn) == NULL) {
-#ifdef WIN32
+#ifdef WIN64
 		errno = WSAGetLastError();
 		(void)closesocket(sd);
 #else
@@ -368,7 +368,7 @@ init_network_add(int sd, void (*readfunc)(int))
 	/* start listening for connections */
 	if (listen(sd, 256) < 0) {
 		log_err(errno, __func__ , "listen failed");
-#ifdef WIN32
+#ifdef WIN64
 		errno = WSAGetLastError();
 		(void)closesocket(sd);
 #else
@@ -544,7 +544,7 @@ wait_request(time_t waittime, void *priority_context)
 	int timeout = (int) (waittime * 1000); /* milli seconds */
 	/* Platform specific declarations */
 
-#ifndef WIN32
+#ifndef WIN64
 	sigset_t pendingsigs;
 	sigset_t emptyset;
 	extern sigset_t allsigs;
@@ -557,7 +557,7 @@ wait_request(time_t waittime, void *priority_context)
 	errno = 0;
 	nfds = tpp_em_wait(poll_context, &events, timeout);
 	err = errno;
-#endif /* WIN32 */
+#endif /* WIN64 */
 	if (nfds < 0) {
 		if (!(err == EINTR || err == EAGAIN || err == 0)) {
 			snprintf(logbuf, sizeof(logbuf), " tpp_em_wait() error, errno=%d", err);
@@ -569,7 +569,7 @@ wait_request(time_t waittime, void *priority_context)
 		if (priority_context) {
 			em_event_t *pevents;
 			timeout = 0;
-#ifndef WIN32
+#ifndef WIN64
         		/* wait after unblocking signals in an atomic call */
         		sigemptyset(&emptyset);
         		pnfds = tpp_em_pwait(priority_context, &pevents, timeout, &emptyset);
@@ -577,7 +577,7 @@ wait_request(time_t waittime, void *priority_context)
 #else
         		pnfds = tpp_em_wait(priority_context, &pevents, timeout);
         		err = errno;
-#endif /* WIN32 */
+#endif /* WIN64 */
                 	for (i = 0; i < pnfds; i++) {
                         	em_pfd = EM_GET_FD(pevents, i);
 				log_event(PBSEVENT_DEBUG3, PBS_EVENTCLASS_SERVER,
@@ -593,7 +593,7 @@ wait_request(time_t waittime, void *priority_context)
 
 		for (i = 0; i < nfds; i++) {
 			em_fd = EM_GET_FD(events, i);
-#ifndef WIN32
+#ifndef WIN64
 			/* If there is any of the following signals pending, allow a small window to handle the signal */
 			if( sigpending( &pendingsigs ) == 0) {
 				if (sigismember(&pendingsigs, SIGCHLD)
@@ -624,7 +624,7 @@ wait_request(time_t waittime, void *priority_context)
 		}
 	}
 
-#ifndef WIN32
+#ifndef WIN64
 	connection_idlecheck();
 #endif
 
@@ -664,7 +664,7 @@ accept_conn(int sd)
 	fromsize = sizeof(from);
 	newsock = accept(sd, (struct sockaddr *)&from, &fromsize);
 	if (newsock == -1) {
-#ifdef WIN32
+#ifdef WIN64
 		errno = WSAGetLastError();
 #endif
 		log_err(errno, __func__ , "accept failed");
@@ -870,7 +870,7 @@ close_conn(int sd)
 {
 	int idx;
 
-#ifdef WIN32
+#ifdef WIN64
 	if ((sd == INVALID_SOCKET))
 #else
 	if ((sd < 0))
@@ -1035,7 +1035,7 @@ get_connecthost(int sd, char *namebuf, int size)
 	struct hostent *phe;
 	struct in_addr  addr;
 	int	namesize = 0;
-#if !defined(WIN32)
+#if !defined( WIN64)
 	char	dst[INET_ADDRSTRLEN + 1]; /* for inet_ntop */
 #endif
 
@@ -1048,7 +1048,7 @@ get_connecthost(int sd, char *namebuf, int size)
 
 	if ((phe = gethostbyaddr((char *) &addr, sizeof(struct in_addr),
 		AF_INET)) == NULL) {
-#if defined(WIN32)
+#if defined( WIN64)
 			/* inet_ntoa is thread-safe on windows */
 			(void)strcpy(namebuf, inet_ntoa(addr));
 #else
@@ -1076,7 +1076,7 @@ get_connecthost(int sd, char *namebuf, int size)
  *	Init the pollset i.e. socket descriptors to be polled.
  *
  * @par Functionality:
- *	For select() in WIN32, max_connection is decided based on the
+ *	For select() in WIN64, max_connection is decided based on the
  *	FD_SETSIZE (max vaue, select() can handle) but for Unix variants
  *	that is decided by getrlimit() or getdtablesize(). For poll(),
  *	allocate memory for pollfds[] and init the table.
@@ -1095,7 +1095,7 @@ get_connecthost(int sd, char *namebuf, int size)
 static int
 init_poll_context(void)
 {
-#ifdef WIN32
+#ifdef WIN64
 	int sd_dummy;
 	max_connection = FD_SETSIZE;
 #else
@@ -1124,7 +1124,7 @@ init_poll_context(void)
 		log_err(errno, __func__, "could not initialize priority_context");
 		return (-1);
 	}
-#ifdef WIN32
+#ifdef WIN64
 	/* set a dummy fd in the read set so that	*/
 	/* select() does not return WSAEINVAL 		*/
 	sd_dummy = socket(AF_INET, SOCK_STREAM, 0);
@@ -1149,7 +1149,7 @@ init_poll_context(void)
 		CLOSESOCKET(sd_dummy);
 		return -1;
 	}
-#endif /* WIN32 */
+#endif /* WIN64 */
 
 	return 0;
 }
@@ -1163,7 +1163,7 @@ init_poll_context(void)
  */
 void
 close_socket(int sd) {
-#ifdef WIN32
+#ifdef WIN64
 	(void)closesocket(sd);
 #else
 	(void) close(sd);

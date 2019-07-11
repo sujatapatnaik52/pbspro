@@ -31,7 +31,7 @@
  * SUCH DAMAGE.
  */
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -174,7 +174,7 @@ uid_t	userid;
 int errs, rem;
 int pflag, iamremote, iamrecursive, targetshouldbedirectory;
 
-#ifdef WIN32
+#ifdef WIN64
 struct _utimbuf times;
 #endif
 
@@ -225,7 +225,7 @@ main(int argc, char *argv[])
 	int ch, fflag, tflag;
 	char *targ, *shell;
 	extern int optind;
-#ifdef WIN32
+#ifdef WIN64
 	DWORD  cnt;
 	DWORD  a_cnt = 0;
 #else
@@ -289,7 +289,7 @@ main(int argc, char *argv[])
 			case 'E':                       /* "encrypted password" */
 
 				cnt = sizeof(size_t);
-#ifdef WIN32
+#ifdef WIN64
 				ReadFile(GetStdHandle(STD_INPUT_HANDLE),
 					(char *)&credl, cnt, &a_cnt, NULL);
 #else
@@ -320,7 +320,7 @@ main(int argc, char *argv[])
 				}
 
 				a_cnt = 0;
-#ifdef WIN32
+#ifdef WIN64
 				ReadFile(GetStdHandle(STD_INPUT_HANDLE), (char *)credb,
 					credl, &a_cnt, NULL);
 #else
@@ -347,7 +347,7 @@ main(int argc, char *argv[])
 	argc -= optind;
 	argv += optind;
 
-#ifdef WIN32
+#ifdef WIN64
 	winsock_init();
 #endif
 
@@ -383,7 +383,7 @@ main(int argc, char *argv[])
 
 	if (fflag) {			/* Follow "protocol", send data. */
 		(void)response();
-#ifndef WIN32
+#ifndef WIN64
 		if (setuid(userid) == -1)
 			exit(-11);
 #endif
@@ -392,7 +392,7 @@ main(int argc, char *argv[])
 	}
 
 	if (tflag) {			/* Receive data. */
-#ifndef WIN32
+#ifndef WIN64
 		if (setuid(userid) == -1)
 			exit(-12);
 #endif
@@ -422,11 +422,11 @@ main(int argc, char *argv[])
 		targetshouldbedirectory ? " -d" : "");
 #endif
 
-#ifndef WIN32
+#ifndef WIN64
 	(void)signal(SIGPIPE, lostconn);
 #endif
 
-#ifdef WIN32
+#ifdef WIN64
 	if (!(IS_UNCPATH(argv[argc - 1])) && \
 		((targ = colon(argv[argc - 1])) != NULL))
 #else
@@ -517,7 +517,7 @@ toremote(char *targ, int argc, char *argv[])
 					thost, targ);
 			} else
 				(void)sprintf(bp,
-#ifdef WIN32
+#ifdef WIN64
 					"%s %s -n %s %s '%s%s%s:%s'",
 #else
 					"exec %s %s -n %s %s '%s%s%s:%s'",
@@ -545,7 +545,7 @@ toremote(char *targ, int argc, char *argv[])
 						tuser ? tuser : pwd->pw_name);
 				else
 #endif
-#ifdef WIN32
+#ifdef WIN64
 					rem = rcmd2(&host, port, pwd->pw_name,
 						tuser ? tuser : pwd->pw_name,
 						credb, credl, bp, 0);
@@ -570,7 +570,7 @@ toremote(char *targ, int argc, char *argv[])
 					exit(1);
 				}
 				(void)free(bp);
-#ifndef WIN32
+#ifndef WIN64
 				if (setuid(userid) == - 1)
 					exit(-14);
 #endif
@@ -608,7 +608,7 @@ tolocal(int argc, char *argv[])
 				strlen(argv[argc - 1]) + 20;
 			if (!(bp = malloc(len)))
 				err(1, NULL);
-#ifdef WIN32
+#ifdef WIN64
 			(void)sprintf(bp, "cmd /c %s%s%s %s %s", _PATH_CP,
 #else
 			(void)sprintf(bp, "exec %s%s%s %s %s", _PATH_CP,
@@ -654,7 +654,7 @@ tolocal(int argc, char *argv[])
 			kerberos(&host, bp, pwd->pw_name, suser) :
 #endif
 
-#ifdef WIN32
+#ifdef WIN64
 			rcmd2(&host, port, pwd->pw_name, suser, credb, credl,
 			bp, 0);
 #else
@@ -670,7 +670,7 @@ tolocal(int argc, char *argv[])
 #endif
 
 
-#ifdef WIN32
+#ifdef WIN64
 		sink(1, argv + argc - 1);
 		(void)closesocket(rem);
 #else
@@ -721,7 +721,7 @@ source(int argc, char *argv[])
 		if ((fd = open(name, O_RDONLY, 0)) < 0)
 			goto syserr;
 
-#ifdef WIN32
+#ifdef WIN64
 		setmode(fd, O_BINARY);
 		/* windows will fail to open file if a dir. To capture dir */
 		/* info, we also do a pbs_stat() */
@@ -761,7 +761,7 @@ source(int argc, char *argv[])
 			(void)sprintf(buf, "T%ld 0 %ld 0\n",
 				(long)stb.st_mtime, (long)stb.st_atime);
 
-#ifdef WIN32
+#ifdef WIN64
 			(void)send(rem, buf, strlen(buf), 0);
 #else
 			(void)write(rem, buf, strlen(buf));
@@ -770,13 +770,13 @@ source(int argc, char *argv[])
 				goto next;
 		}
 
-#ifdef WIN32
+#ifdef WIN64
 #define	MODMASK	(S_IRWXU|S_IRWXG|S_IRWXO)
 #else
 #define	MODMASK	(S_ISUID|S_ISGID|S_IRWXU|S_IRWXG|S_IRWXO)
 #endif
 
-#ifdef WIN32
+#ifdef WIN64
 		(void)sprintf(buf, "C%04o %I64d %s\n",
 			stb.st_mode & MODMASK, stb.st_size, last);
 #else
@@ -785,7 +785,7 @@ source(int argc, char *argv[])
 #endif
 
 
-#ifdef WIN32
+#ifdef WIN64
 		(void)send(rem, buf, strlen(buf), 0);
 #else
 		(void)write(rem, buf, strlen(buf));
@@ -810,13 +810,13 @@ source(int argc, char *argv[])
 			}
 			if (haderr)
 
-#ifdef WIN32
+#ifdef WIN64
 				(void)send(rem, bp->buf, amt, 0);
 #else
 				(void)write(rem, bp->buf, amt);
 #endif
 			else {
-#ifdef WIN32
+#ifdef WIN64
 				result = send(rem, bp->buf, amt, 0);
 #else
 				result = write(rem, bp->buf, amt);
@@ -851,7 +851,7 @@ source(int argc, char *argv[])
 
 		if (!haderr)
 
-#ifdef WIN32
+#ifdef WIN64
 			(void)send(rem, "", 1, 0);
 #else
 			(void)write(rem, "", 1);
@@ -884,7 +884,7 @@ rsource(char *name, pbs_stat_struct *statp)
 	}
 	last = strrchr(name, '/');
 	if (last == 0) {
-#ifdef WIN32
+#ifdef WIN64
 		/* '/' not found so check for '\\' in windows*/
 		last = strrchr(name, '\\');
 		if (last == 0)
@@ -899,7 +899,7 @@ rsource(char *name, pbs_stat_struct *statp)
 	if (pflag) {
 		(void)sprintf(path, "T%ld 0 %ld 0\n",
 			(long)statp->st_mtime, (long)statp->st_atime);
-#ifdef WIN32
+#ifdef WIN64
 		(void)send(rem, path, strlen(path), 0);
 #else
 		(void)write(rem, path, strlen(path));
@@ -912,7 +912,7 @@ rsource(char *name, pbs_stat_struct *statp)
 	(void)sprintf(path,
 		"D%04o %d %s\n", statp->st_mode & MODMASK, 0, last);
 
-#ifdef WIN32
+#ifdef WIN64
 	(void)send(rem, path, strlen(path), 0);
 #else
 	(void)write(rem, path, strlen(path));
@@ -923,7 +923,7 @@ rsource(char *name, pbs_stat_struct *statp)
 	}
 	while (errno = 0, (dp = readdir(dirp)) != NULL) {
 
-#ifndef WIN32
+#ifndef WIN64
 		if (dp->d_ino == 0)
 			continue;
 #endif
@@ -944,7 +944,7 @@ rsource(char *name, pbs_stat_struct *statp)
 	}
 	(void)closedir(dirp);
 
-#ifdef WIN32
+#ifdef WIN64
 	(void)send(rem, "E\n", 2, 0);
 #else
 	(void)write(rem, "E\n", 2);
@@ -1017,7 +1017,7 @@ sink(int argc, char *argv[])
 	if (targetshouldbedirectory)
 		verifydir(targ);
 
-#ifdef WIN32
+#ifdef WIN64
 	(void)send(rem, "", 1, 0);
 #else
 	(void)write(rem, "", 1);
@@ -1027,7 +1027,7 @@ sink(int argc, char *argv[])
 	for (first = 1;; first = 0) {
 		cp = buf;
 
-#ifdef WIN32
+#ifdef WIN64
 		if (recv(rem, cp, 1, 0) <= 0)
 #else
 		if (read(rem, cp, 1) <= 0)
@@ -1036,7 +1036,7 @@ sink(int argc, char *argv[])
 		if (*cp++ == '\n')
 			SCREWUP("unexpected <newline>");
 		do {
-#ifdef WIN32
+#ifdef WIN64
 			if (recv(rem, &ch, sizeof(ch), 0) != sizeof(ch))
 #else
 			if (read(rem, &ch, sizeof(ch)) != sizeof(ch))
@@ -1056,7 +1056,7 @@ sink(int argc, char *argv[])
 			continue;
 		}
 		if (buf[0] == 'E') {
-#ifdef WIN32
+#ifdef WIN64
 			(void)send(rem, "", 1, 0);
 #else
 			(void)write(rem, "", 1);
@@ -1085,7 +1085,7 @@ sink(int argc, char *argv[])
 			if (*cp++ != '\0')
 				SCREWUP("atime.usec not delimited");
 
-#ifdef WIN32
+#ifdef WIN64
 			(void)send(rem, "", 1, 0);
 #else
 			(void)write(rem, "", 1);
@@ -1148,7 +1148,7 @@ sink(int argc, char *argv[])
 				/* Handle copying from a read-only directory */
 				mod_flag = 1;
 
-#ifdef WIN32
+#ifdef WIN64
 				/* use _mkdir as it supports UNC path */
 				if (_mkdir(np) == -1)
 #else
@@ -1160,7 +1160,7 @@ sink(int argc, char *argv[])
 			sink(1, vect);
 			if (setimes) {
 				setimes = 0;
-#ifdef WIN32
+#ifdef WIN64
 				times.actime = atime.tv_sec;
 				times.modtime = mtime.tv_sec;
 
@@ -1178,7 +1178,7 @@ sink(int argc, char *argv[])
 		omode = mode;
 		mode |= S_IWRITE;
 
-#ifdef WIN32
+#ifdef WIN64
 		if ((ofd = open(np, O_WRONLY|O_CREAT|O_TRUNC|O_BINARY, mode)) < 0)
 #else
 		if ((ofd = open(np, O_WRONLY|O_CREAT, mode)) < 0)
@@ -1189,7 +1189,7 @@ sink(int argc, char *argv[])
 		}
 
 
-#ifdef WIN32
+#ifdef WIN64
 		(void)send(rem, "", 1, 0);
 #else
 		(void)write(rem, "", 1);
@@ -1208,7 +1208,7 @@ sink(int argc, char *argv[])
 			count += amt;
 			do {
 
-#ifdef WIN32
+#ifdef WIN64
 				j = recv(rem, cp, amt, 0);
 #else
 				j = read(rem, cp, amt);
@@ -1241,7 +1241,7 @@ sink(int argc, char *argv[])
 		}
 
 
-#ifdef WIN32
+#ifdef WIN64
 		if (pflag) {
 			if (exists || omode != mode)
 				if (_chmod(np, omode))
@@ -1296,7 +1296,7 @@ sink(int argc, char *argv[])
 		if (setimes && wrerr == NO) {
 			setimes = 0;
 
-#ifdef WIN32
+#ifdef WIN64
 			times.actime = atime.tv_sec;
 			times.modtime = mtime.tv_sec;
 
@@ -1315,7 +1315,7 @@ sink(int argc, char *argv[])
 				run_err("%s: %s", np, strerror(wrerrno));
 				break;
 			case NO:
-#ifdef WIN32
+#ifdef WIN64
 				(void)send(rem, "", 1, 0);
 #else
 				(void)write(rem, "", 1);
@@ -1414,7 +1414,7 @@ response()
 	char resp = '\0';
 	char rbuf[RCP_BUFFER_SIZE] = {'\0'};
 
-#ifdef WIN32
+#ifdef WIN64
 	if (recv(rem, &resp, sizeof(resp), 0) != sizeof(resp))
 #else
 	if (read(rem, &resp, sizeof(resp)) != sizeof(resp))
@@ -1432,7 +1432,7 @@ response()
 		case 2:				/* fatal error, "" */
 			do {
 
-#ifdef WIN32
+#ifdef WIN64
 				if (recv(rem, &ch, sizeof(ch), 0) != sizeof(ch))
 #else
 				if (read(rem, &ch, sizeof(ch)) != sizeof(ch))

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -197,12 +197,12 @@ decode_argument(char *encoded_arg, char *original_arg)
 	int	j = 0;
 	int	k = 0;
 	char	escape_chars[10];
-#ifdef WIN32
+#ifdef WIN64
 	int	quotes_flag = 0;
 #endif
 	DBPRT(("%s: encoded arg= %s\n", __func__, encoded_arg))
 
-#ifdef	WIN32
+#ifdef	WIN64
 	/*
 	 * This is to handle differences between M$ and non-M$ platforms
 	 * related to 'Double quotes'(") character at the time of reading
@@ -224,7 +224,7 @@ decode_argument(char *encoded_arg, char *original_arg)
 		original_arg[k++] = '"';
 	}
 
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 
 	while (encoded_arg[i] != '\0') {
 		if (encoded_arg[i] != '&')
@@ -252,12 +252,12 @@ decode_argument(char *encoded_arg, char *original_arg)
 		i++; k++;
 	}
 
-#ifdef	WIN32
+#ifdef	WIN64
 	if (quotes_flag) {
 		/* suffix with '"' character */
 		original_arg[k++] = '"';
 	}
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 
 	original_arg[k] = '\0';
 	DBPRT(("%s: decoded_arg= %s\n", __func__, original_arg))

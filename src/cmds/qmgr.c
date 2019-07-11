@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -105,7 +105,7 @@
 #include "pbs_ecl.h"
 
 #ifdef QMGR_HAVE_HIST
-#ifndef WIN32
+#ifndef WIN64
 #include "histedit.h"
 #else
 #include "editline\readline.h"
@@ -123,7 +123,7 @@ const char histfile_access_err[]="Cannot read/write history file %s, history acr
 int qmgr_hist_enabled = 0; /* history is enabled by default */
 char qmgr_hist_file[MAXPATHLEN + 1]; /* history file for this user */
 #ifdef QMGR_HAVE_HIST
-#ifndef WIN32
+#ifndef WIN64
 EditLine *el;
 HistEvent ev;
 History *qmgrhist;
@@ -237,7 +237,7 @@ base(char *path)
 
 	p = (char *)path;
 
-#ifdef WIN32
+#ifdef WIN64
 	if (((p=strrchr(path, '/')) != NULL)  || ((p=strrchr(path, '\\')) != NULL))
 #else
 	if ((p=strrchr(path, '/')))
@@ -250,7 +250,7 @@ base(char *path)
 }
 
 #ifdef QMGR_HAVE_HIST
-#ifndef WIN32
+#ifndef WIN64
 
 /**
  * @brief
@@ -726,7 +726,7 @@ dump_file(char *infile, char *outfile, char *infile_encoding, char *msg, size_t 
 			ret = 1;
 			goto dump_file_exit;
 		}
-#ifdef WIN32
+#ifdef WIN64
 		secure_file(outfile, "Administrators",
 			READS_MASK|WRITES_MASK|STANDARD_RIGHTS_REQUIRED);
 #endif
@@ -1085,7 +1085,7 @@ params_export(char *attrs, struct attropl **attrlist, int doper)
 char *
 who()
 {
-#ifdef WIN32
+#ifdef WIN64
 	return (getlogin()); /* Windows version does not return NULL */
 
 #else
@@ -1121,7 +1121,7 @@ main(int argc, char **argv)
 	char *name = NULL;		/* Object name */
 	struct attropl *attribs = NULL;   /* Pointer to attribute list */
 	struct objname *svrs;
-#ifndef WIN32
+#ifndef WIN64
 	int	htmp_fd;		/* for creating hooks temp file */
 #endif
 
@@ -1129,7 +1129,7 @@ main(int argc, char **argv)
 
 	execution_mode(argc, argv);
 
-#ifdef WIN32
+#ifdef WIN64
 	winsock_init();
 #endif
 
@@ -1215,7 +1215,7 @@ main(int argc, char **argv)
 	pbs_asprintf(&hook_tempfile, "%s/qmgr_hook%dXXXXXX",
 		hook_tempdir, getpid());
 
-#ifdef WIN32
+#ifdef WIN64
 	/* mktemp() generates a filename */
 	if (mktemp(hook_tempfile) == NULL) {
 		snprintf(hook_tempfile_errmsg, sizeof(hook_tempfile_errmsg),
@@ -2515,7 +2515,7 @@ handle_formula(struct attropl *attribs)
 			if ((fp = fopen(pathbuf, "w")) != NULL) {
 				fprintf(fp, "%s\n", pattr->value);
 				fclose(fp);
-#ifdef WIN32
+#ifdef WIN64
 				/* Give file an Administrators permission so pbs server can read it */
 				secure_file(pathbuf, "Administrators",
 					READS_MASK|WRITES_MASK|STANDARD_RIGHTS_REQUIRED);
@@ -2794,7 +2794,7 @@ execute(int aopt, int oper, int type, char *names, struct attropl *attribs)
 
 						/* Detect failed to access hooks working directory */
 
-#ifdef WIN32
+#ifdef WIN64
 						if ((lstat(hook_tempdir, &sbuf) == -1) && (GetLastError() == ERROR_ACCESS_DENIED))
 #else
 						if ((stat(hook_tempdir, &sbuf) == -1) && (errno == EACCES))
@@ -2824,7 +2824,7 @@ execute(int aopt, int oper, int type, char *names, struct attropl *attribs)
 							fprintf(stderr, "%s\n", hook_tempfile_errmsg);
 
 						/* Detect failed to access hooks working directory */
-#ifdef WIN32
+#ifdef WIN64
 						if ((lstat(hook_tempdir, &sbuf) == -1) && (GetLastError() == ERROR_ACCESS_DENIED))
 #else
 						if ((stat(hook_tempdir, &sbuf) == -1) && (errno == EACCES))
@@ -3112,7 +3112,7 @@ commalist2objname(char *names, int type)
  *
  */
 #ifdef QMGR_HAVE_HIST
-#ifndef WIN32
+#ifndef WIN64
 int
 get_request_hist(char **request)
 {

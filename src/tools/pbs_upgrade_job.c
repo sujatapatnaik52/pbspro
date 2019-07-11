@@ -77,7 +77,7 @@
 #include "server_limits.h"
 #include "pbs_version.h"
 
-#ifndef WIN32
+#ifndef WIN64
 #define O_BINARY 0
 #endif
 

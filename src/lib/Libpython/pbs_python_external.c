@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -756,7 +756,7 @@ pbs_python_run_code_in_namespace(struct python_interpreter_data *interp_data,
 			Py_XDECREF(ptype);
 			Py_XDECREF(pvalue);
 
-#if !defined(WIN32)
+#if !defined( WIN64)
 			Py_XDECREF(ptraceback);
 #elif !defined(_DEBUG)
 			/* for some reason this crashes on Windows Debug version */

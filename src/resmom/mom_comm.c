@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -44,7 +44,7 @@
 #include	<stdio.h>
 #include	<stdlib.h>
 
-#ifndef WIN32
+#ifndef WIN64
 #include	<unistd.h>
 #include	<dirent.h>
 #include	<pwd.h>
@@ -248,7 +248,7 @@ task_save(pbs_task *ptask)
 		return (-1);
 	}
 
-#ifdef WIN32
+#ifdef WIN64
 	secure_file(namebuf, "Administrators",
 		READS_MASK|WRITES_MASK|STANDARD_RIGHTS_REQUIRED);
 #endif
@@ -451,7 +451,7 @@ momtask_create(job *pjob)
 	ptask->ti_protover = -1;
 	ptask->ti_flags = 0;
 	ptask->ti_cput = 0;
-#ifdef WIN32
+#ifdef WIN64
 	ptask->ti_hProc = NULL;
 #endif
 	ptask->ti_register = TM_NULL_EVENT;
@@ -579,7 +579,7 @@ task_recov(job *pjob)
 	pbs_task	*pt;
 	char		dirname[MAXPATHLEN+1];
 	char		namebuf[MAXPATHLEN+1];
-#ifdef WIN32
+#ifdef WIN64
 	int		len;
 	HANDLE		hDir;
 	WIN32_FIND_DATA	finfo;
@@ -596,7 +596,7 @@ task_recov(job *pjob)
 		(void)strcat(dirname, pjob->ji_qs.ji_jobid);
 	(void)strcat(dirname, JOB_TASKDIR_SUFFIX);
 
-#ifdef WIN32
+#ifdef WIN64
 	(void)strcat(dirname, "\\*");
 
 	if ((hDir = FindFirstFile(dirname, &finfo)) == INVALID_HANDLE_VALUE)
@@ -682,7 +682,7 @@ task_recov(job *pjob)
 		return -1;
 	}
 	(void)closedir(dir);
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 
 	return 0;
 }
@@ -1946,7 +1946,7 @@ addr_to_hostname(struct sockaddr_in *ap)
 void
 job_start_error(job *pjob, int code, char *nodename, char *cmd)
 {
-#ifndef WIN32
+#ifndef WIN64
 	void    exec_bail(job *pjob, int code, char *txt);
 #endif
 
@@ -1969,7 +1969,7 @@ job_start_error(job *pjob, int code, char *nodename, char *cmd)
 		reliable_job_node_add(&pjob->ji_failed_node_list, nodename);
 		reliable_job_node_delete(&pjob->ji_node_list, nodename);
 
-#ifndef WIN32
+#ifndef WIN64
 		if (pjob->ji_parent2child_moms_status_pipe != -1) {
 			size_t r_size;
 			r_size = strlen(nodename) + 1;
@@ -1984,7 +1984,7 @@ job_start_error(job *pjob, int code, char *nodename, char *cmd)
 	if (pjob->ji_qs.ji_substate >= JOB_SUBSTATE_EXITING)
 		return;
 
-#ifdef WIN32
+#ifdef WIN64
 	pjob->ji_qs.ji_substate = JOB_SUBSTATE_EXITING;
 	pjob->ji_qs.ji_un.ji_momt.ji_exitstat = JOB_EXEC_RETRY;
 	exiting_tasks = 1;
@@ -2278,7 +2278,7 @@ node_bailout(job *pjob, hnodent *np)
 			 		"sister node %s failed to update job",
 						np->hn_host?np->hn_host:"");
 			
-#ifndef WIN32
+#ifndef WIN64
 				close_update_pipes(pjob);
 #endif
 				exec_bail(pjob, JOB_EXEC_RETRY, log_buffer);
@@ -2413,7 +2413,7 @@ im_eof(int stream, int ret)
 					log_event(PBSEVENT_DEBUG3, PBS_EVENTCLASS_JOB, LOG_DEBUG, pjob->ji_qs.ji_jobid, log_buffer);
 					reliable_job_node_add(&pjob->ji_failed_node_list, np->hn_host);
 					reliable_job_node_delete(&pjob->ji_node_list, np->hn_host);
-#ifndef WIN32
+#ifndef WIN64
 					if (pjob->ji_parent2child_moms_status_pipe != -1) {
 						size_t r_size;
 						r_size = strlen(np->hn_host) + 1; 	
@@ -3361,7 +3361,7 @@ im_request(int stream, int version)
 				SEND_ERR(PBSE_SYSTEM)
 				goto done;
 			}
-#ifdef WIN32
+#ifdef WIN64
 			/* the following must appear before check_pwd() since the */
 			/* latter tries to read cred info */
 			if (mom_create_cred(pjob, info, len, FALSE, stream) == -1) {
@@ -3380,7 +3380,7 @@ im_request(int stream, int version)
 			pjob->ji_qs.ji_un.ji_momt.ji_exuid = pjob->ji_grpcache->gc_uid;
 			pjob->ji_qs.ji_un.ji_momt.ji_exgid = pjob->ji_grpcache->gc_gid;
 
-#ifndef WIN32
+#ifndef WIN64
 			if (mom_create_cred(pjob, info, len, FALSE, stream) == -1) {
 				mom_deljob(pjob);
 				SEND_ERR(PBSE_SYSTEM)
@@ -3393,7 +3393,7 @@ im_request(int stream, int version)
 			/* mkjobdir() dependes on job uid and gid being set correctly */
 			if ((pjob->ji_wattr[(int)JOB_ATR_sandbox].at_flags & ATR_VFLAG_SET) &&
 				(strcasecmp(pjob->ji_wattr[JOB_ATR_sandbox].at_val.at_str, "PRIVATE") == 0)) {
-#ifdef WIN32
+#ifdef WIN64
 				if (mkjobdir(pjob->ji_qs.ji_jobid,
 					jobdirname(pjob->ji_qs.ji_jobid, pjob->ji_grpcache->gc_homedir),
 					(pjob->ji_user != NULL) ? pjob->ji_user->pw_name : NULL,
@@ -4849,7 +4849,7 @@ join_err:
 
 					if (ep == NULL) {
 						/* no events left */
-#ifndef WIN32
+#ifndef WIN64
 						if (do_tolerate_node_failures(pjob) && (pjob->ji_parent2child_job_update_status_pipe != -1)) {
 							int cmd = IM_ALL_OKAY;
 							log_event(PBSEVENT_DEBUG3, PBS_EVENTCLASS_JOB, LOG_DEBUG, pjob->ji_qs.ji_jobid, "all job updates from sisters done");
@@ -4893,7 +4893,7 @@ join_err:
 						}
 					}
 
-#ifndef WIN32
+#ifndef WIN64
 					if (ep == NULL) {
 						/* no events left */
 						if (do_tolerate_node_failures(pjob) && (pjob->ji_mjspipe2 != -1)) {
@@ -5030,7 +5030,7 @@ join_err:
 							break;
 					}
 
-#ifndef WIN32
+#ifndef WIN64
 					if (ep == NULL) {
 						/* no events left */
 						if (pjob->ji_mjspipe2 != -1) {
@@ -5556,7 +5556,7 @@ tm_request(int fd, int version)
 	conn_t 	*conn = get_conn(fd);
 	if (!conn) {
 		sprintf(log_buffer, "not found fd=%d in connection table", fd);
-#ifdef WIN32
+#ifdef WIN64
 		(void)closesocket(fd);
 #else
 		(void)close(fd);
@@ -5603,7 +5603,7 @@ tm_request(int fd, int version)
 		extern int	attach_allow;
 		uid_t		proc_uid;
 		uid_t		jobowner;
-#ifdef WIN32
+#ifdef WIN64
 		char		proc_uname[UNLEN + 1] = {'\0'};
 		char		comm[MAX_PATH] = {'\0'};
 		HANDLE          hProcess = INVALID_HANDLE_VALUE;
@@ -5643,7 +5643,7 @@ tm_request(int fd, int version)
 				pj != NULL;
 				pj = (job *)GET_NEXT
 				(pj->ji_alljobs)) {
-#ifdef WIN32
+#ifdef WIN64
 				if (user_name == NULL
 					|| pj->ji_user->pw_name == NULL
 					|| (strcasecmp(user_name, pj->ji_user->pw_name) != 0))
@@ -5690,7 +5690,7 @@ tm_request(int fd, int version)
 			 ** The uid must match the job.
 			 */
 			jobowner = pjob->ji_qs.ji_un.ji_momt.ji_exuid;
-#ifdef WIN32
+#ifdef WIN64
 			if (user_name == NULL
 				|| pjob->ji_user->pw_name == NULL
 				|| (strcasecmp(user_name, pjob->ji_user->pw_name) != 0)) {
@@ -5742,7 +5742,7 @@ tm_request(int fd, int version)
 		 ** fresh copy of the process table.
 		 */
 		reqnum++;
-#ifdef WIN32
+#ifdef WIN64
 		i = dep_procinfo(pid, &sid, &proc_uid, proc_uname, sizeof(proc_uname), comm, sizeof(comm));
 #else
 		i = dep_procinfo(pid, &sid, &proc_uid, comm, sizeof(comm));
@@ -5770,7 +5770,7 @@ tm_request(int fd, int version)
 		 ** The process must be owned by
 		 ** the job owner.
 		 */
-#ifdef WIN32
+#ifdef WIN64
 		if (proc_uname == NULL
 			|| pjob->ji_user->pw_name == NULL
 			|| (strcasecmp(proc_uname, pjob->ji_user->pw_name) != 0)) {
@@ -5792,7 +5792,7 @@ tm_request(int fd, int version)
 		/*
 		 **	Create a new task for the session.
 		 */
-#ifdef WIN32
+#ifdef WIN64
 		if ((hProcess = OpenProcess(PROCESS_ALL_ACCESS, TRUE, (DWORD)sid)) == NULL) {
 			sprintf(log_buffer, "%s: OpenProcess Failed for pid %d with error %d", id, sid, GetLastError());
 			i = TM_ENOPROC;
@@ -5815,7 +5815,7 @@ tm_request(int fd, int version)
 		ptask->ti_qs.ti_myvnode = TM_ERROR_NODE;
 		ptask->ti_qs.ti_parenttask = TM_INIT_TASK;
 		ptask->ti_qs.ti_sid = sid;
-#ifdef WIN32
+#ifdef WIN64
 		ptask->ti_hProc = hProcess;
 		if (pjob->ji_hJob == NULL) {
 			pjob->ji_hJob = CreateJobObject(NULL, pjob->ji_qs.ji_jobid);

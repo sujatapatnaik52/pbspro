@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -108,7 +108,7 @@ que_save_fs(pbs_queue	*pque)
 	(void)strcpy(namebuf2, namebuf1);
 	(void)strcat(namebuf2, ".new");
 
-#ifdef WIN32
+#ifdef WIN64
 	fix_perms2(namebuf2, namebuf1);
 #endif
 
@@ -118,7 +118,7 @@ que_save_fs(pbs_queue	*pque)
 		log_err(errno, __func__, log_buffer);
 		return (-1);
 	}
-#ifdef WIN32
+#ifdef WIN64
 	secure_file(namebuf2, "Administrators", READS_MASK|WRITES_MASK|STANDARD_RIGHTS_REQUIRED);
 	setmode(fds, O_BINARY);
 #endif
@@ -149,7 +149,7 @@ que_save_fs(pbs_queue	*pque)
 		return (-1);
 	}
 
-#ifdef WIN32
+#ifdef WIN64
 	if (_commit(fds) != 0) {
 		log_err(errno, __func__, "flush queue file to disk failed!");
 		close(fds);
@@ -158,7 +158,7 @@ que_save_fs(pbs_queue	*pque)
 #endif
 	(void)close(fds);
 
-#ifdef WIN32
+#ifdef WIN64
 	if (MoveFileEx(namebuf2, namebuf1,
 		MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) == 0) {
 
@@ -224,7 +224,7 @@ que_recov_fs(char   *filename)
 	(void)strcpy(pbs_recov_filename, path_queues);
 	(void)strcat(pbs_recov_filename, filename);
 
-#ifdef WIN32
+#ifdef WIN64
 	fix_perms(pbs_recov_filename);
 #endif
 
@@ -236,7 +236,7 @@ que_recov_fs(char   *filename)
 		return NULL;
 	}
 
-#ifdef WIN32
+#ifdef WIN64
 	setmode(fds, O_BINARY);
 #endif
 

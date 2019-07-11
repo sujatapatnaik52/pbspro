@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -73,14 +73,14 @@
 #include <sys/stat.h>
 #include <libutil.h>
 
-#ifdef WIN32
+#ifdef WIN64
 
 #include <direct.h>
 #include <windows.h>
 #include <io.h>
 #include "win.h"
 
-#else	/* !WIN32 */
+#else	/* !WIN64 */
 #include <dirent.h>
 #include <grp.h>
 #include <netdb.h>
@@ -90,7 +90,7 @@
 #include <sys/resource.h>
 #include <sys/time.h>
 
-#endif 	/* WIN32 */
+#endif 	/* WIN64 */
 
 #include "libpbs.h"
 #include "pbs_ifl.h"
@@ -204,7 +204,7 @@ extern pbs_db_conn_t	*svr_db_conn;
 extern	pbs_list_head	svr_allhooks;
 
 
-#ifdef WIN32
+#ifdef WIN64
 extern int	stalone;
 #endif
 
@@ -373,7 +373,7 @@ pbsd_init(int type)
 	int	 rc;
 	struct stat statbuf;
 	char	hook_msg[HOOK_MSG_SIZE];
-#ifndef WIN32
+#ifndef WIN64
 	struct sigaction act;
 	struct sigaction oact;
 #endif
@@ -389,13 +389,13 @@ pbsd_init(int type)
 	int buf_len = 0;
 	pbs_sched *psched;
 
-#ifndef WIN32
+#ifndef WIN64
 #ifdef  RLIMIT_CORE
 	int      char_in_cname = 0;
 #endif  /* RLIMIT_CORE */
-#endif  /* WIN32 */
+#endif  /* WIN64 */
 
-#ifdef WIN32
+#ifdef WIN64
 	save_env();
 #endif
 
@@ -404,7 +404,7 @@ pbsd_init(int type)
 	if (setup_env(pbs_conf.pbs_environment)==-1)
 		return (-1);
 
-#ifndef WIN32
+#ifndef WIN64
 	i = getgid();
 	(void)setgroups(1, (gid_t *)&i);	/* secure suppl. groups */
 
@@ -421,10 +421,10 @@ pbsd_init(int type)
 		}
 	}
 #endif	/* RLIMIT_CORE */
-#endif  /* WIN32 */
+#endif  /* WIN64 */
 
 #if defined(RLIM64_INFINITY)
-#ifndef WIN32
+#ifndef WIN64
 	{
 		struct rlimit64 rlimit;
 
@@ -458,11 +458,11 @@ pbsd_init(int type)
 		}
 #endif	/* RLIMIT_CORE */
 	}
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 
 #else	/* setrlimit 32 bit */
 
-#ifndef WIN32
+#ifndef WIN64
 	{
 		struct rlimit rlimit;
 		int curerror;
@@ -525,12 +525,12 @@ pbsd_init(int type)
 		}
 #endif  /* not linux */
 	}
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 #endif	/* !RLIM64_INFINITY */
 
 	/* 1. set up to catch or ignore various signals */
 
-#ifdef WIN32
+#ifdef WIN64
 	signal(SIGABRT, stop_me);
 	signal(SIGILL, stop_me);
 	signal(SIGINT, stop_me);
@@ -585,12 +585,12 @@ pbsd_init(int type)
 		log_err(errno, __func__, "sigaction for USR2");
 		return (2);
 	}
-#endif 	/* WIN32 */
+#endif 	/* WIN64 */
 
 	/* 2. check security and set up various global variables we need */
 
 #if !defined(DEBUG) && !defined(NO_SECURITY_CHECK)
-#ifdef WIN32
+#ifdef WIN64
 	/* For windows, DO NOT check full path - allow Windows system */
 	/* to put in appropriate defaults for permission */
 	rc  = chk_file_sec(path_jobs,   1, 0, WRITES_MASK, 0);
@@ -617,7 +617,7 @@ pbsd_init(int type)
 	rc |= chk_file_sec(path_spool,  1, 1, 0, 0);
 	rc |= chk_file_sec(path_acct,	1, 1, S_IWGRP|S_IWOTH, 0);
 	rc |= chk_file_sec(pbs_conf.pbs_environment, 0, 0, S_IWGRP|S_IWOTH, 1);
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 	if (rc) {
 		log_err(-1, __func__, "chk_file_sec has a failure");
 		return (3);
@@ -647,7 +647,7 @@ pbsd_init(int type)
 	/*    and sched db					  */
 	rc =svr_recov_db();
 	if ((rc != 0) && (type != RECOV_CREATE)) {
-#ifdef WIN32
+#ifdef WIN64
 		if (stalone == 1)
 #endif
 			need_y_response(type, "no server database exists");
@@ -745,7 +745,7 @@ pbsd_init(int type)
 		}
 	} else {	/* init type is "create" */
 		if (rc == 0) {		/* server was loaded */
-#ifdef WIN32
+#ifdef WIN64
 			if (stalone == 1)
 #endif
 				need_y_response(type, "server database exists");
@@ -773,7 +773,7 @@ pbsd_init(int type)
 
 	fd = open(path_usedlicenses, O_RDONLY, 0400);
 
-#ifdef WIN32
+#ifdef WIN64
 	if (fd != -1)
 		setmode(fd, O_BINARY);
 #endif
@@ -1183,7 +1183,7 @@ pbsd_init(int type)
 		return (-1);
 	}
 #if !defined(DEBUG) && !defined(NO_SECURITY_CHECK)
-#ifdef WIN32
+#ifdef WIN64
 	secure_file(path_track, "Administrators", READS_MASK|WRITES_MASK|STANDARD_RIGHTS_REQUIRED);
 	setmode(fd, O_BINARY);
 	if (chk_file_sec(path_track,  0, 0, WRITES_MASK, 0) != 0)
@@ -1255,7 +1255,7 @@ pbsd_init(int type)
 		return (-1);
 	}
 #if !defined(DEBUG) && !defined(NO_SECURITY_CHECK)
-#ifdef WIN32
+#ifdef WIN64
 	secure_file(path_prov_track, "Administrators", READS_MASK|WRITES_MASK|STANDARD_RIGHTS_REQUIRED);
 	setmode(fd, O_BINARY);
 	if (chk_file_sec(path_prov_track,  0, 0, WRITES_MASK, 0) != 0)
@@ -1316,7 +1316,7 @@ pbsd_init(int type)
 
 		for (i = 0; i < server.sv_provtracksize; i++) {
 			server.sv_prov_track[i].pvtk_mtime = 0;
-#ifdef	WIN32
+#ifdef	WIN64
 			server.sv_prov_track[i].pvtk_pid = INVALID_HANDLE_VALUE;
 #else
 			server.sv_prov_track[i].pvtk_pid = -1;
@@ -1411,8 +1411,8 @@ pbsd_init(int type)
 	/* trigger degraded reservations on offlined nodes */
 	degrade_offlined_nodes_reservations();
 
-#ifdef WIN32
-	/* Under WIN32, create structure that will be used to track child processes. */
+#ifdef WIN64
+	/* Under WIN64, create structure that will be used to track child processes. */
 	if (initpids() == 0) {
 		log_err(-1, __func__, "Creating pid handles table failed!");
 		return (-1);
@@ -1490,9 +1490,9 @@ pbsd_init(int type)
 	send_rescdef(0);
 	hook_track_save(NULL, -1); /* refresh path_hooks_tracking file */
 
-#ifndef WIN32
+#ifndef WIN64
 	(void)set_task(WORK_Immed, time_now, memory_debug_log, NULL);
-#endif /* !WIN32 */
+#endif /* !WIN64 */
 
 	return (0);
 }
@@ -1646,7 +1646,7 @@ pbsd_init_job(job *pjob, int type)
 	/* now based on the initialization type */
 
 	if ((type == RECOV_COLD) || (type == RECOV_CREATE)) {
-#ifdef WIN32
+#ifdef WIN64
 		if (stalone == 1)
 #endif
 			need_y_response(type, "jobs exists");

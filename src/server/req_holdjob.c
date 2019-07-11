@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -170,7 +170,7 @@ req_holdjob(struct batch_request *preq)
 	}
 
 	/* HOLD_bad_password can only be done by root or admin */
-#ifdef WIN32
+#ifdef WIN64
 	if ( (temphold.at_val.at_long & HOLD_bad_password) && \
 				!isAdminPrivilege(preq->rq_user) )
 #else

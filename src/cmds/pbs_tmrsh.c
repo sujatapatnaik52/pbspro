@@ -203,7 +203,7 @@ main(int argc, char *argv[], char *envp[])
 
 	execution_mode(argc, argv);
 
-#ifdef WIN32
+#ifdef WIN64
 
 	winsock_init();
 #endif

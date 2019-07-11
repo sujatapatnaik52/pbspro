@@ -67,7 +67,8 @@ if exist "%BINARIESDIR%\python_externals.tar.gz" (
         "%MSYSDIR%\bin\bash" --login -i -c "cd \"$BINARIESDIR_M/cpython-$PYTHON_VERSION\" && tar -xf \"$BINARIESDIR_M/python_externals.tar.gz\""
     )
 )
-
+REM "Set MSBUILD to VS2017 before calling env.bat"
+call "%BINARIESDIR%\cpython-%PYTHON_VERSION%\PCbuild\find_msbuild.bat"
 call "%BINARIESDIR%\cpython-%PYTHON_VERSION%\PCbuild\env.bat" x86
 
 REM call "%BINARIESDIR%\cpython-%PYTHON_VERSION%\PCbuild\build.bat" -e 
@@ -87,21 +88,20 @@ set PCBUILD=PCbuild\win32
 set SNAPSHOT=0
 
 set PYTHON="%BINARIESDIR%\cpython-%PYTHON_VERSION%\%PCBUILD%\python.exe"
-set PATH="%BINARIESDIR%\cpython-%PYTHON_VERSION%\externals\windows-installer\htmlhelp";%PATH%
-set PATH="%BINARIESDIR%\cpython-%PYTHON_VERSION%\Scripts";%PATH%
-set SPHINXBUILD="%BINARIESDIR%\cpython-%PYTHON_VERSION%\Scripts\sphinx-build.exe"
 cd %BINARIESDIR%\cpython-%PYTHON_VERSION%\%PCBUILD%"
 
-call "%BINARIESDIR%\cpython-%PYTHON_VERSION%\Tools\msi\buildrelease.bat" -x86 --skip-doc
-REM msbuild "%BINARIESDIR%\cpython-%PYTHON_VERSION%\Tools\msi\bundle\releaselocal.wixproj
-if not exist "%BINARIESDIR%\cpython-%PYTHON_VERSION%\%PCBUILD%\en-us\python-%FULL_PYTHON_VERSION%.exe" (
-    echo "Failed to generate msi Python 32bit no binary"
+call "%BINARIESDIR%\cpython-%PYTHON_VERSION%\Tools\msi\build.bat" -x86
+REM Find the installer generated.
+for /f "usebackq" %%a in (`dir /b %BINARIESDIR%\cpython-%PYTHON_VERSION%\%PCBUILD%\en-us\python-3.6*.exe`) do ( set PY_EXE_NAME=%%a )
+
+if not exist "%BINARIESDIR%\cpython-%PYTHON_VERSION%\%PCBUILD%\en-us\%PY_EXE_NAME%" (
+    echo "Failed to generate Python 32bit no binary"
     exit /b 1
 )
-echo "%BINARIESDIR%\cpython-%PYTHON_VERSION%\%PCBUILD%\en-us\python-%FULL_PYTHON_VERSION%.exe /quiet InstallAllUsers=0 TargetDir=%BINARIESDIR%\python"
-start /wait /d "%BINARIESDIR%\cpython-%PYTHON_VERSION%\%PCBUILD%\en-us\" python-%FULL_PYTHON_VERSION%.exe /quiet InstallAllUsers=0 TargetDir="%BINARIESDIR%\python"
+
+start /wait /d "%BINARIESDIR%\cpython-%PYTHON_VERSION%\%PCBUILD%\en-us\" %PY_EXE_NAME% /quiet InstallAllUsers=0 TargetDir="%BINARIESDIR%\python"
 if not %ERRORLEVEL% == 0 (
-    echo "Failed to extract msi Python 32bit to %BINARIESDIR%\python"
+    echo "Failed to extract  Python 32bit to %BINARIESDIR%\python"
     exit /b 1
 )
 
@@ -134,7 +134,7 @@ if not %ERRORLEVEL% == 0 (
     echo "Failed to run ensurepip in %BINARIESDIR%\python for Python 32bit"
     exit /b 1
 )
-"%BINARIESDIR%\python\python.exe" -m pip install %PIP_EXTRA_ARGS% pypiwin32==224
+"%BINARIESDIR%\python\python.exe" -m pip install %PIP_EXTRA_ARGS% pypiwin32==223
 if not %ERRORLEVEL% == 0 (
     echo "Failed to install pypiwin32 in %BINARIESDIR%\python for Python 32bit"
     exit /b 1

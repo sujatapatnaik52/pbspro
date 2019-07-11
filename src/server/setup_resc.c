@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -214,7 +214,7 @@ update_resource_def_file(char *name, resdef_op_t op, int type, int perms)
 		return -1;
 	}
 	tmp_fd = mkstemp(template);
-#ifdef WIN32
+#ifdef WIN64
 	if (fopen_s(&tmpfile, template, "w") != 0)
 		return -1;
 
@@ -291,7 +291,7 @@ update_resource_def_file(char *name, resdef_op_t op, int type, int perms)
 	free(flags);
 
 	rc = 0;
-#ifdef WIN32
+#ifdef WIN64
 	if (MoveFileEx(template, path_rescdef, MOVEFILE_REPLACE_EXISTING|MOVEFILE_WRITE_THROUGH) == 0) {
 		errno = GetLastError();
 		rc = 1;

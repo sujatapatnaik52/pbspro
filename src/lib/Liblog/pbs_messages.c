@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -197,7 +197,7 @@ char *msg_qunoenb	= "Queue is not enabled";
 char *msg_qacess	= "Access to queue is denied";
 char *msg_nodestale	= "Cannot change state of stale node";
 
-#ifdef WIN32
+#ifdef WIN64
 char *msg_baduser	= "Bad UID for job execution - could be an administrator-type account currently not allowed to run jobs (can be configured)";
 #else
 char *msg_baduser	= "Bad UID for job execution";

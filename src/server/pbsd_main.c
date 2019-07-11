@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -76,7 +76,7 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
-#ifndef WIN32
+#ifndef WIN64
 #include <sys/param.h>
 #include <netinet/in.h>
 #include <sys/wait.h>
@@ -86,7 +86,7 @@
 #ifdef _POSIX_MEMLOCK
 #include <sys/mman.h>
 #endif	/* _POSIX_MEMLOCK */
-#endif	/* not WIN32 */
+#endif	/* not WIN64 */
 #include "pbs_ifl.h"
 #include <assert.h>
 #include <ctype.h>
@@ -96,7 +96,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#ifdef WIN32
+#ifdef WIN64
 #include <io.h>
 #include <windows.h>
 #include <process.h>
@@ -187,7 +187,7 @@ pbs_db_conn_t *svr_db_conn = NULL; /* server's global database connection pointe
 pbs_db_conn_t *conn = NULL;  /* pointer to work out a valid connection - later assigned to svr_db_conn */
 
 int		stalone = 0;	/* is program running not as a service ? */
-#ifdef WIN32
+#ifdef WIN64
 char		*acctlog_spacechar = NULL; /* subst for spaces appearing */
 /* in username, groupname,    */
 /* account name, and script   */
@@ -310,7 +310,7 @@ int svr_unsent_qrun_req = 0;	/* Set to 1 for scheduling unsent qrun requests */
 
 AVL_IX_DESC *AVL_jctx = NULL;
 
-#ifdef WIN32
+#ifdef WIN64
 void WINAPI PbsServerMain(DWORD dwArgc, LPTSTR *rgszArgv);
 void WINAPI PbsServerHandler(DWORD dwControl);
 DWORD WINAPI main_thread(void *pv);
@@ -386,7 +386,7 @@ static int lockfds = -1;
 static int  already_forked = 0; /* we check this variable even in non-debug mode, so dont condition compile it */
 
 #ifndef DEBUG
-#ifndef WIN32
+#ifndef WIN64
 /**
  * @brief
  *		Forks a background process and continues on that, while
@@ -422,7 +422,7 @@ go_to_background()
 	already_forked = 1;
 	return sid;
 }
-#endif	/* end the ifndef WIN32 */
+#endif	/* end the ifndef WIN64 */
 #endif	/* DEBUG is defined */
 
 /**
@@ -497,7 +497,7 @@ rpp_request(int fd)
 		int	stream;
 
 		if ((stream = rpp_poll()) == -1) {
-#ifdef WIN32
+#ifdef WIN64
 			/* workaround to a win2k winsock bug */
 			if (errno != 10054)
 #endif
@@ -570,7 +570,7 @@ void
 pbs_close_stdfiles(void)
 {
 	static int already_done = 0;
-#ifdef WIN32
+#ifdef WIN64
 #define NULL_DEVICE "nul"
 #else
 #define NULL_DEVICE "/dev/null"
@@ -677,7 +677,7 @@ log_tppmsg(int level, const char *objname, char *mess)
 	DBPRT(("\n"));
 }
 
-#ifdef WIN32
+#ifdef WIN64
 /**
  * @brief
  * 		make_server_auto_restart: tell SCM to auto restart the current pbs_server
@@ -736,7 +736,7 @@ make_server_auto_restart(int confirm)
 	if (schManager != 0)
 		CloseServiceHandle(schManager);
 }
-#endif /* WIN32 */
+#endif /* WIN64 */
 
 /**
  * @brief
@@ -751,7 +751,7 @@ static void
 reap_child(void)
 {
 	struct work_task *ptask;
-#ifdef WIN32
+#ifdef WIN64
 	HANDLE		  pid;
 #else
 	pid_t		  pid;
@@ -760,11 +760,11 @@ reap_child(void)
 
 	while (1) {
 
-#ifdef WIN32
+#ifdef WIN64
 		if ((pid = waitpid((HANDLE)-1, &statloc, WNOHANG)) == (HANDLE)-1)
 #else
 		if ((pid = waitpid((pid_t)-1, &statloc, WNOHANG)) == (pid_t)-1)
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 		{
 			if (errno == ECHILD) {
 				reap_child_flag = 0;
@@ -781,7 +781,7 @@ reap_child(void)
 		ptask = (struct work_task *)GET_NEXT(task_list_event);
 		while (ptask) {
 			if ((ptask->wt_type == WORK_Deferred_Child) &&
-#ifdef WIN32
+#ifdef WIN64
 				((HANDLE)ptask->wt_event == pid))
 #else
 				(ptask->wt_event == pid))
@@ -823,20 +823,20 @@ can_schedule()
  *
  * @par MT-safe: No
  */
-#ifdef WIN32
+#ifdef WIN64
 DWORD WINAPI
 main_thread(void *pv)
 #else
 int
 main(int argc, char **argv)
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 {
-#ifdef	WIN32
+#ifdef	WIN64
 	struct arg_param	*p = (struct arg_param *)pv;
 	int      		argc;
 	char			**argv;
 	SERVICE_STATUS          ss;
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 	int			are_primary;
 	int			c, rc;
 	int			i;
@@ -858,7 +858,7 @@ main(int argc, char **argv)
 	char			hook_msg[HOOK_MSG_SIZE];
 	pbs_sched		*psched;
 	char			*keep_daemon_name = NULL;
-#ifndef WIN32
+#ifndef WIN64
 	pid_t			sid = -1;
 #endif
 	long			*state;
@@ -905,7 +905,7 @@ main(int argc, char **argv)
 		pbs_python_svr_initialize_interpreter_data;
 	svr_interp_data.destroy_interpreter_data =
 		pbs_python_svr_destroy_interpreter_data;
-#ifndef WIN32
+#ifndef WIN64
 	/*the real deal or just pbs_version and exit*/
 
 	execution_mode(argc, argv);
@@ -913,7 +913,7 @@ main(int argc, char **argv)
 
 	/* As a security measure and to make sure all file descriptors	*/
 	/* are available to us,  close all above stderr			*/
-#ifdef WIN32
+#ifdef WIN64
 	_fcloseall();
 #else
 	i = sysconf(_SC_OPEN_MAX);
@@ -923,7 +923,7 @@ main(int argc, char **argv)
 
 
 	/* If we are not run with real and effective uid of 0, forget it */
-#ifdef WIN32
+#ifdef WIN64
 	argc = p->argc;
 	argv = p->argv;
 
@@ -958,10 +958,10 @@ main(int argc, char **argv)
 		fprintf(stderr, "%s: Must be run by root\n", argv[0]);
 		return (1);
 	}
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 
 	/* set standard umask */
-#ifndef WIN32
+#ifndef WIN64
 	umask(022);
 #endif
 
@@ -972,7 +972,7 @@ main(int argc, char **argv)
 
 	/* initialize the thread context */
 	if (pbs_client_thread_init_thread_context() != 0) {
-#ifdef WIN32
+#ifdef WIN64
 		g_dwCurrentState = SERVICE_STOPPED;
 		ss.dwCurrentState = g_dwCurrentState;
 		ss.dwWin32ExitCode = ERROR_OUTOFMEMORY;
@@ -984,13 +984,13 @@ main(int argc, char **argv)
 		return (1);
 #endif
 	}
-#ifndef WIN32
+#ifndef WIN64
 
 	if (pbs_loadconf(0) == 0)
 		return (1);
 
 #endif
-#ifdef WIN32
+#ifdef WIN64
 	if (!pbs_conf.start_server) {
 		g_dwCurrentState = SERVICE_STOPPED;
 		ss.dwCurrentState = g_dwCurrentState;
@@ -1019,7 +1019,7 @@ main(int argc, char **argv)
 	}
 	if ((server_host[0] == '\0') ||
 	    (get_fullhostname(server_host, server_host, (sizeof(server_host) - 1)) == -1)) {
-#ifdef WIN32
+#ifdef WIN64
 		g_dwCurrentState = SERVICE_STOPPED;
 		ss.dwCurrentState = g_dwCurrentState;
 		ss.dwWin32ExitCode = ERROR_BAD_CONFIGURATION;
@@ -1174,7 +1174,7 @@ main(int argc, char **argv)
 				}
 				break;
 			case 's':
-#ifdef WIN32
+#ifdef WIN64
 				acctlog_spacechar = optarg;
 				break;
 #endif
@@ -1201,7 +1201,7 @@ main(int argc, char **argv)
 		return (1);
 	}
 
-#ifdef WIN32
+#ifdef WIN64
 	if (acctlog_spacechar == NULL) {
 		acctlog_spacechar = strdup("");
 		if (acctlog_spacechar == NULL) {
@@ -1221,7 +1221,7 @@ main(int argc, char **argv)
 		strcat(lockfile, ".secondary");
 	} else if (are_primary == FAILOVER_CONFIG_ERROR) {
 		log_err(-1, msg_daemonname, "neither primary or secondary server");
-#ifdef WIN32
+#ifdef WIN64
 		g_dwCurrentState = SERVICE_STOPPED;
 		ss.dwCurrentState       = g_dwCurrentState;
 		ss.dwWin32ExitCode = ERROR_SERVICE_NOT_ACTIVE;
@@ -1240,7 +1240,7 @@ main(int argc, char **argv)
 			msg_daemonname);
 		(void)fprintf(stderr, "%s\n", log_buffer);
 		log_err(errno, msg_daemonname, log_buffer);
-#ifdef WIN32
+#ifdef WIN64
 		g_dwCurrentState = SERVICE_STOPPED;
 		ss.dwCurrentState       = g_dwCurrentState;
 		ss.dwWin32ExitCode = ERROR_SERVICE_ALREADY_RUNNING;
@@ -1249,7 +1249,7 @@ main(int argc, char **argv)
 		return (2);
 	}
 
-#ifdef WIN32
+#ifdef WIN64
 	secure_file(lockfile, "Administrators",
 		READS_MASK|WRITES_MASK|STANDARD_RIGHTS_REQUIRED);
 #endif
@@ -1330,7 +1330,7 @@ main(int argc, char **argv)
 	log_event_mask = &server.sv_attr[SRV_ATR_log_events].at_val.at_long;
 	(void)sprintf(path_log, "%s/%s", pbs_conf.pbs_home_path, PBS_LOGFILES);
 
-#ifdef WIN32
+#ifdef WIN64
 	/*
 	 * let SCM wait 10 seconds for log_open() to complete
 	 * as it does network interface query which can take time
@@ -1360,7 +1360,7 @@ main(int argc, char **argv)
 		exit(1);
 	}
 
-#ifdef WIN32
+#ifdef WIN64
 	/* Let's do an extra validity check */
 
 	if (check_executor() == 1) { /* failed on check for root */
@@ -1450,7 +1450,7 @@ main(int argc, char **argv)
 
 	} else {
 		/* we believe we are a secondary server */
-#ifndef WIN32
+#ifndef WIN64
 #ifndef DEBUG
 		/* go into the background and become own sess/process group */
 		if (stalone == 0) {
@@ -1458,7 +1458,7 @@ main(int argc, char **argv)
 				return (2);
 		}
 #endif /* DEBUG */
-#endif /* WIN32 */
+#endif /* WIN64 */
 		/* will not attempt to lock again if go_to_background was already called */
 		if (already_forked == 0)
 			lock_out(lockfds, F_WRLCK);
@@ -1479,7 +1479,7 @@ main(int argc, char **argv)
 	 * will be left in the server's private directory
 	 */
 
-#ifdef WIN32
+#ifdef WIN64
 	log_event(PBSEVENT_SYSTEM | PBSEVENT_ADMIN | PBSEVENT_FORCE,
 		LOG_NOTICE, PBS_EVENTCLASS_SERVER, msg_daemonname,
 		"securing PBS misc files");
@@ -1557,7 +1557,7 @@ try_db_again:
 		sleep(db_delay);     /* dont burn the CPU looping too fast */
 		update_svrlive();    /* indicate we are alive */
 #ifndef DEBUG
-#ifndef WIN32
+#ifndef WIN64
 		if (server_init_type != RECOV_UPDATEDB &&
 			server_init_type != RECOV_CREATE &&
 			stalone == 0 &&	already_forked == 0 && try_db >= 4) {
@@ -1566,7 +1566,7 @@ try_db_again:
 			if ((sid = go_to_background()) == -1)
 				return (2);
 		}
-#endif	/* end the ifndef WIN32 */
+#endif	/* end the ifndef WIN64 */
 #endif	/* DEBUG is defined */
 		try_db ++;
 	}
@@ -1695,7 +1695,7 @@ try_db_again:
 		log_event(PBSEVENT_SYSTEM | PBSEVENT_FORCE, LOG_NOTICE,
 			PBS_EVENTCLASS_SERVER, msg_daemonname, msg_svrdown);
 		acct_close();
-#ifdef WIN32
+#ifdef WIN64
 		destroypids();
 #endif
 		stop_db();
@@ -1720,21 +1720,21 @@ try_db_again:
 
 #ifndef DEBUG
 
-#ifndef WIN32
+#ifndef WIN64
 	if (stalone == 0 && already_forked == 0) {
 		if ((sid = go_to_background()) == -1) {
 			stop_db();
 			return (2);
 		}
 	}
-#endif	/* end the ifndef WIN32 */
+#endif	/* end the ifndef WIN64 */
 	pbs_close_stdfiles();
 #else	/* DEBUG is defined */
-#ifndef WIN32
+#ifndef WIN64
 	sid = getpid();
 	(void)setvbuf(stdout, NULL, _IOLBF, 0);
 	(void)setvbuf(stderr, NULL, _IOLBF, 0);
-#else	/* WIN32 */
+#else	/* WIN64 */
 	(void)setvbuf(stdout, NULL, _IONBF, 0);
 	(void)setvbuf(stderr, NULL, _IONBF, 0);
 #endif
@@ -1751,7 +1751,7 @@ try_db_again:
 	}
 #endif	/* _POSIX_MEMLOCK */
 
-#ifndef WIN32
+#ifndef WIN64
 	sigemptyset(&allsigs);
 	sigaddset(&allsigs, SIGHUP);	/* remember to block these */
 	sigaddset(&allsigs, SIGINT);	/* during critical sections */
@@ -1760,7 +1760,7 @@ try_db_again:
 	/* block signals while we do things */
 	if (sigprocmask(SIG_BLOCK, &allsigs, NULL) == -1)
 		log_err(errno, msg_daemonname, "sigprocmask(BLOCK)");
-#endif /* WIN32 */
+#endif /* WIN64 */
 
 	/* initialize the network interface */
 
@@ -1856,12 +1856,12 @@ try_db_again:
 		while (--tryport > 0) {
 			if ((privfd = rpp_bind(tryport)) != -1)
 				break;
-#ifdef WIN32
+#ifdef WIN64
 			errno = WSAGetLastError();
 			if ((errno != WSAEADDRINUSE) && (errno != WSAEADDRNOTAVAIL))
 #else
 			if ((errno != EADDRINUSE) && (errno != EADDRNOTAVAIL))
-#endif 	/* WIN32 */
+#endif 	/* WIN64 */
 				break;
 		}
 		if (privfd == -1) {
@@ -1897,7 +1897,7 @@ try_db_again:
 				 * this is to get PBS_CONF_FILE if specified.*/
 				workenv = environ;
 				environ = origevp;
-#ifdef WIN32
+#ifdef WIN64
 				snprintf(schedcmd, sizeof(schedcmd), "net start pbs_sched");
 				snprintf(log_buffer, sizeof(log_buffer), "starting scheduler: %s", schedcmd);
 				(void)wsystem(schedcmd, INVALID_HANDLE_VALUE);
@@ -1905,7 +1905,7 @@ try_db_again:
 				snprintf(schedcmd, sizeof(schedcmd), "%s/sbin/pbs_sched &", pbs_conf.pbs_exec_path);
 				snprintf(log_buffer, sizeof(log_buffer), "starting scheduler: %s", schedcmd);
 				(void)system(schedcmd);
-#endif /* WIN32 */
+#endif /* WIN64 */
 				log_event(PBSEVENT_SYSTEM | PBSEVENT_FORCE,
 					PBS_EVENTCLASS_SERVER, LOG_CRIT,
 					msg_daemonname, log_buffer);
@@ -1924,7 +1924,7 @@ try_db_again:
 	dflt_scheduler->pbs_scheduler_addr = pbs_scheduler_addr;
 	dflt_scheduler->pbs_scheduler_port = pbs_scheduler_port;
 
-#ifdef WIN32
+#ifdef WIN64
 	sprintf(log_buffer, msg_startup2, getpid(), pbs_server_port_dis,
 		pbs_scheduler_port, pbs_mom_port, pbs_rm_port);
 
@@ -1935,7 +1935,7 @@ try_db_again:
 #else
 	sprintf(log_buffer, msg_startup2, sid, pbs_server_port_dis,
 		pbs_scheduler_port, pbs_mom_port, pbs_rm_port);
-#endif /* WIN32 */
+#endif /* WIN64 */
 	log_event(PBSEVENT_SYSTEM | PBSEVENT_FORCE, PBS_EVENTCLASS_SERVER,
 		LOG_INFO, msg_daemonname, log_buffer);
 
@@ -2121,25 +2121,25 @@ try_db_again:
 			rpp_request(42);
 		}
 
-#ifdef WIN32
+#ifdef WIN64
 		/* check completion of any child process */
 		reap_child();
 #else
 		if (reap_child_flag)
 			reap_child();
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 
 		/* wait for a request and process it */
 		if (wait_request(waittime, priority_context) != 0) {
 			log_err(-1, msg_daemonname, "wait_requst failed");
 		}
-#ifdef WIN32
+#ifdef WIN64
 		connection_idlecheck();
 #else
 
 		if (reap_child_flag)	/* check again incase signal arrived */
 			reap_child();	/* before they were blocked          */
-#endif /* WIN32 */
+#endif /* WIN64 */
 
 		if (*state == SV_STATE_SHUTSIG)
 			(void)svr_shutdown(SHUT_SIG);	/* caught sig */
@@ -2273,7 +2273,7 @@ try_db_again:
 	log_close(1);
 	free(keep_daemon_name); /* logs closed, can free here */
 
-#ifdef WIN32
+#ifdef WIN64
 	destroypids();
 	destroy_env_avltree();
 #else
@@ -2288,7 +2288,7 @@ try_db_again:
 		 * recycle itself (found Secondary active);
 		 * re-execv the Server, keeps things clean
 		 */
-#ifdef WIN32
+#ifdef WIN64
 		make_server_auto_restart(1);
 		/* make it look like a failure so that server will auto */
 		/* restart */
@@ -2305,7 +2305,7 @@ try_db_again:
 			execve(log_buffer, argv, origevp);
 		}
 		DBPRT(("Failover: execv failed\n"))
-#endif /* WIN32 */
+#endif /* WIN64 */
 	}
 	return (0);
 }
@@ -2441,11 +2441,11 @@ lock_out(int fds, int op)
 {
 	int	     i;
 	int	     j;
-#ifndef WIN32
+#ifndef WIN64
 	struct flock flock;
 #endif
 	char	     buf[100];
-#ifdef WIN32
+#ifdef WIN64
 	struct stat  sbuf;
 
 	if (fstat(fds, &sbuf) == -1) {
@@ -2459,7 +2459,7 @@ lock_out(int fds, int op)
 	else
 		j = 30;		/* fail over, try for a minute */
 
-#ifdef WIN32
+#ifdef WIN64
 	for (i = 0; i < j; i++) {
 		if (_locking(fds, op, (long)sbuf.st_size) != -1) {
 			if (op == F_WRLCK) {
@@ -2498,7 +2498,7 @@ lock_out(int fds, int op)
 	exit(1);
 }
 
-#ifdef WIN32
+#ifdef WIN64
 /**
  * @brief
  *		usage - prints the usage in terminal if the user mistype in terminal
@@ -3159,7 +3159,7 @@ setup_db_connection(char *host, int timeout, int have_db_control)
  * @retval  -1 - Failed
  *
  */
-#ifdef WIN32
+#ifdef WIN64
 static int
 touch_db_stop_file(void)
 {

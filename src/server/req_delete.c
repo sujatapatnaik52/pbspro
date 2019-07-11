@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -70,7 +70,7 @@
 #include "queue.h"
 #include "hook.h"
 
-#ifdef WIN32
+#ifdef WIN64
 #include <windows.h>
 #include "win.h"
 #endif
@@ -654,7 +654,7 @@ req_deletejob2(struct batch_request *preq, job *pjob)
 					pwtnew->wt_type = pwtold->wt_type;
 					pwtnew->wt_aux = pwtold->wt_aux;
 
-#ifdef WIN32
+#ifdef WIN64
 					kill((HANDLE) pwtold->wt_event, SIGTERM);
 #else
 					kill((pid_t) pwtold->wt_event, SIGTERM);

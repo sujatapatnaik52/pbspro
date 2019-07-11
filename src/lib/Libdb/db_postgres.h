@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -59,7 +59,7 @@ extern "C" {
 
 #include <libpq-fe.h>
 #include <netinet/in.h>
-#ifndef WIN32
+#ifndef WIN64
 #include <sys/types.h>
 #include <inttypes.h>
 #endif
@@ -69,7 +69,7 @@ extern "C" {
 #include "attribute.h"
 
 /* work around strtoll on some platforms */
-#if defined(WIN32)
+#if defined( WIN64)
 #define strtoll(n, e, b)	_strtoi64((n), (e), (b))
 typedef __int32 int32_t;
 typedef __int64 int64_t;

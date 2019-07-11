@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -87,7 +87,7 @@
 #include "pbs_nodes.h"
 #include "svrfunc.h"
 #include "acct.h"
-#ifdef WIN32
+#ifdef WIN64
 #include <sys/timeb.h>
 #else
 #include <sys/time.h>
@@ -818,7 +818,7 @@ create_subjob(job *parent, char *newjid, int *rc)
 	job 	  *subj;
 	long	   eligibletime;
 	long	    time_msec;
-#ifdef	WIN32
+#ifdef	WIN64
 	struct	_timeb	    tval;
 #else
 	struct timeval	    tval;
@@ -926,7 +926,7 @@ create_subjob(job *parent, char *newjid, int *rc)
 		subj->ji_wattr[(int)JOB_ATR_eligible_time].at_flags |= ATR_VFLAG_MODIFY | ATR_VFLAG_MODCACHE;
 
 	}
-#ifdef WIN32
+#ifdef WIN64
 	_ftime_s(&tval);
 	time_msec = (tval.time * 1000L) + tval.millitm;
 #else

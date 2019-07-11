@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -216,7 +216,7 @@ track_save(struct work_task *pwt)
 		log_err(errno, __func__, "Unable to open tracking file");
 		return;
 	}
-#ifdef WIN32
+#ifdef WIN64
 	secure_file(path_track, "Administrators", READS_MASK|WRITES_MASK|STANDARD_RIGHTS_REQUIRED);
 	setmode(fd, O_BINARY);
 #endif

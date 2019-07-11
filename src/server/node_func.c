@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -106,7 +106,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include "pbs_db.h"
-#ifndef WIN32
+#ifndef WIN64
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -124,7 +124,7 @@
 #include "batch_request.h"
 #include "server.h"
 #include "resv_node.h"
-#ifdef WIN32
+#ifdef WIN64
 #include "win.h"
 #endif
 #include "job.h"
@@ -140,7 +140,7 @@
 #include "cmds.h"
 #include "pbs_license.h"
 #include "avltree.h"
-#if !defined(H_ERRNO_DECLARED) && !defined(WIN32)
+#if !defined(H_ERRNO_DECLARED) && !defined( WIN64)
 extern int h_errno;
 #endif
 
@@ -1248,7 +1248,7 @@ setup_nodes_fs(int preprocess)
 	DBPRT(("%s: entered\n", __func__))
 	CLEAR_HEAD(atrlist);
 
-#ifdef WIN32
+#ifdef WIN64
 	fix_perms(path_nodes);
 #endif
 	if ((nin = fopen(path_nodes, "r")) == NULL) {
@@ -2464,7 +2464,7 @@ record_node_topology(char *node_name, char *topology)
 			log_err(errno, __func__, log_buffer);
 			return;
 		}
-#ifdef	WIN32
+#ifdef	WIN64
 		secure_file(path, NULL, 0);
 #endif
 	} else if (!S_ISDIR(sb.st_mode)) {
@@ -2490,7 +2490,7 @@ record_node_topology(char *node_name, char *topology)
 		log_err(errno, __func__, log_buffer);
 		return;
 	}
-#ifdef	WIN32
+#ifdef	WIN64
 	secure_file(path, "Administrators",
 		READS_MASK|WRITES_MASK|STANDARD_RIGHTS_REQUIRED);
 #endif

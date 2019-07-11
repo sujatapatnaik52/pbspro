@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -509,7 +509,7 @@ extern int tpp_dbprt;
 void free_router(tpp_router_t *r);
 void free_leaf(tpp_leaf_t *l);
 
-#ifdef WIN32
+#ifdef WIN64
 int tr_2_errno(int win_errno);
 #endif
 
@@ -635,7 +635,7 @@ int tpp_em_add_fd(void *em_ctx, int fd, int event_mask);
 int tpp_em_mod_fd(void *em_ctx, int fd, int event_mask);
 int tpp_em_del_fd(void *em_ctx, int fd);
 int tpp_em_wait(void *em_ctx, em_event_t **ev_array, int timeout);
-#ifndef WIN32
+#ifndef WIN64
 int tpp_em_pwait(void *em_ctx, em_event_t **ev_array, int timeout, const sigset_t *sigmask);
 #else
 int tpp_em_wait_win(void *em_ctx, em_event_t **ev_array, int timeout);

@@ -33,7 +33,7 @@
  *	@(#)pathnames.h	8.1 (Berkeley) 5/31/93
  */
 
-#ifdef WIN32
+#ifdef WIN64
 
 #define	_PATH_CP	"copy"
 #define _PATH_BSHELL	"cmd"

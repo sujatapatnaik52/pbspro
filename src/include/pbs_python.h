@@ -43,7 +43,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#ifndef WIN32
+#ifndef WIN64
 #include <unistd.h>
 #else
 #include "win.h"
@@ -59,7 +59,7 @@
 #include "list_link.h"
 #include "attribute.h"
 
-#ifdef WIN32
+#ifdef WIN64
 #define DIRSEP 		    '\\'
 #define DIRSEP_STR 		"\\"
 #else

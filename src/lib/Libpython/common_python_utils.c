@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -270,7 +270,7 @@ pbs_python_write_error_to_log(const char *emsg)
 	Py_XDECREF(exc_type);
 	Py_XDECREF(exc_value);
 
-#if !defined(WIN32)
+#if !defined( WIN64)
 	Py_XDECREF(exc_traceback);
 #elif !defined(_DEBUG)
 	/* for some reason this crashes on Windows Debug version */

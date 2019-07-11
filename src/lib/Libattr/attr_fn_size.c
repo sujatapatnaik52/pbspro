@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -435,7 +435,7 @@ void
 from_size(struct size_value *psize, char *cvnbuf)
 {
 
-#ifdef WIN32
+#ifdef WIN64
 	(void)sprintf(cvnbuf, "%I64u", psize->atsv_num);
 #else
 	(void)sprintf(cvnbuf, "%llu", psize->atsv_num);

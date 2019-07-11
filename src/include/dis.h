@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -197,7 +197,7 @@ extern const char *dis_emsg[];
 
 /* the following routines set/control DIS over tcp */
 
-#ifdef WIN32
+#ifdef WIN64
 extern void     DIS_tcparray_init(void);
 #endif
 

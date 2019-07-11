@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -1860,7 +1860,7 @@ tcl_init()
 		home = pw->pw_dir;
 	}
 
-#ifdef WIN32
+#ifdef WIN64
 	snprintf(script, sizeof(script), "%s\\.qstatrc", home);
 #else
 	snprintf(script, sizeof(script), "%s/.qstatrc", home);
@@ -1911,7 +1911,7 @@ tcl_init()
 	if (pw == NULL)
 		return;
 
-#ifdef WIN32
+#ifdef WIN64
 	sprintf(script, "%s\\.qstatrc", pw->pw_dir);
 #else
 	sprintf(script, "%s/.qstatrc", pw->pw_dir);
@@ -2224,7 +2224,7 @@ main(int argc, char **argv, char **envp) /* qstat */
 
 	execution_mode(argc, argv);
 
-#ifdef WIN32
+#ifdef WIN64
 	winsock_init();
 #endif
 
@@ -2243,7 +2243,7 @@ main(int argc, char **argv, char **envp) /* qstat */
 
 #if TCL_QSTAT
 
-#ifdef WIN32
+#ifdef WIN64
 	/* needed so that program recognizes correct TCL_LIBRARY */
 	Tcl_FindExecutable(argv[0]);
 #endif

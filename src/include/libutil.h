@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -209,8 +209,8 @@ int pbs_asprintf(char **dest, const char *fmt, ...);
  */
 int float_digits(double fl, int digits);
 
-/* munge related routines, no win32 */
-#ifndef WIN32
+/* munge related routines, no WIN64 */
+#ifndef WIN64
 int pbs_munge_validate(void *auth_data, int *fromsvr, char *ebuf, int ebufsz);
 char *pbs_get_munge_auth_data(int fromsvr, char *ebuf, int ebufsz);
 #endif

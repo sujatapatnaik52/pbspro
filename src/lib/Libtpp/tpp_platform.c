@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -56,7 +56,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#ifndef WIN32
+#ifndef WIN64
 #include <netinet/tcp.h>
 #include <sys/resource.h>
 #include <signal.h>
@@ -66,7 +66,7 @@
 #include "tpp_common.h"
 #include "tpp_platform.h"
 
-#ifdef WIN32
+#ifdef WIN64
 
 /**
  * @brief
@@ -859,7 +859,7 @@ tpp_sock_attempt_connection(int fd, char *host, int port)
 void
 tpp_invalidate_thrd_handle(pthread_t *thrd)
 {
-#ifdef WIN32
+#ifdef WIN64
 	thrd->thHandle = INVALID_HANDLE_VALUE;
 	thrd->thId = -1;
 #else
@@ -886,7 +886,7 @@ tpp_invalidate_thrd_handle(pthread_t *thrd)
 int
 tpp_is_valid_thrd(pthread_t thrd)
 {
-#ifndef WIN32
+#ifndef WIN64
 	if (thrd != -1)
 		return 1;
 #else

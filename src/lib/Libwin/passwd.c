@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -5579,7 +5579,7 @@ get_usernamefromsessionid(DWORD sessionid, char** p_username)
 	return username;
 }
 
-#if (_WIN32_WINNT < 0x0501)
+#if (_WIN64_WINNT < 0x0501)
 /**
  * @brief
  *		Find the full process image name with given process handle.
@@ -5633,7 +5633,7 @@ BOOL PBS_QueryFullProcessImageName(HANDLE hProcess, char *exe_name, int *exe_nam
 	}
 	return ret;
 }
-#endif /* _WIN32_WINNT < 0x0501 */
+#endif /* _WIN64_WINNT < 0x0501 */
 
 /**
  * @brief
@@ -5711,7 +5711,7 @@ get_processowner(DWORD processid, uid_t *puid, char *puname, size_t uname_len, c
 		 * For Windows < Vista, we write a new function named PBS_QueryFullProcessImageName().
 		 * Once we drop Server 2003, we will use QueryFullProcessImageName() for all Windows.
 		 */
-#if (_WIN32_WINNT < 0x0501)
+#if (_WIN64_WINNT < 0x0501)
 		query_image = PBS_QueryFullProcessImageName(hProcess, comm, &comm_len);
 #else
 		query_image = QueryFullProcessImageName(hProcess, 0, comm, &comm_len);

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -162,7 +162,7 @@ char *cmp_aoename = NULL;
 char *sc_name = NULL;
 int sched_port = -1;
 char *logfile = NULL;
-#ifdef WIN32
+#ifdef WIN64
 char path_log[_MAX_PATH];
 #else
 char path_log[_POSIX_PATH_MAX];

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -67,7 +67,7 @@
 #define _POSIX_PATH_MAX _MAX_PATH
 
 #define uint		UINT
-#define sleep(x)	(Sleep(x*1000))	/* in Win32, Sleep parameter is in milliseconds */
+#define sleep(x)	(Sleep(x*1000))	/* in WIN64, Sleep parameter is in milliseconds */
 #define	strcasecmp	stricmp
 #define strncasecmp	strnicmp
 #ifndef HAVE_SNPRINTF
@@ -126,6 +126,7 @@
 #define SIGKILL	0
 #define SIGSTOP	17
 #define SIGCONT	18
+#ifdef _CRT_NO_POSIX_ERROR_CODES
 #define EADDRINUSE WSAEADDRINUSE
 #define ETIMEDOUT WSAETIMEDOUT
 #define ECONNREFUSED WSAECONNREFUSED
@@ -134,7 +135,7 @@
 #define ENOTCONN WSAENOTCONN
 #define ENOBUFS WSAENOBUFS
 #define EADDRNOTAVAIL WSAEADDRNOTAVAIL
-
+#endif
 #define PBS_CMDLINE_LENGTH 4096
 enum operation {
 	RESUME=0,	/* Resume Process Operation */
@@ -365,7 +366,7 @@ extern void winsock_cleanup(void);
 #define	DIR_END		2
 
 /*
- **	Misc stuff left out of WIN32
+ **	Misc stuff left out of WIN64
  */
 #define R_OK	04	/* Test for Read permission */
 #define W_OK	02	/* Test for Write permission */

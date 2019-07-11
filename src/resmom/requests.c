@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -42,7 +42,7 @@
 #include <fcntl.h>
 #include <limits.h>
 #include <signal.h>
-#ifdef WIN32
+#ifdef WIN64
 #include <direct.h>
 #include "win.h"
 #else
@@ -95,7 +95,7 @@ extern unsigned int	default_server_port;
 extern int		exiting_tasks;
 extern pbs_list_head	svr_alljobs;
 extern char		mom_host[];
-#ifdef	WIN32
+#ifdef	WIN64
 extern char		*mom_home;
 extern char		*path_checkpoint;
 #endif
@@ -150,7 +150,7 @@ int cred_type = 0;
 int cred_pipe = -1;
 char *pwd_buf = NULL;
 
-#ifndef WIN32
+#ifndef WIN64
 static void post_cpyfile(job *pjob, int ev);
 #else
 extern	char	*save_actual_homedir(struct passwd *, job *);
@@ -181,7 +181,7 @@ extern	char	*set_homedir_to_local_default(job *, char *);
 static int
 is_file_same(char *file1, char *file2)
 {
-#ifndef	WIN32
+#ifndef	WIN64
 	struct stat sb1, sb2;
 
 	if ((stat(file1, &sb1) == 0) && (stat(file2, &sb2) == 0)) {
@@ -204,7 +204,7 @@ is_file_same(char *file1, char *file2)
  * @return 	HANDLE
  * @retval
  */
-#ifdef WIN32
+#ifdef WIN64
 static HANDLE
 fork_to_user(struct batch_request *preq)
 {
@@ -435,7 +435,7 @@ struct batch_request *preq;
 
 	return (pid);
 }
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 
 
 #define RT_BLK_SZ 65536
@@ -591,7 +591,7 @@ req_deletejob(struct batch_request *preq)
 	 * check to see is there any copy request pending
 	 * for this job ?
 	 */
-#ifdef WIN32
+#ifdef WIN64
 	if (get_copyinfo_from_list(jobid) != NULL)
 #else
 	if (pjob->ji_momsubt != 0 && pjob->ji_mompost == post_cpyfile)
@@ -748,7 +748,7 @@ message_job(job *pjob, enum job_file jft, char *text)
 		pjob->ji_qs.ji_un.ji_momt.ji_exgid)) < 0)
 		return PBSE_MOMREJECT;
 
-#ifdef WIN32
+#ifdef WIN64
 	/* set to append mode */
 	SetFilePointer((HANDLE)_get_osfhandle(fds), (LONG)NULL,
 		(PLONG)NULL, FILE_END);
@@ -764,7 +764,7 @@ message_job(job *pjob, enum job_file jft, char *text)
 		text = pstr;
 	}
 	(void)write(fds, text, len);
-#ifdef	WIN32
+#ifdef	WIN64
 	(void)_commit(fds);
 #endif
 	(void)close(fds);
@@ -839,7 +839,7 @@ req_py_spawn(struct batch_request *preq)
 
 	if (pypath[0] == '\0') {	/* initialize pbs_python path */
 		sprintf(pypath, "%s/bin/pbs_python", pbs_conf.pbs_exec_path);
-#ifdef WIN32
+#ifdef WIN64
 		strncat(pypath, ".exe", sizeof(pypath)-strlen(pypath)-1);
 #endif
 	}
@@ -967,7 +967,7 @@ req_modifyjob(struct batch_request *preq)
 	attribute	*pattr;
 	job		*pjob;
 	svrattrl	*plist;
-#ifdef	WIN32
+#ifdef	WIN64
 	svrattrl	*psatl;
 #endif
 	int		 rc;
@@ -1717,7 +1717,7 @@ void
 post_terminate(job *pjob, int err)
 {
 	if (err) {
-#ifdef WIN32
+#ifdef WIN64
 		if (err == -1) {
 			log_event(PBSEVENT_ADMIN, PBS_EVENTCLASS_JOB, LOG_INFO,
 				pjob->ji_qs.ji_jobid,
@@ -2049,13 +2049,13 @@ static int
 delete_file(char *path, char *user, char *prmt, char **bad_list)
 {
 	int		rc;
-#ifndef WIN32
+#ifndef WIN64
 	pid_t		pid;
 	int		i;
 #endif
 
 	DBPRT(("%s: path %s\n", __func__, path))
-#ifdef WIN32
+#ifdef WIN64
 	forward2back_slash(prmt);
 	forward2back_slash(path);
 #endif
@@ -2068,7 +2068,7 @@ delete_file(char *path, char *user, char *prmt, char **bad_list)
 		}
 	}
 
-#ifdef WIN32
+#ifdef WIN64
 	rc = remtree(path);
 	if (rc == -1 && errno == ENOENT)
 		rc = 0;
@@ -2104,7 +2104,7 @@ delete_file(char *path, char *user, char *prmt, char **bad_list)
 			exit(13);	/* not good if we get here */
 		}
 	}
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 	if (rc != 0) {
 		sprintf(log_buffer,
 			"Unable to delete file %s for user %s, error = %d",
@@ -2230,7 +2230,7 @@ del_files(struct batch_request *preq, char **pbadfile)
 			}
 		}
 
-#ifdef WIN32
+#ifdef WIN64
 		if (stat_uncpath(path, &sb) == 0)
 #else
 		if (stat(path, &sb) == 0)
@@ -2403,8 +2403,8 @@ req_rerunjob(struct batch_request *preq)
 		return;
 	}
 
-#ifdef WIN32
-	/* WIN32 will not fork ... just do it */
+#ifdef WIN64
+	/* WIN64 will not fork ... just do it */
 #else
 	/* fork to send files back */
 
@@ -2450,7 +2450,7 @@ req_rerunjob(struct batch_request *preq)
 	if (sock < 0) {
 		log_event(PBSEVENT_ERROR, PBS_EVENTCLASS_REQUEST, LOG_WARNING,
 			"req_rerun", "no contact with the server");
-#ifdef WIN32
+#ifdef WIN64
 		/* TPP streams cannot be inherited.
 		 * For Unix, we create a child process,
 		 * But for Windows, we don't.
@@ -2464,7 +2464,7 @@ req_rerunjob(struct batch_request *preq)
 	if (rc == 0) {
 		if (((rc = return_file(pjob, StdOut, sock)) != 0) ||
 			((rc = return_file(pjob, StdErr, sock)) != 0))
-#ifdef WIN32
+#ifdef WIN64
 		/* TPP streams cannot be inherited.
 		 * For Unix, we create a child process,
 		 * But for Windows, we don't.
@@ -2478,7 +2478,7 @@ req_rerunjob(struct batch_request *preq)
 #endif
 	}
 
-#ifdef WIN32
+#ifdef WIN64
 	(void)closesocket(sock);
 	return;
 #else
@@ -2487,7 +2487,7 @@ req_rerunjob(struct batch_request *preq)
 #endif
 }
 
-#ifdef WIN32 /* WIN32 ------------------------------------------------------ */
+#ifdef WIN64 /* WIN64 ------------------------------------------------------ */
 /**
  * @brief
  * 	Do post cpyfile processing and cleanup
@@ -3403,7 +3403,7 @@ struct batch_request *preq;
 
 	exit(0);	/* remember, we are the child, exit not return */
 }
-#endif	/* WIN32/UNIX ------------------------------------------------------- */
+#endif	/* WIN64/UNIX ------------------------------------------------------- */
 
 /**
  * @brief
@@ -3451,7 +3451,7 @@ mom_checkpoint_job(job *pjob, int abort)
 		(void)strcpy(oldp, path);   /* file already exists, rename it */
 		(void)strcat(oldp, ".old");
 		if (rename(path, oldp) < 0)
-#ifdef	WIN32
+#ifdef	WIN64
 			return 73;
 #else
 			return errno;
@@ -3469,7 +3469,7 @@ mom_checkpoint_job(job *pjob, int abort)
 	name = &file[filelen];
 
 	/* Change to user's home to pick up .cpr */
-#ifdef	WIN32
+#ifdef	WIN64
 	if ((cwdname = getcwd(NULL, _MAX_PATH+2)) != NULL) {
 		if ((pjob->ji_wattr[(int)JOB_ATR_sandbox].at_flags & ATR_VFLAG_SET) &&
 			(strcasecmp(pjob->ji_wattr[JOB_ATR_sandbox].at_val.at_str, "PRIVATE") ==0)) {
@@ -3849,7 +3849,7 @@ local_checkpoint(job *pjob,
 	int		rc;
 	attribute	tmph;
 	pbs_task	*ptask;
-#ifdef WIN32
+#ifdef WIN64
 	int		hok = 1;
 #else
 	pid_t		pid;
@@ -3883,7 +3883,7 @@ local_checkpoint(job *pjob,
 		ptask->ti_flags &= ~TI_FLAGS_CHKPT;
 	}
 
-#ifndef	WIN32
+#ifndef	WIN64
 	/* now set up as child of MOM */
 	pid = fork_me(-1);
 	if (pid < 0)
@@ -3907,7 +3907,7 @@ local_checkpoint(job *pjob,
 		rc = mom_checkpoint_job(pjob, abort);
 		if ((rc == 0) && (hok == 0))
 			rc = site_mom_postchk(pjob, (int)tmph.at_val.at_long);
-#ifdef	WIN32
+#ifdef	WIN64
 		pjob->ji_preq = preq;
 		if (abort) {
 			pjob->ji_flags |= MOM_CHKPT_ACTIVE;
@@ -4048,7 +4048,7 @@ mom_restart_job(job *pjob)
 	filnam = &path[i];
 
 	/* Change to user's home or PBS_JOBDIR to pick up .cpr */
-#ifdef	WIN32
+#ifdef	WIN64
 	if ((cwdname = getcwd(NULL, _MAX_PATH+2)) != NULL) {
 		if ((pjob->ji_wattr[(int)JOB_ATR_sandbox].at_flags & ATR_VFLAG_SET) &&
 			(strcasecmp(pjob->ji_wattr[JOB_ATR_sandbox].at_val.at_str, "PRIVATE") == 0)) {
@@ -4273,7 +4273,7 @@ int
 local_restart(job *pjob,
 	struct batch_request *preq) /* may be null */
 {
-#ifndef WIN32
+#ifndef WIN64
 	pid_t		pid;
 #endif
 	int		rc;
@@ -4328,7 +4328,7 @@ local_restart(job *pjob,
 	if (pjob->ji_momsubt != 0)
 		return PBSE_CKPBSY;
 
-#ifndef WIN32
+#ifndef WIN64
 	/*
 	 * If we get to this point, restart_background is enabled, perform
 	 * the restart as a subtask of MOM.
@@ -4341,7 +4341,7 @@ local_restart(job *pjob,
 #endif
 		/* child - does the restart */
 		rc = mom_restart_job(pjob);
-#ifdef WIN32
+#ifdef WIN64
 		pjob->ji_preq = preq;
 		post_restart(pjob, rc);
 		if (rc != 0)
@@ -4670,10 +4670,10 @@ req_copy_hookfile(struct batch_request *preq) /* ptr to the decoded request   */
 		return;
 	}
 
-#ifdef WIN32
+#ifdef WIN64
 	secure_file2(namebuf, "Administrators", READS_MASK|WRITES_MASK|STANDARD_RIGHTS_REQUIRED, "Everyone", READS_MASK|READ_CONTROL);
 	setmode(fds, O_BINARY);
-#endif /* WIN32 */
+#endif /* WIN64 */
 
 	if (write(fds, preq->rq_ind.rq_hookfile.rq_data,
 		(unsigned)preq->rq_ind.rq_hookfile.rq_size) !=

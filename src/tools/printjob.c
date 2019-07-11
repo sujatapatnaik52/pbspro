@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -465,7 +465,7 @@ char *argv[];
 	 * display appropriate error message and exit. Else, continue.
 	 */
 
-#ifdef WIN32
+#ifdef WIN64
 	if (!isAdminPrivilege(getlogin())) {
 		fprintf(stderr, "printjob must be run by Admin\n");
 		exit(1);
@@ -516,7 +516,7 @@ char *argv[];
 		return 1;
 	}
 
-#if defined(PRINTJOBSVR) && defined(WIN32)
+#if defined(PRINTJOBSVR) && defined( WIN64)
 	winsock_init();
 #endif
 
@@ -724,7 +724,7 @@ char *argv[];
 	if (conn != NULL) {
 		pbs_db_disconnect(conn);
 	}
-#ifdef WIN32
+#ifdef WIN64
 	winsock_cleanup();
 #endif
 #endif

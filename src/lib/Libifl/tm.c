@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -52,7 +52,7 @@
 #include	<sys/time.h>
 #include	<netinet/in.h>
 #include	<netdb.h>
-#ifdef WIN32
+#ifdef WIN64
 #include	<sddl.h>
 #endif
 #include	"dis.h"
@@ -241,7 +241,7 @@ del_event(event_info *ep)
 
 	if (--event_count == 0) {
 		CS_close_socket(local_conn);
-#ifdef WIN32
+#ifdef WIN64
 		closesocket(local_conn);
 #else
 		close(local_conn);
@@ -501,7 +501,7 @@ localmom()
 				case EADDRINUSE:
 				case ETIMEDOUT:
 				case ECONNREFUSED:
-#ifdef WIN32
+#ifdef WIN64
 				case WSAEINTR:
 					(void)closesocket(sock);
 #else
@@ -537,7 +537,7 @@ localmom()
 
 failed:
 
-#ifdef WIN32
+#ifdef WIN64
 	(void)closesocket(sock);
 #else
 	(void)close(sock);
@@ -593,7 +593,7 @@ startcom(int com, tm_event_t event)
 done:
 	DBPRT(("startcom: send error %s\n", dis_emsg[ret]))
 	CS_close_socket(local_conn);
-#ifdef WIN32
+#ifdef WIN64
 	closesocket(local_conn);
 #else
 	close(local_conn);
@@ -705,7 +705,7 @@ tm_attach(char *jobid, char *cookie, pid_t pid, tm_task_id *tid, char *host, int
 	int			err;
 	int			nerr = 0;
 	extern	int		pbs_tcp_interrupt;
-#ifdef WIN32
+#ifdef WIN64
 	char	                usern[UNLEN + 1] = {'\0'};
 	int		        sz = 0;
 	int		        ret = 0;
@@ -748,7 +748,7 @@ tm_attach(char *jobid, char *cookie, pid_t pid, tm_task_id *tid, char *host, int
 
 	if (startcom(TM_ATTACH, nevent) != DIS_SUCCESS)
 		return TM_ESYSTEM;
-#ifdef WIN32
+#ifdef WIN64
 	sz = sizeof(usern);
 	ret = GetUserName(usern, &sz);
 	if (diswcs(local_conn, usern, strlen(usern)) != DIS_SUCCESS)	/* send uid */
@@ -1431,7 +1431,7 @@ tm_poll(tm_event_t poll_event, tm_event_t *result_event, int wait, int *tm_errno
 	if ((ep = find_event(nevent)) == NULL) {
 		DBPRT(("%s: No event found for number %d\n", __func__, nevent));
 		CS_close_socket(local_conn);
-#ifdef WIN32
+#ifdef WIN64
 		(void)closesocket(local_conn);
 #else
 		(void)close(local_conn);
@@ -1594,7 +1594,7 @@ err:
 	if (ep)
 		del_event(ep);
 	CS_close_socket(local_conn);
-#ifdef WIN32
+#ifdef WIN64
 	(void)closesocket(local_conn);
 #else
 	(void)close(local_conn);

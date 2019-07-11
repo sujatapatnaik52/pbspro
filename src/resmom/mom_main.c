@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -49,7 +49,7 @@
 #include <wchar.h>
 #endif
 
-#ifdef	WIN32
+#ifdef	WIN64
 #include	<sys/timeb.h>
 #else
 #include	<unistd.h>
@@ -68,7 +68,7 @@
 #include	<sys/mman.h>
 #endif /* _POSIX_MEMLOCK */
 #include        <dirent.h>
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 
 #include	<assert.h>
 #include	<stdio.h>
@@ -111,7 +111,7 @@
 #include	"mom_vnode.h"
 #endif	/* MOM_CPUSET */
 #include	"avltree.h"
-#ifndef	WIN32
+#ifndef	WIN64
 #ifndef NAS /* localmod 113 */
 #include	"hwloc.h"
 #endif /* localmod 113 */
@@ -166,7 +166,7 @@ uid_t		restrict_user_exempt_uids[NUM_RESTRICT_USER_EXEMPT_UIDS] = {0};
 int		svr_delay_entry = 0;
 int     mom_net_up = 0;
 time_t  mom_net_up_time = 0;
-#ifdef	WIN32
+#ifdef	WIN64
 LASTINPUTINFO	key_mouse_press = { sizeof(LASTINPUTINFO), 0 };
 int		nrun_factor = 0;
 
@@ -185,7 +185,7 @@ DWORD                   g_dwCurrentState = SERVICE_START_PENDING;
 HANDLE	hStop = NULL;
 #else
 char		*mom_domain;
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 
 extern void	mom_vnlp_report(vnl_t *vnl, char *header);
 
@@ -234,7 +234,7 @@ DIR		*dir;
 /*char		pbs_current_user[PBS_MAXUSER] = "pbs_mom";*/  /* for libpbs.a */
 /* above is TLS data now, strcpy the value "pbs_mom" into it in main */
 
-#ifdef WIN32
+#ifdef WIN64
 char            pbs_tmpdir[MAX_PATH] = TMP_DIR;
 char            pbs_jobdir_root[MAX_PATH]= "";
 #else
@@ -368,12 +368,12 @@ pbs_list_head	task_list_immed;
 pbs_list_head	task_list_timed;
 pbs_list_head	task_list_event;
 
-#ifdef WIN32
+#ifdef WIN64
 /* copy request list */
 pbs_list_head	mom_copyreqs_list;
 #endif
 
-#ifndef	WIN32
+#ifndef	WIN64
 #ifdef	RLIM64_INFINITY
 struct rlimit64 orig_stack_size;
 struct rlimit64 orig_nproc_limit;
@@ -383,7 +383,7 @@ struct rlimit   orig_stack_size;
 struct rlimit   orig_nproc_limit;
 struct rlimit   orig_core_limit;
 #endif	/* RLIM64... */
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 
 /* Local Data Items */
 
@@ -399,14 +399,14 @@ static int	kill_jobs_on_exit = 0;	/* kill running jobs on Mom exit */
 static char    *path_checkpoint_from_getopt = NULL;
 static char    *path_checkpoint_from_getenv = NULL;
 static char    *path_checkpoint_default = NULL;
-#ifdef	WIN32
+#ifdef	WIN64
 static char     path_checkpoint_buf[MAX_PATH] = "\0";
 #else
 static char     path_checkpoint_buf[_POSIX_PATH_MAX] = "\0";
 #endif
 static time_t	maxtm;			/* see getkbdtime() */
 
-#ifdef WIN32
+#ifdef WIN64
 
 #define IDLE_POLL_BUFSIZE 512
 
@@ -487,7 +487,7 @@ static handler_ret_t	set_max_check_poll(char *);
 static handler_ret_t	set_min_check_poll(char *);
 static handler_ret_t	set_momname(char *);
 static handler_ret_t	set_momport(char *);
-#ifdef	WIN32
+#ifdef	WIN64
 static handler_ret_t	set_nrun_factor(char *);
 #endif
 static handler_ret_t	set_restart_background(char *);
@@ -565,7 +565,7 @@ static struct	specials {
 	{ "max_poll_downtime",		set_max_poll_downtime },
 	{ "min_check_poll",		set_min_check_poll },
 	{ "momname",			set_momname },
-#ifdef	WIN32
+#ifdef	WIN64
 	{ "nrun_factor",		set_nrun_factor },
 #endif
 	{ "port",			set_momport },
@@ -607,7 +607,7 @@ char			*ret_string;
 int			ret_size;
 struct	config		*config_array = NULL;
 struct	config_list	*config_list = NULL;
-#ifndef	WIN32
+#ifndef	WIN64
 sigset_t		allsigs;
 #endif
 int			rm_errno;
@@ -629,7 +629,7 @@ int			cphosts_num = 0;
 struct	cphosts		*pcphosts = 0;
 int enable_exechost2 = 0;
 static	int		config_file_specified = 0;
-#ifdef	WIN32
+#ifdef	WIN64
 static	char		config_file[MAX_PATH] = "config";
 #else
 static	char		config_file[_POSIX_PATH_MAX] = "config";
@@ -658,7 +658,7 @@ extern	void	scan_for_exiting(void);
 extern	int	to_size(char *, struct size_value *);
 #endif /* localmod 015 */
 
-#ifndef	WIN32
+#ifndef	WIN64
 extern  void    scan_for_terminated(void);
 
 /* Local public functions */
@@ -685,7 +685,7 @@ static void check_busy(double);
  * @retval -1 failure
  *
  */
-#ifdef WIN32
+#ifdef WIN64
 static int
 check_directory(char *path, char *id)
 {
@@ -768,7 +768,7 @@ getuname(void)
 {
 	static	char	*name = NULL;
 
-#ifndef	WIN32
+#ifndef	WIN64
 	struct	utsname	n;
 
 	if (name == NULL) {
@@ -795,7 +795,7 @@ getuname(void)
 			hostname, osvi.dwMajorVersion, osvi.dwMinorVersion, osvi.dwBuildNumber);
 		name = strdup(ret_string);
 	}
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 
 	return name;
 }
@@ -1049,7 +1049,7 @@ die(int sig)
 
 	cleanup();
 	log_close(1);
-#ifdef	WIN32
+#ifdef	WIN64
 	ExitThread(1);
 #else
 	exit(1);
@@ -1103,7 +1103,7 @@ initialize(void)
 	enum vnode_sharing	hostval;
 
 	/* set limits that can be modified by the Admin */
-#ifndef	WIN32 /* ---- UNIX ------------------------------------------*/
+#ifndef	WIN64 /* ---- UNIX ------------------------------------------*/
 #ifdef	RLIMIT_CORE
 	int	char_in_cname = 0;
 
@@ -1167,7 +1167,7 @@ initialize(void)
 #endif	/* RLIM64_INFINITY */
 
 #endif	/* RLIMIT_CORE */
-#endif /* !WIN32 ---------------------------------------------------------- */
+#endif /* !WIN64 ---------------------------------------------------------- */
 
 	num_pcpus = num_acpus = num_oscpus = 0;
 	dep_initialize();
@@ -1462,7 +1462,7 @@ tokcpy(char *str, char *tok, size_t len)
 	size_t	i;
 
 	for (i=0; *str && (i<len); str++, tok++, i++) {
-#ifdef	WIN32
+#ifdef	WIN64
 		if (!isalnum(*str) && *str != ':' && *str != '_' && *str != '\\')
 #else
 		if (!isalnum(*str) && *str != ':' && *str != '_')
@@ -1523,7 +1523,7 @@ wtokcpy(char *str, char *tok, int len)
 	return str;
 }
 
-#ifdef	WIN32
+#ifdef	WIN64
 /**
  * @brief
  *	Similar to tokcpy() except that we respect any double quoted strings and
@@ -1555,7 +1555,7 @@ qwtokcpy(char *str, char *tok, int len)
 	*tok = '\0';
 	return str;
 }
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 
 /**
  * @brief
@@ -1586,7 +1586,7 @@ remove_quotes(char *path)
 	return dup;
 }
 
-#ifdef WIN32
+#ifdef WIN64
 /**
  * @Brief
  *      Check whether PBS_INTERACTIVE service is registered or not into Service Control Manager?
@@ -1898,14 +1898,14 @@ add_mom_action(char *str)
 
 		/* script specified */
 
-#ifdef	WIN32
+#ifdef	WIN64
 		str = qwtokcpy(++str, arg, _POSIX_PATH_MAX);
 #else
 		str = wtokcpy(++str, arg, _POSIX_PATH_MAX);
 #endif
 		str = skipwhite(str);
 
-#ifdef	WIN32
+#ifdef	WIN64
 		if (is_full_path(arg)) {
 
 			scp = malloc(strlen(arg) + 1);
@@ -1943,7 +1943,7 @@ add_mom_action(char *str)
 			}
 			strcpy(scp, arg);
 		}
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 
 		/* now count up the number of args */
 
@@ -2363,7 +2363,7 @@ usecp(char *value)
 	if (((pcphosts+cphosts_num)->cph_to = strdup(skipwhite(pnxt))) == NULL)
 		return HANDLER_FAIL;
 
-#ifdef	WIN32
+#ifdef	WIN64
 	back2forward_slash((pcphosts+cphosts_num)->cph_from);
 	back2forward_slash((pcphosts+cphosts_num)->cph_to);
 #endif
@@ -2451,7 +2451,7 @@ set_job_launch_delay(char *value)
 	return HANDLER_SUCCESS;
 }
 
-#ifdef	WIN32
+#ifdef	WIN64
 
 /**
  * @brief
@@ -2502,7 +2502,7 @@ shell_escape_timeout(void)
 		log_err(-1, "shell_escape_timeout", "terminate shell escape");
 	}
 }
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 
 /**
  * @brief
@@ -2644,7 +2644,7 @@ do_mom_action_script(int	ae,	/* index into action table */
 	void		(*post)(job *p, int e)) /* post action func */
 {
 	char		**args = NULL;
-#ifdef	WIN32
+#ifdef	WIN64
 	char		buf[MAX_PATH + 1];
 #else
 	char		buf[MAXPATHLEN + 1];
@@ -2657,7 +2657,7 @@ do_mom_action_script(int	ae,	/* index into action table */
 	int		rc = -1;
 	struct mom_action	*ma;
 	int	transmog = 0;
-#ifdef	WIN32
+#ifdef	WIN64
 	char	*pnoq = 0;
 	char	cmd_line[4096];
 	int	flags = CREATE_DEFAULT_ERROR_MODE|CREATE_NEW_CONSOLE|
@@ -2677,7 +2677,7 @@ do_mom_action_script(int	ae,	/* index into action table */
 	pid_t	child;
 
 	memset(&sjr, 0, sizeof(sjr));
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 
 	assert((0 <= ae) && (ae < (int)LastAction));
 
@@ -2686,7 +2686,7 @@ do_mom_action_script(int	ae,	/* index into action table */
 		return -2;
 
 	/* does script really exist? */
-#ifdef	WIN32
+#ifdef	WIN64
 	pnoq = remove_quotes(ma->ma_script);
 	if (stat(pnoq, &sb) == -1) {
 		sprintf(log_buffer, "action %s script %s does not exist",
@@ -2724,7 +2724,7 @@ do_mom_action_script(int	ae,	/* index into action table */
 			pjob->ji_qs.ji_jobid, log_buffer);
 		return -1;
 	}
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 
 	if (ptask == NULL)
 		ptask = (pbs_task *)GET_NEXT(pjob->ji_tasks);
@@ -2765,7 +2765,7 @@ do_mom_action_script(int	ae,	/* index into action table */
 	if (args == NULL)
 		return -1;
 
-#ifdef	WIN32
+#ifdef	WIN64
 	strcpy(cmd_line, "cmd /q /c ");
 	strcat(cmd_line, ma->ma_script);
 #endif
@@ -2785,13 +2785,13 @@ do_mom_action_script(int	ae,	/* index into action table */
 			} else if (strcmp(*pargs + 1, "taskid") == 0) {
 				sprintf(buf, "%d", ptask->ti_qs.ti_task);
 			} else if (strcmp(*pargs + 1, "uid") == 0) {
-#ifdef	WIN32
+#ifdef	WIN64
 				sprintf(buf, "%ld", pjob->ji_qs.ji_un.ji_momt.ji_exuid);
 #else
 				sprintf(buf, "%d", pjob->ji_qs.ji_un.ji_momt.ji_exuid);
 #endif
 			} else if (strcmp(*pargs + 1, "gid") == 0) {
-#ifdef	WIN32
+#ifdef	WIN64
 				sprintf(buf, "%ld", pjob->ji_qs.ji_un.ji_momt.ji_exgid);
 #else
 				sprintf(buf, "%d", pjob->ji_qs.ji_un.ji_momt.ji_exgid);
@@ -2832,13 +2832,13 @@ do_mom_action_script(int	ae,	/* index into action table */
 		*(args + i) = strdup(buf);
 		if (*(args + i) == NULL)
 			return -1;
-#ifdef	WIN32
+#ifdef	WIN64
 		strcat(cmd_line, " ");
 		strcat(cmd_line, buf);
 #endif
 	}
 
-#ifdef	WIN32
+#ifdef	WIN64
 	shell = set_shell(pjob, pwdp);	/* machine dependent */
 
 	init_envp();
@@ -3368,7 +3368,7 @@ do_mom_action_script(int	ae,	/* index into action table */
 			rc = -1;
 		}
 	}
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 
 done:
 	/* free args arrays */
@@ -3602,7 +3602,7 @@ set_kbd_idle(char *value)
 
 	/* check whether PBS_INTERACTIVE service is registered or not? */
 chk_for_interactive:
-#ifdef WIN32
+#ifdef WIN64
 	/* create idle_touch and idle_poll_time file in PBS_HOME/spool/
 	 *    idle_touch file	  - To get kbd/mouse time information from pbs_idled process
 	 *    idle_poll_time file - To inform about idle_poll time from MOM config to pbs_idled process
@@ -3652,7 +3652,7 @@ set_tmpdir(char *value)
 
 	/* Remove trailing separator */
 	for (i = (strlen(cleaned_value) - 1); i >= 0; i--) {
-#ifdef	WIN32
+#ifdef	WIN64
 		if (cleaned_value[i] != '\\')
 #else
 		if (cleaned_value[i] != '/')
@@ -3667,7 +3667,7 @@ set_tmpdir(char *value)
 	}
 
 #if !defined(DEBUG) && !defined(NO_SECURITY_CHECK)
-#ifdef	WIN32
+#ifdef	WIN64
 	if (check_directory(cleaned_value, "set_tmpdir") == -1) {
 		free(cleaned_value);
 		return HANDLER_FAIL;
@@ -3677,7 +3677,7 @@ set_tmpdir(char *value)
 		free(cleaned_value);
 		return HANDLER_FAIL;		/* error */
 	}
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 #endif	/* NO_SECURITY_CHECK */
 
 	strcpy(pbs_tmpdir, cleaned_value);
@@ -3714,7 +3714,7 @@ set_jobdir_root(char *value)
 	}
 
 #if !defined(DEBUG) && !defined(NO_SECURITY_CHECK)
-#ifdef	WIN32
+#ifdef	WIN64
 
 	if (check_directory(cleaned_value, __func__)  == -1) {
 		free(cleaned_value);
@@ -3726,7 +3726,7 @@ set_jobdir_root(char *value)
 		free(cleaned_value);
 		return HANDLER_FAIL;
 	}
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 #endif	/* NO_SECURITY_CHECK */
 
 	strcpy(pbs_jobdir_root, cleaned_value);
@@ -4110,7 +4110,7 @@ static handler_ret_t
 set_checkpoint_path(char *value)
 {
 	int		rc = 0;
-#ifdef	WIN32
+#ifdef	WIN64
 	char		newpath[MAX_PATH] = "\0";
 #else
 	char		newpath[_POSIX_PATH_MAX] = "\0";
@@ -4160,15 +4160,15 @@ set_checkpoint_path(char *value)
 		strcat(newpath, "/");
 	}
 #if !defined(DEBUG) && !defined(NO_SECURITY_CHECK)
-#ifdef	WIN32
+#ifdef	WIN64
 	rc = chk_file_sec(newpath, 1, 0, WRITES_MASK, 0);
 #else
 	rc = chk_file_sec(newpath, 1, 0, S_IWGRP|S_IWOTH, 0);
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 #else
 	{
 		struct stat	sb;
-#ifdef	WIN32
+#ifdef	WIN64
 		/* use windowed lstat for it works */
 		if (lstat(newpath, &sb) == -1)
 			rc = errno;
@@ -4179,7 +4179,7 @@ set_checkpoint_path(char *value)
 			rc = errno;
 		else
 			rc = 0;
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 	}
 #endif	/* !DEBUG && !NO_SECURITY_CHECK */
 	if (rc == 0) {
@@ -4467,7 +4467,7 @@ parse_config(char *file)
 	int		err = 0;
 	int		num_newstaticdefs;
 	handler_ret_t	handler_ret = HANDLER_SUCCESS; /* init to success */
-#ifdef	WIN32
+#ifdef	WIN64
 	char		*p;
 #endif
 
@@ -4491,7 +4491,7 @@ parse_config(char *file)
 		if (*str == '\0')
 			continue;
 
-#ifdef	WIN32
+#ifdef	WIN64
 		/* under Windows, skip troublesome trailing ^M chars */
 		if (p = strrchr(line, 13))
 			*p = ' ';
@@ -4972,7 +4972,7 @@ read_config(char *file)
 			return 0;	/* ok for "config" not to be there  */
 	}
 #if !defined(DEBUG) && !defined(NO_SECURITY_CHECK)
-#ifdef	WIN32
+#ifdef	WIN64
 	if (chk_file_sec(file, 0, 0, WRITES_MASK, 0)) {
 		sprintf(log_buffer,
 			"warning: %s file has a non-secure file access mask", file);
@@ -4982,7 +4982,7 @@ read_config(char *file)
 #else
 	if (chk_file_sec(file, 0, 0, S_IWGRP|S_IWOTH, 1))
 		return 1;
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 #endif	/* NO_SECURITY_CHECK */
 
 	nconfig = 0;
@@ -5446,7 +5446,7 @@ conf_res(char *s, struct rm_attribute *attr)
 	int	used[RM_NPARM];
 	char	param[256], *d;
 	int	i,  len;
-#ifdef	WIN32
+#ifdef	WIN64
 	pio_handles     child;
 #else
 	FILE	*child;
@@ -5523,7 +5523,7 @@ conf_res(char *s, struct rm_attribute *attr)
 	*d = '\0';
 	DBPRT(("command: %s\n", ret_string))
 
-#ifdef	WIN32
+#ifdef	WIN64
 	if (!win_popen(ret_string, "w", &child, NULL)) {
 		errno = GetLastError();
 		log_err(errno, __func__, "popen");
@@ -5536,20 +5536,20 @@ conf_res(char *s, struct rm_attribute *attr)
 		sprintf(ret_string, "? %d", RM_ERR_SYSTEM);
 		goto done;
 	}
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 
-#ifdef	WIN32
+#ifdef	WIN64
 	shell_escape_handle = child.pi.hProcess;
 	(void)win_alarm(alarm_time, shell_escape_timeout);
 #else
 	fd = fileno(child);
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 	child_spot = ret_string;
 	child_len = 0;
 	child_spot[0] = '\0';
 	while (child_len < ret_size) {
 
-#ifdef	WIN32
+#ifdef	WIN64
 		if ((len=win_pread(&child, child_spot, ret_size-child_len)) > 0)
 #else
 		if ((len = read(fd, child_spot, ret_size-child_len)) > 0)
@@ -5557,7 +5557,7 @@ conf_res(char *s, struct rm_attribute *attr)
 		{
 
 			for (i=0; i<len; i++) {
-#ifdef	WIN32
+#ifdef	WIN64
 				/* match \r\n in windows */
 				if ((child_spot[i] == '\n') || (child_spot[i] == '\r'))
 #else
@@ -5581,7 +5581,7 @@ conf_res(char *s, struct rm_attribute *attr)
 			child_spot += len;
 			checkret(&child_spot, len);
 		} else if (len == 0) {
-#ifdef	WIN32
+#ifdef	WIN64
 			if (GetLastError() == ERROR_BROKEN_PIPE) {
 				log_err(errno, __func__, "resource read");
 				sprintf(ret_string, "? %d", RM_ERR_SYSTEM);
@@ -5591,13 +5591,13 @@ conf_res(char *s, struct rm_attribute *attr)
 		} else if ((len == -1) && (errno == EINTR)) {
 			log_err(errno, __func__, "resource read alarm");
 			if (secondalarm) {
-#ifndef	WIN32
+#ifndef	WIN64
 				pbs_pkill(child, SIGKILL);
 #endif
 				sprintf(ret_string, "? %d", RM_ERR_SYSTEM);
 				break;
 			} else {
-#ifndef	WIN32
+#ifndef	WIN64
 				pbs_pkill(child, SIGINT);
 				(void)alarm(alarm_time);
 #endif
@@ -5610,7 +5610,7 @@ conf_res(char *s, struct rm_attribute *attr)
 		}
 	}
 
-#ifdef	WIN32
+#ifdef	WIN64
 
 	if (shell_escape_handle != INVALID_HANDLE_VALUE) {
 		close_valid_handle(&(shell_escape_handle));
@@ -5621,7 +5621,7 @@ conf_res(char *s, struct rm_attribute *attr)
 	win_pclose(&child);
 #else
 	pbs_pclose(child);
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 
 done:
 	for (i=0; name[i]; i++) {		/* free up params */
@@ -5631,7 +5631,7 @@ done:
 	return ret_string;
 }
 
-#ifndef	WIN32
+#ifndef	WIN64
 /**
  * @brief
  *	Function to catch HUP signal.
@@ -5707,7 +5707,7 @@ process_hup(void)
 		cleanup();
 		log_close(1);
 		rpp_shutdown();
-#ifdef	WIN32
+#ifdef	WIN64
 		ExitThread(1);
 #else
 		exit(1);
@@ -5787,7 +5787,7 @@ toolong(int sig)
 	log_event(PBSEVENT_SYSTEM, 0, LOG_NOTICE, __func__, "alarm call");
 	DBPRT(("alarm call\n"))
 }
-#endif	/* !WIN32 */
+#endif	/* !WIN64 */
 
 #ifdef	DEBUG
 /**
@@ -5917,11 +5917,11 @@ rm_request(int iochan, int version, int tcp)
 		if (!conn) {
 			log_err(errno, __func__,
 				"not find iochan in connection table");
-#ifdef	WIN32
+#ifdef	WIN64
 			(void)closesocket(iochan);
 #else
 			(void)close(iochan);
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 			return -1;
 		}
 		ipadd = conn->cn_addr;
@@ -5998,7 +5998,7 @@ rm_request(int iochan, int version, int tcp)
 					ap = rm_search(config_array, name);
 					attr = momgetattr(curr);
 
-#ifndef	WIN32
+#ifndef	WIN64
 					(void)alarm(alarm_time);
 #endif
 					rm_errno = PBSE_NONE;
@@ -6006,7 +6006,7 @@ rm_request(int iochan, int version, int tcp)
 						value = conf_res(ap->c_u.c_value, attr);
 					else		/* dynamic */
 						value = dependent(name, attr);
-#ifndef	WIN32
+#ifndef	WIN64
 					(void)alarm(0);
 #endif
 					if (value) {
@@ -6082,7 +6082,7 @@ rm_request(int iochan, int version, int tcp)
 				cleanup();
 				log_close(1);
 				rpp_shutdown();
-#ifdef	WIN32
+#ifdef	WIN64
 				ExitThread(1);
 #else
 				exit(1);
@@ -6111,7 +6111,7 @@ rm_request(int iochan, int version, int tcp)
 			cleanup();
 			log_close(1);
 			rpp_shutdown();
-#ifdef	WIN32
+#ifdef	WIN64
 			ExitThread(0);
 #else
 			exit(0);
@@ -6242,7 +6242,7 @@ rpp_request(int fd)
 	/* To reduce rpp process storm reducing max do_rpp processing to 3 times */
 	for (i=0 ; i < MAX_RPP_LOOPS ; i++) {
 		if ((stream = rpp_poll()) == -1) {
-#ifdef	WIN32
+#ifdef	WIN64
 			if (errno != 10054)
 #endif
 				log_err(errno, __func__, "rpp_poll");
@@ -6342,11 +6342,11 @@ tcp_request(int fd)
 		sprintf(log_buffer, "could not find fd=%d in connection table",
 			fd);
 		log_err(-1, __func__, log_buffer);
-#ifdef	WIN32
+#ifdef	WIN64
 		(void)closesocket(fd);
 #else
 		(void)close(fd);
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 		return;
 	}
 
@@ -6396,7 +6396,7 @@ kill_job(job *pjob, int sig)
 	int		ct = 0;
 	int	tsk_ct;
 
-#ifdef	WIN32
+#ifdef	WIN64
 	log_event(PBSEVENT_JOB, PBS_EVENTCLASS_JOB, LOG_DEBUG,
 		pjob->ji_qs.ji_jobid, "kill_job");
 
@@ -6465,7 +6465,7 @@ kill_job(job *pjob, int sig)
 	}
 	DBPRT(("%s: done %s killed %d\n", __func__, pjob->ji_qs.ji_jobid, ct))
 	return ct;
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 }
 
 /**
@@ -6481,7 +6481,7 @@ kill_job(job *pjob, int sig)
 static void
 finish_loop(time_t waittime)
 {
-#ifdef	WIN32
+#ifdef	WIN64
 	time_t	i;
 #endif
 
@@ -6490,7 +6490,7 @@ finish_loop(time_t waittime)
 		rpp_request(42);
 	}
 
-#ifdef	WIN32
+#ifdef	WIN64
 	/* wait for a request to process or exiting procs */
 	for (i = 0; i < waittime; i++) {
 		wait_action();
@@ -6519,12 +6519,12 @@ finish_loop(time_t waittime)
 	if (wait_request(waittime, NULL) != 0)
 		log_err(-1, msg_daemonname, "wait_request failed");
 
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 
 }
 
 
-#ifdef	WIN32
+#ifdef	WIN64
 
 /**
  * @brief
@@ -6590,7 +6590,7 @@ mom_lock(int fds,
 		exit(1);
 	}
 }
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 
 /**
  * @brief
@@ -7454,7 +7454,7 @@ static char	configusage[] = "%s -s insert scriptname inputfile\n"
 void
 usage(char *prog)
 {
-#ifdef	WIN32
+#ifdef	WIN64
 	fprintf(stderr,
 		"Usage: %s [-C chkdirectory][-d dir][-c configfile][-r|-p][-R port][-M port][-S port][-L log][-a alarm][-n nice]\n", prog);
 #else
@@ -7467,7 +7467,7 @@ usage(char *prog)
 	exit(1);
 }
 
-#ifdef	WIN32
+#ifdef	WIN64
 /**
  * @brief
  *      Prints usage for prog
@@ -7665,7 +7665,7 @@ dorestrict_user(void)
 	if (prsdef == NULL)
 		prsdef = find_resc_def(svr_resc_def, "place", svr_resc_size);
 
-#ifndef WIN32
+#ifndef WIN64
 	if (mom_sid == -1) {
 		mom_sid = getsid(0);
 		DBPRT(("%s: set mom sid %d\n", id, mom_sid))
@@ -7677,7 +7677,7 @@ dorestrict_user(void)
 		pid_t	procsid;
 		uid_t	uid;
 		char	comm[30];
-#ifdef WIN32
+#ifdef WIN64
 		char    *uname = NULL;/* dummy */
 		ret = dep_procinfo(pid, &procsid, &uid, uname, 0, comm, sizeof(comm));
 #else
@@ -7880,7 +7880,7 @@ dorestrict_user(void)
 
 badguy:
 
-#ifdef WIN32
+#ifdef WIN64
 		log_err(-1, id, "not supported function");
 
 #else
@@ -8111,7 +8111,7 @@ net_down_handler(void *data)
 	mom_net_up_time = 0;
 }
 
-#ifdef	WIN32
+#ifdef	WIN64
 /**
  * @brief
  *	main - the main program of MOM
@@ -8124,7 +8124,7 @@ int
 main(int argc, char *argv[])
 #endif
 {
-	/* both Win32 and Unix */
+	/* both WIN64 and Unix */
 	struct tpp_config	tpp_conf;
 	int					errflg, c;
 	int					stalone = 0;
@@ -8157,8 +8157,8 @@ main(int argc, char *argv[])
 	char				path_hooks_rescdef[MAXPATHLEN+1];
 	int					sock_bind_rm;
 	int					sock_bind_mom;
-#ifdef	WIN32
-	/* Win32 only */
+#ifdef	WIN64
+	/* WIN64 only */
 	struct arg_param	*p = (struct arg_param *)pv;
 	int					argc;
 	char				**argv;
@@ -8181,7 +8181,7 @@ main(int argc, char *argv[])
 	gid_t				mygid;
 	extern char			*optarg;
 	extern int			optind;
-#endif /* WIN32 */
+#endif /* WIN64 */
 
 #ifndef	DEBUG
 	FILE				*dummyfile;
@@ -8197,7 +8197,7 @@ main(int argc, char *argv[])
 #endif
 
 
-#ifdef WIN32
+#ifdef WIN64
 	_fcloseall();	/* Close any inherited extra files, leaving stdin-err open */
 #else
 	/* Close any inherited extra files, leaving stdin-err open */
@@ -8210,7 +8210,7 @@ main(int argc, char *argv[])
 #endif
 
 	/* If we are not run with real and effective uid of 0, forget it */
-#ifdef	WIN32
+#ifdef WIN64
 	_set_fmode(_O_BINARY);
 	argc = p->argc;
 	argv = p->argv;
@@ -8267,7 +8267,7 @@ main(int argc, char *argv[])
 		return (1);
 	}
 #endif
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 
 	/* set single threaded mode */
 	pbs_client_thread_set_single_threaded_mode();
@@ -8276,7 +8276,7 @@ main(int argc, char *argv[])
 
 	/* initialize the thread context */
 	if (pbs_client_thread_init_thread_context() != 0) {
-#ifdef WIN32
+#ifdef WIN64
 		g_dwCurrentState = SERVICE_STOPPED;
 		ss.dwCurrentState = g_dwCurrentState;
 		ss.dwWin32ExitCode = ERROR_OUTOFMEMORY;
@@ -8286,14 +8286,14 @@ main(int argc, char *argv[])
 		fprintf(stderr, "%s: Unable to initialize thread context\n",
 			argv[0]);
 		return (1);
-#endif /* WIN32 */
+#endif /* WIN64 */
 	}
 
 	if(set_msgdaemonname("pbs_mom")) {
 		fprintf(stderr, "Out of memory\n");
 		return 1;
 	}
-#ifndef WIN32
+#ifndef WIN64
 	if (pbs_loadconf(0) == 0) {
 		return (1);
 	}
@@ -8311,7 +8311,7 @@ main(int argc, char *argv[])
 	if (pbs_conf.pbs_mom_home) {
 		if (pbs_conf.pbs_home_path != NULL)
 			free(pbs_conf.pbs_home_path);
-#ifdef	WIN32
+#ifdef WIN64
 		pbs_conf.pbs_home_path =
 			shorten_and_cleanup_path(pbs_conf.pbs_mom_home);
 		if (pbs_conf.pbs_environment) {
@@ -8361,7 +8361,7 @@ main(int argc, char *argv[])
 				if (pbs_mom_port == 0) {
 					fprintf(stderr, "Bad MOM port value %s\n",
 						optarg);
-#ifdef	WIN32
+#ifdef WIN64
 					g_dwCurrentState = SERVICE_STOPPED;
 					ss.dwCurrentState = g_dwCurrentState;
 					ss.dwWin32ExitCode = ERROR_INVALID_PARAMETER;
@@ -8375,7 +8375,7 @@ main(int argc, char *argv[])
 				if (default_server_port == 0) {
 					fprintf(stderr, "Bad Server port value %s\n",
 						optarg);
-#ifdef	WIN32
+#ifdef WIN64
 					g_dwCurrentState = SERVICE_STOPPED;
 					ss.dwCurrentState = g_dwCurrentState;
 					ss.dwWin32ExitCode = ERROR_INVALID_PARAMETER;
@@ -8389,7 +8389,7 @@ main(int argc, char *argv[])
 				if (pbs_rm_port == 0) {
 					fprintf(stderr, "Bad RM port value %s\n",
 						optarg);
-#ifdef	WIN32
+#ifdef WIN64
 					g_dwCurrentState = SERVICE_STOPPED;
 					ss.dwCurrentState = g_dwCurrentState;
 					ss.dwWin32ExitCode = ERROR_INVALID_PARAMETER;
@@ -8475,7 +8475,7 @@ main(int argc, char *argv[])
 	optind += optindinc;
 
 	if (errflg || optind != argc) {
-#ifdef	WIN32
+#ifdef WIN64
 		g_dwCurrentState = SERVICE_STOPPED;
 		ss.dwCurrentState = g_dwCurrentState;
 		ss.dwWin32ExitCode = ERROR_INVALID_PARAMETER;
@@ -8484,12 +8484,12 @@ main(int argc, char *argv[])
 		return (1);
 #else
 		usage(argv[0]);		/* exits */
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 	}
 
 	umask(022);
 
-#ifdef	WIN32
+#ifdef WIN64
 	save_env();
 #endif
 	/*
@@ -8497,7 +8497,7 @@ main(int argc, char *argv[])
 	 * start out with standard umask, system resource limit infinite
 	 */
 	if ((num_var_env = setup_env(pbs_conf.pbs_environment)) == -1) {
-#ifdef	WIN32
+#ifdef WIN64
 		g_dwCurrentState = SERVICE_STOPPED;
 		ss.dwCurrentState = g_dwCurrentState;
 		ss.dwWin32ExitCode = ERROR_INVALID_ENVIRONMENT;
@@ -8505,11 +8505,11 @@ main(int argc, char *argv[])
 		return (1);
 #else
 		exit(1);
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 	}
 
 
-#ifndef	WIN32 /* ---- UNIX ------------------------------------------*/
+#ifndef WIN64 /* ---- UNIX ------------------------------------------*/
 	mygid = getgid();
 	(void)setgroups(1, &mygid);	/* secure suppl. groups */
 
@@ -8623,7 +8623,7 @@ main(int argc, char *argv[])
 	}
 #endif	/* !RLIM64_INFINITY */
 
-#endif /* !WIN32 */
+#endif /* !WIN64 */
 
 
 	/* initialize pointers in resource_def array */
@@ -8639,7 +8639,7 @@ main(int argc, char *argv[])
 	path_jobs  = mk_dirs("mom_priv/jobs/");
 	path_hooks = mk_dirs("mom_priv/hooks/");
 	path_hooks_workdir = mk_dirs("mom_priv/hooks/tmp/");
-#ifdef	WIN32
+#ifdef WIN64
 	path_epilog      = mk_dirs("mom_priv/epilogue.bat");
 	path_prolog      = mk_dirs("mom_priv/prologue.bat");
 #else
@@ -8652,7 +8652,7 @@ main(int argc, char *argv[])
 	path_addconfigs = mk_dirs("mom_priv/config.d");
 
 	/* open log file while std in,out,err still open, forces to fd 4 */
-#ifdef	WIN32
+#ifdef WIN64
 	/* Don't worry about return value of log_open() like */
 	/* in the server code.  A -1 is returned in log_open() for all */
 	/* failure cases so it's hard to know if a corrupt log file is the */
@@ -8693,7 +8693,7 @@ main(int argc, char *argv[])
 		fprintf(stderr, "pbs_mom: Unable to open logfile\n");
 		return (1);
 	}
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 
 	if (QA_testing != 0) {
 		sprintf(log_buffer, "Warning QA_testing option set to %lu",
@@ -8712,7 +8712,7 @@ main(int argc, char *argv[])
 
 	if (chdir(mom_home) == -1) {
 		perror("pbs_mom unable to change working directory to mom home");
-#ifdef	WIN32
+#ifdef WIN64
 		g_dwCurrentState = SERVICE_STOPPED;
 		ss.dwCurrentState = g_dwCurrentState;
 		ss.dwWin32ExitCode = ERROR_DIRECTORY;
@@ -8722,7 +8722,7 @@ main(int argc, char *argv[])
 	}
 
 #if !defined(DEBUG) && !defined(NO_SECURITY_CHECK)
-#ifdef	WIN32
+#ifdef WIN64
 	/* For windows, don't check full path. Let system put in default */
 	/* permissions for top-level directories */
 	c |= chk_file_sec(path_jobs,   1, 0, WRITES_MASK, 0);
@@ -8736,7 +8736,7 @@ main(int argc, char *argv[])
 	c |= chk_file_sec(path_hooks_workdir,   1, 0, S_IWGRP|S_IWOTH, 1);
 	c |= chk_file_sec(path_spool,  1, 1, 0, 0);
 	c |= chk_file_sec(pbs_conf.pbs_environment, 0, 0, S_IWGRP|S_IWOTH, 0);
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 	if (c) {
 		sprintf(log_buffer,
 			"Warning: one of chk_file_sec failed: %s, %s, %s, %s, %s",
@@ -8744,7 +8744,7 @@ main(int argc, char *argv[])
 			path_hooks, path_hooks_workdir);
 		log_err(0, "mom_main", log_buffer);
 
-#ifdef	WIN32
+#ifdef WIN64
 		g_dwCurrentState = SERVICE_STOPPED;
 		ss.dwCurrentState = g_dwCurrentState;
 		ss.dwWin32ExitCode = ERROR_ACCESS_DENIED;
@@ -8755,10 +8755,10 @@ main(int argc, char *argv[])
 
 #endif  /* not DEBUG and not NO_SECURITY_CHECK */
 
-#ifdef	WIN32
+#ifdef WIN64
 	winsock_init();
 
-	/* Under WIN32, create structure that will be used to track child processes. */
+	/* Under WIN64, create structure that will be used to track child processes. */
 	if (initpids() == 0) {
 		log_err(-1, "pbsd_init", "Creating pid handles table failed!");
 		return (-1);
@@ -8824,7 +8824,7 @@ main(int argc, char *argv[])
 	c = get_fullhostname(mom_host, mom_host, (sizeof(mom_host) - 1));
 	if (c == -1) {
 		log_err(-1, msg_daemonname, "Unable to resolve my host name");
-#ifdef	WIN32
+#ifdef WIN64
 		g_dwCurrentState = SERVICE_STOPPED;
 		ss.dwCurrentState = g_dwCurrentState;
 		ss.dwWin32ExitCode = ERROR_INVALID_COMPUTERNAME;
@@ -8840,7 +8840,7 @@ main(int argc, char *argv[])
 		log_err(-1, msg_daemonname, log_buffer);
 		(void)strcat(log_buffer, "\n");
 		(void)fprintf(stderr, "%s", log_buffer);
-#ifdef	WIN32
+#ifdef WIN64
 		g_dwCurrentState = SERVICE_STOPPED;
 		ss.dwCurrentState = g_dwCurrentState;
 		ss.dwWin32ExitCode = ERROR_LOCK_FAILED;
@@ -8849,7 +8849,7 @@ main(int argc, char *argv[])
 		return (1);
 	}
 
-#ifdef	WIN32
+#ifdef WIN64
 	secure_file("mom.lock", "Administrators",
 		READS_MASK|WRITES_MASK|STANDARD_RIGHTS_REQUIRED);
 #endif
@@ -8857,22 +8857,22 @@ main(int argc, char *argv[])
 
 	if (read_config(NULL)) {
 		fprintf(stderr, "%s: config file(s) parsing failed\n", argv[0]);
-#ifdef	WIN32
+#ifdef WIN64
 		g_dwCurrentState = SERVICE_STOPPED;
 		ss.dwCurrentState = g_dwCurrentState;
 		ss.dwWin32ExitCode = ERROR_FILE_INVALID;
 		if (g_ssHandle != 0) SetServiceStatus(g_ssHandle, &ss);
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 		return (1);
 	}
 	if (pbs_rm_port != (pbs_mom_port + 1)) {
 		fprintf(stderr, "Mom RM port must be one greater than the Mom Service port\n");
-#ifdef	WIN32
+#ifdef WIN64
 		g_dwCurrentState = SERVICE_STOPPED;
 		ss.dwCurrentState = g_dwCurrentState;
 		ss.dwWin32ExitCode = ERROR_FILE_INVALID;
 		if (g_ssHandle != 0) SetServiceStatus(g_ssHandle, &ss);
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 		return (1);
 	}
 
@@ -8887,14 +8887,14 @@ main(int argc, char *argv[])
 	/* initialize the network interface */
 
 	if ((sock_bind_mom = init_network(pbs_mom_port)) < 0) {
-#ifdef	WIN32
+#ifdef WIN64
 		errno = WSAGetLastError();
 #endif
 		c = errno;
 		(void)sprintf(log_buffer,
 			"server port = %u, errno = %d",
 			pbs_mom_port, c);
-#ifdef	WIN32
+#ifdef WIN64
 		if (c == WSAEADDRINUSE)
 #else
 		if (c == EADDRINUSE)
@@ -8903,7 +8903,7 @@ main(int argc, char *argv[])
 		log_err(-1, msg_daemonname, log_buffer);
 		(void)strcat(log_buffer, "\n");
 		(void)fprintf(stderr, "%s", log_buffer);
-#ifdef	WIN32
+#ifdef WIN64
 		g_dwCurrentState = SERVICE_STOPPED;
 		ss.dwCurrentState = g_dwCurrentState;
 		ss.dwWin32ExitCode = ERROR_NETWORK_ACCESS_DENIED;
@@ -8914,14 +8914,14 @@ main(int argc, char *argv[])
 
 	if ((sock_bind_rm = init_network(pbs_rm_port)) < 0) {
 
-#ifdef	WIN32
+#ifdef WIN64
 		errno = WSAGetLastError();
 #endif
 		c = errno;
 		(void)sprintf(log_buffer,
 			"resource (tcp) port = %u, errno = %d",
 			pbs_rm_port, c);
-#ifdef	WIN32
+#ifdef WIN64
 		if (c == WSAEADDRINUSE)
 #else
 		if (c == EADDRINUSE)
@@ -8931,12 +8931,12 @@ main(int argc, char *argv[])
 		(void)strcat(log_buffer, "\n");
 		(void)fprintf(stderr, "%s", log_buffer);
 
-#ifdef	WIN32
+#ifdef WIN64
 		g_dwCurrentState = SERVICE_STOPPED;
 		ss.dwCurrentState = g_dwCurrentState;
 		ss.dwWin32ExitCode = ERROR_NETWORK_ACCESS_DENIED;
 		if (g_ssHandle != 0) SetServiceStatus(g_ssHandle, &ss);
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 		return (3);
 	}
 
@@ -8956,7 +8956,7 @@ main(int argc, char *argv[])
 		}
 	}
 
-#ifdef	WIN32 /* ------------------------------------------------------------*/
+#ifdef WIN64 /* ------------------------------------------------------------*/
 #ifndef	DEBUG
 	if (stalone != 1) {
 		(void)fclose(stdin);
@@ -8977,7 +8977,7 @@ main(int argc, char *argv[])
 
 	mom_pid = (pid_t)getpid();
 
-#else /* ! WIN32 ------------------------------------------------------------*/
+#else /* ! WIN64 ------------------------------------------------------------*/
 
 	/* go into the background and become own session/process group */
 
@@ -9017,7 +9017,7 @@ main(int argc, char *argv[])
 #endif	/* DEBUG */
 
 	/* write MOM's pid into lockfile */
-#ifdef	WIN32
+#ifdef WIN64
 	lseek(lockfds, (off_t)0, SEEK_SET);
 #else
 	(void)ftruncate(lockfds, (off_t)0);
@@ -9092,7 +9092,7 @@ main(int argc, char *argv[])
 #ifdef	SIGINFO
 	sigaction(SIGINFO, &act, NULL);
 #endif
-#endif /* ! WIN32 end -------------------------------------------------------*/
+#endif /* ! WIN64 end -------------------------------------------------------*/
 
 	/* initialize variables */
 
@@ -9134,7 +9134,7 @@ main(int argc, char *argv[])
 	CLEAR_HEAD(task_list_timed);
 	CLEAR_HEAD(task_list_event);
 
-#ifdef	WIN32
+#ifdef WIN64
 	CLEAR_HEAD(mom_copyreqs_list);
 
 	_ftime_s(&tval);
@@ -9144,7 +9144,7 @@ main(int argc, char *argv[])
 	maxtm = time(0);
 #endif
 
-#ifndef	WIN32
+#ifndef WIN64
 	/* block signals while we do things */
 	if (sigprocmask(SIG_BLOCK, &allsigs, NULL) == -1)
 		log_err(errno, __func__, "sigprocmask(BLOCK)");
@@ -9156,17 +9156,17 @@ main(int argc, char *argv[])
 #else
 	srandom(tval.tv_usec);
 #endif	/* _SX */
-#endif	/* !WIN32 */
+#endif	/* !WIN64 */
 
 	ret_size = 4096;
 	if ((ret_string = malloc(ret_size)) == NULL) {
 		perror("malloc");
-#ifdef	WIN32
+#ifdef WIN64
 		g_dwCurrentState = SERVICE_STOPPED;
 		ss.dwCurrentState = g_dwCurrentState;
 		ss.dwWin32ExitCode = ERROR_OUTOFMEMORY;
 		if (g_ssHandle != 0) SetServiceStatus(g_ssHandle, &ss);
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 		return (1);
 	}
 
@@ -9182,7 +9182,7 @@ main(int argc, char *argv[])
 			(void)strcat(log_buffer, ", already in use");
 		log_err(-1, msg_daemonname, log_buffer);
 		(void)strcat(log_buffer, "\n");
-#ifdef	WIN32
+#ifdef WIN64
 		g_dwCurrentState = SERVICE_STOPPED;
 		ss.dwCurrentState = g_dwCurrentState;
 		ss.dwWin32ExitCode = ERROR_NETWORK_ACCESS_DENIED;
@@ -9203,12 +9203,12 @@ main(int argc, char *argv[])
 		log_err(-1, msg_daemonname, log_buffer);
 		(void)strcat(log_buffer, "\n");
 
-#ifdef	WIN32
+#ifdef WIN64
 		g_dwCurrentState = SERVICE_STOPPED;
 		ss.dwCurrentState = g_dwCurrentState;
 		ss.dwWin32ExitCode = ERROR_NETWORK_ACCESS_DENIED;
 		if (g_ssHandle != 0) SetServiceStatus(g_ssHandle, &ss);
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 		return (3);
 	}
 
@@ -9289,12 +9289,12 @@ main(int argc, char *argv[])
 
 		if ((rppfd = rpp_bind(pbs_rm_port)) == -1) {
 			log_err(errno, __func__, "rpp_bind");
-#ifdef	WIN32
+#ifdef WIN64
 			g_dwCurrentState = SERVICE_STOPPED;
 			ss.dwCurrentState = g_dwCurrentState;
 			ss.dwWin32ExitCode = ERROR_NETWORK_BUSY;
 			if (g_ssHandle != 0) SetServiceStatus(g_ssHandle, &ss);
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 			return (1);
 		}
 
@@ -9303,22 +9303,22 @@ main(int argc, char *argv[])
 		while (--tryport > 0) {
 			if ((privfd = rpp_bind(tryport)) != -1)
 				break;
-#ifdef	WIN32
+#ifdef WIN64
 			errno = WSAGetLastError();
 			if ((errno != WSAEADDRINUSE) && (errno != WSAEADDRNOTAVAIL))
 #else
 			if ((errno != EADDRINUSE) && (errno != EADDRNOTAVAIL))
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 				break;
 		}
 		if (privfd == -1) {
 			log_err(errno, __func__, "no privileged ports");
-#ifdef	WIN32
+#ifdef WIN64
 			g_dwCurrentState = SERVICE_STOPPED;
 			ss.dwCurrentState = g_dwCurrentState;
 			ss.dwWin32ExitCode = ERROR_NETWORK_BUSY;
 			if (g_ssHandle != 0) SetServiceStatus(g_ssHandle, &ss);
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 			return (1);
 		}
 	}
@@ -9353,7 +9353,7 @@ main(int argc, char *argv[])
 				"PBS checkpoint directory",
 				path_checkpoint?path_checkpoint:"NULL",
 				"does not exist or is not NFS mounted.",
-#ifdef	WIN32
+#ifdef WIN64
 				"Retrying in 2 secs."
 #else
 				"Retrying in 1 minute."
@@ -9361,7 +9361,7 @@ main(int argc, char *argv[])
 				);
 			log_err(errno, msg_daemonname, log_buffer);
 
-#ifdef	WIN32
+#ifdef WIN64
 			sleep(2);
 #else
 			sleep(60);
@@ -9376,16 +9376,16 @@ main(int argc, char *argv[])
 			path_checkpoint, "; Giving up after", i, "attempts.");
 		log_err(errno, msg_daemonname, log_buffer);
 
-#ifdef	WIN32
+#ifdef WIN64
 		g_dwCurrentState = SERVICE_STOPPED;
 		ss.dwCurrentState = g_dwCurrentState;
 		ss.dwWin32ExitCode = ERROR_FILE_CORRUPT;
 		if (g_ssHandle != 0) SetServiceStatus(g_ssHandle, &ss);
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 		return (3);
 	}
 
-#ifndef	WIN32
+#ifndef WIN64
 	mom_nice();
 #endif
 	/*
@@ -9512,7 +9512,7 @@ main(int argc, char *argv[])
 	Py_Initialize();
 
 	path = PySys_GetObject("path");
-#ifdef WIN32
+#ifdef WIN64
 	snprintf(buf, sizeof(buf), "%s/python/Lib", pbs_conf.pbs_exec_path);
 
 	PyList_Append(path, PyUnicode_FromString(buf));
@@ -9540,7 +9540,7 @@ main(int argc, char *argv[])
 	PySys_SetObject("path", path);
 #endif
 
-#ifndef	WIN32
+#ifndef WIN64
 	initialize();		/* init RM code */
 #endif
 	(void)add_conn(rppfd, RppComm, (pbs_net_t)0, 0, rpp_request);
@@ -9551,17 +9551,17 @@ main(int argc, char *argv[])
 	if ((c = mom_open_poll()) != PBSE_NONE) {
 		log_err(c, msg_daemonname, "pre_poll failed");
 
-#ifdef	WIN32
+#ifdef WIN64
 		g_dwCurrentState = SERVICE_STOPPED;
 		ss.dwCurrentState = g_dwCurrentState;
 		ss.dwWin32ExitCode = ERROR_NETWORK_ACCESS_DENIED;
 		if (g_ssHandle != 0) SetServiceStatus(g_ssHandle, &ss);
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 		return (3);
 	}
 
 	/* recover & abort Jobs which were under MOM's control */
-#ifdef	WIN32
+#ifdef WIN64
 	old_winsta = GetProcessWindowStation();
 
 	strcpy(winsta_name, PBS_DESKTOP_NAME);
@@ -9629,7 +9629,7 @@ main(int argc, char *argv[])
 
 	SetProcessWindowStation(old_winsta);
 
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 
 
 	/* recover vnode to host map from file in case Server is not yet up */
@@ -9669,12 +9669,12 @@ main(int argc, char *argv[])
 		LOG_NOTICE, msg_daemonname, log_buffer);
 
 	/* tell server we have restarted */
-#ifdef	WIN32
+#ifdef WIN64
 	ss.dwCheckPoint = 0;
 	g_dwCurrentState = SERVICE_RUNNING;
 	ss.dwCurrentState = g_dwCurrentState;
 	if (g_ssHandle != 0) SetServiceStatus(g_ssHandle, &ss);
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 
 	/*
 	 * TPP mode: don't send a restart at startup
@@ -9683,10 +9683,10 @@ main(int argc, char *argv[])
 	if (pbs_conf.pbs_use_tcp == 0)
 		send_restart();
 
-#ifdef	WIN32
+#ifdef WIN64
 	/* put here to minimize chance of hanging up or delaying mom startup */
 	initialize();
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 
 	/*
 	 * Now at last, we are ready to do some work, the following section
@@ -9694,7 +9694,7 @@ main(int argc, char *argv[])
 	 */
 	for (; mom_run_state; finish_loop(wait_time)) {
 
-#ifndef	WIN32
+#ifndef WIN64
 		if (call_hup != HUP_CLEAR) {
 			process_hup();
 			internal_state_update = UPDATE_MOM_STATE;
@@ -10173,7 +10173,7 @@ main(int argc, char *argv[])
 		}
 	}
 
-#ifndef	WIN32
+#ifndef WIN64
 	if (termin_child)
 		scan_for_terminated();
 #endif
@@ -10205,7 +10205,7 @@ main(int argc, char *argv[])
 	log_event(PBSEVENT_SYSTEM | PBSEVENT_FORCE, PBS_EVENTCLASS_SERVER,
 		LOG_NOTICE, msg_daemonname, "Is down");
 	log_close(1);
-#ifdef	WIN32
+#ifdef WIN64
 	mom_lock(lockfds, F_UNLCK);     /* unlock  */
 	(void)close(lockfds);
 	(void)unlink("mom.lock");
@@ -10240,14 +10240,14 @@ mk_dirs(char *base)
 
 	pn = malloc(ltop + strlen(base) + 2);
 	if (pn == NULL)
-#ifdef	WIN32
+#ifdef WIN64
 		ExitThread(2);
 #else
 		exit(2);
 #endif
 
 	(void)strcpy(pn, pbs_conf.pbs_home_path);
-#ifdef	WIN32
+#ifdef WIN64
 	if (strchr(pn, '\\')) {
 		if (*(pbs_conf.pbs_home_path + ltop - 1) != '\\')
 			(void)strcat(pn, "\\");
@@ -10258,13 +10258,13 @@ mk_dirs(char *base)
 #else
 	if (*(pbs_conf.pbs_home_path + ltop - 1) != '/')
 		(void)strcat(pn, "/");
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 	(void)strcat(pn, base);
 	return (pn);
 }
 
 
-#ifdef	WIN32
+#ifdef WIN64
 int
 main(int argc, char *argv[])
 {
@@ -10520,7 +10520,7 @@ PbsMomHandler(DWORD dwControl)
 			break;
 	}
 }
-#else	/* WIN32 */
+#else	/* WIN64 */
 
 /**
  * @brief
@@ -10557,7 +10557,7 @@ stop_me(int sig)
 	if (sig == SIGTERM)
 		kill_jobs_on_exit = 1;
 }
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 
 /* the following is used in support of the getkbdtime() function */
 
@@ -10607,7 +10607,7 @@ setmax(char *dev)
  * get the most recent access time for mouse/keyboard/...
  *	we assume that "time_now" is the current time
  */
-#ifdef	WIN32
+#ifdef WIN64
 /**
  * @brief
  *	gets most recent access time found for idle_touch file
@@ -10686,7 +10686,7 @@ getkbdtime(void)
 
 	return (maxtm);
 }
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 
 /**
  * @brief
@@ -10919,7 +10919,7 @@ mom_topology(void)
 	vnl_t *vtp = NULL;
 	char *topology_type;
 
-#ifndef	WIN32
+#ifndef WIN64
 	hwloc_topology_t topology;
 	ret = 0;
 	if (hwloc_topology_init(&topology) == -1)
@@ -10941,7 +10941,7 @@ mom_topology(void)
 	{
 		char	*lbuf;
 		int	lbuflen = xmllen + 1024;
-#ifdef WIN32
+#ifdef WIN64
 		int no_of_sockets = 0;
 #endif
 
@@ -10967,7 +10967,7 @@ mom_topology(void)
 			free(lbuf);
 			goto bad;
 		}
-#ifndef	WIN32
+#ifndef WIN64
 		topology_type = NODE_TOPOLOGY_TYPE_HWLOC;
 		sprintf(lbuf, "%s%s", topology_type, xmlbuf);
 #else
@@ -10986,7 +10986,7 @@ mom_topology(void)
 			free(lbuf);
 			goto bad;
 		} else {
-#ifndef WIN32
+#ifndef WIN64
 			sprintf(lbuf, "attribute '%s = %s%s' added", ATTR_NODE_TopologyInfo,
 				topology_type, xmlbuf);
 			log_event(PBSEVENT_DEBUG4, PBS_EVENTCLASS_NODE, LOG_DEBUG, __func__, lbuf);
@@ -11057,7 +11057,7 @@ mom_topology(void)
 		free(lbuf);
 	}
 bad:
-#ifndef WIN32
+#ifndef WIN64
 	hwloc_free_xmlbuffer(topology, xmlbuf);
 	hwloc_topology_destroy(topology);
 #else

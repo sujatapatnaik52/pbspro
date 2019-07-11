@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -54,7 +54,7 @@
 #include <stdio.h>
 #include <sys/types.h>
 
-#ifndef WIN32
+#ifndef WIN64
 #include <sys/param.h>
 #endif
 
@@ -75,7 +75,7 @@
 #include "resv_node.h"
 #include "queue.h"
 
-#ifdef WIN32
+#ifdef WIN64
 #include <windows.h>
 #include "win.h"
 #endif

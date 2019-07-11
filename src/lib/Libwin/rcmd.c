@@ -16,7 +16,7 @@
  */
 
 /* 
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -58,7 +58,7 @@ static char sccsid[] = "@(#)rcmd.c	5.17 (Berkeley) 6/27/88";
 
 #include <stdio.h>
 #include <errno.h>
-#ifdef WIN32
+#ifdef WIN64
 #include <windows.h>
 #include "win.h"
 #define EADDRINUSE	WSAEADDRINUSE
@@ -104,12 +104,12 @@ rresvport(int *alport)
 		if (bind(s, (struct sockaddr *)&sin, sizeof(sin)) >= 0)
 			return (s);
 
-#ifdef WIN32
+#ifdef WIN64
 		errno = WSAGetLastError();
 #endif
 
 		if (errno != EADDRINUSE && errno != EADDRNOTAVAIL) {
-#ifdef WIN32
+#ifdef WIN64
 			(void) closesocket(s);
 #else
 			(void) close(s);
@@ -118,7 +118,7 @@ rresvport(int *alport)
 		}
 		(*alport)--;
 		if (*alport == IPPORT_RESERVED/2) {
-#ifdef WIN32
+#ifdef WIN64
 			(void) closesocket(s);
 #else
 			(void) close(s);
@@ -185,7 +185,7 @@ rcmd(char **ahost,
 		fcntl(s, F_SETOWN, pid);
 #endif
 		sin.sin_family = hp->h_addrtype;
-#ifdef WIN32
+#ifdef WIN64
 		memcpy((void *)&sin.sin_addr, (void *)hp->h_addr_list[0],
 			hp->h_length);
 #else
@@ -195,7 +195,7 @@ rcmd(char **ahost,
 		if (connect(s, (struct sockaddr *)&sin, sizeof(sin)) >= 0)
 			break;
 
-#ifdef WIN32
+#ifdef WIN64
 		errno = WSAGetLastError();
 		(void) closesocket(s);
 #else
@@ -218,7 +218,7 @@ rcmd(char **ahost,
 			errno = oerrno;
 			perror(0);
 			hp->h_addr_list++;
-#ifdef WIN32
+#ifdef WIN64
 			memcpy((void *)&sin.sin_addr,
 				(void *)hp->h_addr_list[0], hp->h_length);
 #else
@@ -235,7 +235,7 @@ rcmd(char **ahost,
 	}
 	lport--;
 	if (fd2p == 0) {
-#ifdef WIN32
+#ifdef WIN64
 		send(s, "", 1, 0);
 #else
 		write(s, "", 1);
@@ -250,7 +250,7 @@ rcmd(char **ahost,
 			goto bad;
 		listen(s2, 1);
 		(void) snprintf(num, sizeof(num), "%d", lport);
-#ifdef WIN32
+#ifdef WIN64
 		if (send(s, num, strlen(num)+1, 0) != strlen(num)+1) {
 			perror("write: setting up stderr");
 			(void) closesocket(s2);
@@ -264,7 +264,7 @@ rcmd(char **ahost,
 		}
 #endif
 		s3 = accept(s2, (struct sockaddr *)&from, &len);
-#ifdef WIN32
+#ifdef WIN64
 		(void) closesocket(s2);
 #else
 		(void) close(s2);
@@ -283,7 +283,7 @@ rcmd(char **ahost,
 			goto bad2;
 		}
 	}
-#ifdef WIN32
+#ifdef WIN64
 	(void) send(s, locuser, strlen(locuser)+1, 0);
 	(void) send(s, remuser, strlen(remuser)+1, 0);
 	(void) send(s, cmd, strlen(cmd)+1, 0);
@@ -293,7 +293,7 @@ rcmd(char **ahost,
 	(void) write(s, cmd, strlen(cmd)+1);
 #endif
 
-#ifdef WIN32
+#ifdef WIN64
 	if (recv(s, &c, 1, 0) != 1)
 #else
 	if (read(s, &c, 1) != 1)
@@ -304,7 +304,7 @@ rcmd(char **ahost,
 	}
 	if (c != 0) {
 
-#ifdef WIN32
+#ifdef WIN64
 		while (recv(s, &c, 1, 0) == 1) {
 			(void) send(2, &c, 1, 0);
 			if (c == '\n')
@@ -322,14 +322,14 @@ rcmd(char **ahost,
 	return (s);
 bad2:
 	if (lport)
-#ifdef WIN32
+#ifdef WIN64
 		(void) closesocket(*fd2p);
 #else
 		(void) close(*fd2p);
 #endif
 bad:
 
-#ifdef WIN32
+#ifdef WIN64
 	(void) closesocket(s);
 #else
 	(void) close(s);
@@ -400,7 +400,7 @@ rcmd2(char **ahost,
 		fcntl(s, F_SETOWN, pid);
 #endif
 		sin.sin_family = hp->h_addrtype;
-#ifdef WIN32
+#ifdef WIN64
 		memcpy((void *)&sin.sin_addr, (void *)hp->h_addr_list[0],
 			hp->h_length);
 #else
@@ -410,7 +410,7 @@ rcmd2(char **ahost,
 		if (connect(s, (struct sockaddr *)&sin, sizeof(sin)) >= 0)
 			break;
 
-#ifdef WIN32
+#ifdef WIN64
 		errno = WSAGetLastError();
 		(void) closesocket(s);
 #else
@@ -433,7 +433,7 @@ rcmd2(char **ahost,
 			errno = oerrno;
 			perror(0);
 			hp->h_addr_list++;
-#ifdef WIN32
+#ifdef WIN64
 			memcpy((void *)&sin.sin_addr,
 				(void *)hp->h_addr_list[0], hp->h_length);
 #else
@@ -450,7 +450,7 @@ rcmd2(char **ahost,
 	}
 	lport--;
 	if (fd2p == 0) {
-#ifdef WIN32
+#ifdef WIN64
 		send(s, "", 1, 0);
 #else
 		write(s, "", 1);
@@ -465,7 +465,7 @@ rcmd2(char **ahost,
 			goto bad;
 		listen(s2, 1);
 		(void) snprintf(num, sizeof(num), "%d", lport);
-#ifdef WIN32
+#ifdef WIN64
 		if (send(s, num, strlen(num)+1, 0) != strlen(num)+1) {
 			perror("write: setting up stderr");
 			(void) closesocket(s2);
@@ -479,7 +479,7 @@ rcmd2(char **ahost,
 		}
 #endif
 		s3 = accept(s2, (struct sockaddr *)&from, &len);
-#ifdef WIN32
+#ifdef WIN64
 		(void) closesocket(s2);
 #else
 		(void) close(s2);
@@ -498,7 +498,7 @@ rcmd2(char **ahost,
 			goto bad2;
 		}
 	}
-#ifdef WIN32
+#ifdef WIN64
 	(void) send(s, locuser, strlen(locuser)+1, 0);
 	(void) send(s, remuser, strlen(remuser)+1, 0);
 
@@ -529,7 +529,7 @@ rcmd2(char **ahost,
 	(void) write(s, cmd, strlen(cmd)+1);
 #endif
 
-#ifdef WIN32
+#ifdef WIN64
 	if (recv(s, &c, 1, 0) != 1)
 #else
 	if (read(s, &c, 1) != 1)
@@ -540,7 +540,7 @@ rcmd2(char **ahost,
 	}
 	if (c != 0) {
 
-#ifdef WIN32
+#ifdef WIN64
 		while (recv(s, &c, 1, 0) == 1) {
 			(void) send(2, &c, 1, 0);
 			if (c == '\n')
@@ -558,14 +558,14 @@ rcmd2(char **ahost,
 	return (s);
 bad2:
 	if (lport)
-#ifdef WIN32
+#ifdef WIN64
 		(void) closesocket(*fd2p);
 #else
 		(void) close(*fd2p);
 #endif
 bad:
 
-#ifdef WIN32
+#ifdef WIN64
 	(void) closesocket(s);
 #else
 	(void) close(s);

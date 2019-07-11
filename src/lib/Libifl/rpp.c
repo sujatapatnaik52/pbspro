@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -700,7 +700,7 @@ blog_out(char *filename)
 	if ((f = fopen(filename, "a")) == NULL)
 		return;
 
-#ifdef WIN32
+#ifdef WIN64
 	secure_file(filename, "Administrators",
 		READS_MASK|WRITES_MASK|STANDARD_RIGHTS_REQUIRED);
 #endif
@@ -884,7 +884,7 @@ crc(u_char *buf, u_long	clen)
  *	END of included source
  */
 
-#ifdef WIN32
+#ifdef WIN64
 /**
  * @brief
  * 	Given some bytes of data in 'buf' of size 'buf_sz', return a
@@ -957,7 +957,7 @@ crc_file(char *filepath)
 	int	nread = 0;
 	int	count;
 	u_char	*tmpbuf;	
-#ifdef WIN32
+#ifdef WIN64
 	u_char	*tr_buf = NULL;
 	int	tr_buf_sz = 0;
 #endif
@@ -979,7 +979,7 @@ crc_file(char *filepath)
 		return (0);
 	}
 
-#ifdef WIN32
+#ifdef WIN64
 	setmode(fd, O_BINARY);
 #endif
 
@@ -1014,7 +1014,7 @@ crc_file(char *filepath)
 	}
 
 	close(fd);
-#ifdef WIN32
+#ifdef WIN64
 	tr_buf = dos2unix(buf, sb.st_size, &tr_buf_sz);
 	return (crc(tr_buf, tr_buf_sz));
 #else
@@ -1077,7 +1077,7 @@ netaddr(struct sockaddr_in *ap)
 	return out;
 }
 
-#ifdef WIN32
+#ifdef WIN64
 
 #ifndef SIO_UDP_CONNRESET
 #define SIO_UDP_CONNRESET _WSAIOW(IOC_VENDOR, 12)
@@ -1105,7 +1105,7 @@ fix_connreset_msbug(int sd)
 	WSAIoctl(sd, SIO_UDP_CONNRESET, &bNewBehavior, sizeof(bNewBehavior),
 		NULL, 0, &dwBytesReturned, NULL, NULL);
 }
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 
 /**
  * @brief
@@ -1836,7 +1836,7 @@ __rpp_recv_pkt(int fd)
 
 		if (len != -1)
 			break;
-#ifdef WIN32
+#ifdef WIN64
 		errno = WSAGetLastError();
 		if (errno == WSAEINTR)
 			continue;
@@ -2405,7 +2405,7 @@ int
 __rpp_bind(uint port)
 {
 	struct	sockaddr_in	from;
-#ifdef WIN32
+#ifdef WIN64
 	unsigned long 		num_bytes = 1;
 #else
 	int			flags;
@@ -2419,7 +2419,7 @@ __rpp_bind(uint port)
 		if ((rpp_fd = socket(PF_INET, SOCK_DGRAM, 0)) == -1)
 			return -1;
 
-#ifdef WIN32
+#ifdef WIN64
 		fix_connreset_msbug(rpp_fd);
 
 		/* set no delay - windows 2000 port version */
@@ -2500,7 +2500,7 @@ __rpp_bind(uint port)
 			}
 		}
 
-#endif /* end of ifdef win32 */
+#endif /* end of ifdef WIN64 */
 
 		/* save who started it all for __rpp_shutdown */
 		bind_pid = (pid_t)getpid();
@@ -2521,7 +2521,7 @@ __rpp_bind(uint port)
 	from.sin_port = htons((u_short)port);
 
 	if (bind(rpp_fd, (struct sockaddr *)&from, sizeof(from)) == -1) {
-#ifdef WIN32
+#ifdef WIN64
 		errno = WSAGetLastError();
 #endif
 		return -1;
@@ -2562,7 +2562,7 @@ __rpp_open(char *name, uint port)
 	int			i, stream;
 	struct	hostent		*hp;
 	struct	stream		*sp;
-#ifdef WIN32
+#ifdef WIN64
 	struct sockaddr_in	*host_addr;
 #endif
 
@@ -2726,7 +2726,7 @@ __rpp_terminate(void)
 	int			i;
 
 	for (i=0; i<rpp_fd_num; i++)
-#ifdef WIN32
+#ifdef WIN64
 		(void)closesocket(rpp_fd_array[i]);
 #else
 		(void)close(rpp_fd_array[i]);

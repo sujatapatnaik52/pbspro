@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -57,7 +57,7 @@
 #include <ifaddrs.h>
 #include <netdb.h>
 
-#elif defined(WIN32)
+#elif defined(WIN64)
 
 #include <Winsock2.h>
 #include <Ws2tcpip.h>
@@ -176,10 +176,10 @@ get_if_hostnames(struct sockaddr *saddr)
 	struct sockaddr_in6 *saddr_in6;
 	char buf[INET6_ADDRSTRLEN];
 	const char *bufp = NULL;
-#ifdef WIN32
+#ifdef WIN64
 	char host[NI_MAXHOST] = {'\0'};
 	int ret = 0;	
-#endif /* WIN32 */
+#endif /* WIN64 */
 
 	if (!saddr)
 		return NULL;
@@ -187,15 +187,15 @@ get_if_hostnames(struct sockaddr *saddr)
 	switch (saddr->sa_family) {
 		case AF_INET:
 			saddr_in = (struct sockaddr_in *)saddr;
-#ifdef WIN32
+#ifdef WIN64
 			saddr_in->sin_family = AF_INET;
-#endif /* WIN32 */
+#endif /* WIN64 */
 			addr = &saddr_in->sin_addr;
 			addr_size = sizeof(saddr_in->sin_addr);
 			bufp = inet_ntop(AF_INET, addr, buf, INET_ADDRSTRLEN);
 			if (!bufp)
 				return NULL;
-#ifdef WIN32
+#ifdef WIN64
 			ret = getnameinfo(saddr_in, sizeof(struct sockaddr_in), host, NI_MAXHOST, NULL, NULL, 0);
 			if (ret != 0 || host[0] == '\0')
 				return NULL;
@@ -203,19 +203,19 @@ get_if_hostnames(struct sockaddr *saddr)
 			hostp = gethostbyaddr(addr, addr_size, saddr_in->sin_family);
 			if (!hostp)
 				return NULL;
-#endif /* WIN32 */
+#endif /* WIN64 */
 			break;
 		case AF_INET6:
 			saddr_in6 = (struct sockaddr_in6 *)saddr;
-#ifdef WIN32
+#ifdef WIN64
 			saddr_in6->sin6_family = AF_INET6;
-#endif /* WIN32 */
+#endif /* WIN64 */
 			addr = &saddr_in6->sin6_addr;
 			addr_size = sizeof(saddr_in6->sin6_addr);
 			bufp = inet_ntop(AF_INET6, addr, buf, INET6_ADDRSTRLEN);
 			if (!bufp)
 				return NULL;
-#ifdef WIN32
+#ifdef WIN64
 			ret = getnameinfo(saddr_in6, sizeof(struct sockaddr_in6), host, NI_MAXHOST, NULL, NULL, 0);
 			if (ret != 0 || host[0] == '\0')
 				return NULL;
@@ -223,13 +223,13 @@ get_if_hostnames(struct sockaddr *saddr)
 			hostp = gethostbyaddr(addr, addr_size, saddr_in6->sin6_family);
 			if (!hostp)
 				return NULL;
-#endif /* WIN32 */
+#endif /* WIN64 */
 			break;
 		default:
 			return NULL;
 	}
 
-#ifdef WIN32
+#ifdef WIN64
 	names = (char**)calloc(2, sizeof(char*));
 	if(!names)
 		return NULL;
@@ -245,7 +245,7 @@ get_if_hostnames(struct sockaddr *saddr)
 	for (i = 0; i < aliases; i++) {
 		names[i+1] = strdup(hostp->h_aliases[i]);
 	}
-#endif /* WIN32 */
+#endif /* WIN64 */
 	return names;
 }
 
@@ -332,7 +332,7 @@ get_if_info(char *msg)
 	}
 	freeifaddrs(ifp);
 
-#elif defined(WIN32)
+#elif defined( WIN64)
 
 	int c, i;
 	char **hostnames;
@@ -596,7 +596,7 @@ get_all_ips(char *hostname, char *msg_buf, size_t msg_buf_len)
 #if defined(linux)
 	struct ifaddrs *ifp, *listp;
 	char *p;
-#elif defined(WIN32)
+#elif defined( WIN64)
 	int i;
 	/* Variables used by GetIpAddrTable */
 	PMIB_IPADDRTABLE pIPAddrTable;
@@ -656,7 +656,7 @@ get_all_ips(char *hostname, char *msg_buf, size_t msg_buf_len)
 
 	freeifaddrs(ifp);
 
-#elif defined(WIN32)
+#elif defined( WIN64)
 	
 	pIPAddrTable = (MIB_IPADDRTABLE *) malloc(sizeof (MIB_IPADDRTABLE));
 

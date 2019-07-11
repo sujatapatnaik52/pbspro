@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -113,7 +113,7 @@ main(int argc, char *argv[])
 	}
 
 	for (i=optind; i < argc; ++i) {
-#ifdef WIN32
+#ifdef WIN64
 		/* we're not checking fullpath */
 		j = chk_file_sec(argv[i], dir, sticky, WRITES_MASK, 0);
 #else

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -119,7 +119,7 @@
 #include 	<stdio.h>
 #include 	<stdlib.h>
 
-#ifndef WIN32
+#ifndef WIN64
 #include	<unistd.h>
 #endif
 
@@ -129,7 +129,7 @@
 #include	<fcntl.h>
 #include 	<sys/types.h>
 
-#ifndef WIN32
+#ifndef WIN64
 #include	<netdb.h>
 #include	<netinet/in.h>
 #endif
@@ -147,7 +147,7 @@
 #include	"net_connect.h"
 #include	"work_task.h"
 
-#ifdef WIN32
+#ifdef WIN64
 #include	<windows.h>
 #include	"win.h"
 #endif
@@ -177,7 +177,7 @@
 #include 	"pbs_sched.h"
 #include	"svrfunc.h"
 
-#if !defined(H_ERRNO_DECLARED) && !defined(WIN32)
+#if !defined(H_ERRNO_DECLARED) && !defined( WIN64)
 extern int h_errno;
 #endif
 
@@ -4794,11 +4794,11 @@ found:
 			if (ret != DIS_SUCCESS)
 				goto err;
 
-#ifdef WIN32
+#ifdef WIN64
 			DBPRT(("mem %I64ukb ", l))
 #else
 			DBPRT(("mem %llukb ", l))
-#endif /* WIN32 */
+#endif /* WIN64 */
 
 			psvrmom->msr_pmem = l;
 
@@ -6391,11 +6391,11 @@ cvt_nodespec_to_select(char *str, char **cvt_bp, size_t *cvt_lenp, attribute *pa
 		/* 3. the amt of mem, if specified */
 
 		if (hmem) {
-#ifdef WIN32
+#ifdef WIN64
 			sprintf(sprintf_buf, ":mem=%I64uKB", memamt);
 #else
 			sprintf(sprintf_buf, ":mem=%lluKB", memamt);
-#endif /* WIN32 */
+#endif /* WIN64 */
 			needed = strlen(sprintf_buf) + 1;
 			if (cvt_overflow(pcvt_free, needed) &&
 				(cvt_realloc(cvt_bp, cvt_lenp, &pcvt, &pcvt_free) == 0)) {

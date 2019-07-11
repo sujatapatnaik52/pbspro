@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -62,7 +62,7 @@
 #include <signal.h>
 #include <sys/types.h>
 
-#ifdef WIN32
+#ifdef WIN64
 #include <windows.h>
 #include <io.h>
 #include "win.h"
@@ -124,7 +124,7 @@ extern void post_sendmom(struct work_task *pwt);
 
 /* Global Data */
 
-#if !defined(WIN32) && !defined(H_ERRNO_DECLARED)
+#if !defined( WIN64) && !defined(H_ERRNO_DECLARED)
 extern int     h_errno;
 #endif
 extern char	*path_jobs;
@@ -147,7 +147,7 @@ extern int	scheduler_jobs_stat;
 extern	char	*path_hooks_workdir;
 extern struct work_task *add_mom_deferred_list(int stream, mominfo_t *minfo, void (*func)(), char *msgid, void *parm1, void *parm2);
 
-#ifdef WIN32
+#ifdef WIN64
 extern struct server server;
 extern char	 server_host[];
 extern char	 server_name[];
@@ -681,7 +681,7 @@ send_job(job *jobp, pbs_net_t hostaddr, int port, int move_type,
 	void (*post_func)(struct work_task *), struct batch_request *preq)
 {
 
-#ifdef WIN32
+#ifdef WIN64
 	char	cmdline[80];
 	pio_handles	pio;
 	char	buf[4096];
@@ -969,7 +969,7 @@ send_job(job *jobp, pbs_net_t hostaddr, int port, int move_type,
 	/* Unprotect child from being killed by kernel */
 	daemon_protect(0, PBS_DAEMON_PROTECT_OFF);
 
-#ifdef WIN32
+#ifdef WIN64
 	/* get host name */
 	/*
 	 * If host address is loopback address then do not resolve with dns
@@ -991,7 +991,7 @@ send_job(job *jobp, pbs_net_t hostaddr, int port, int move_type,
 			(void)get_credential(hp->h_name, jobp, PBS_GC_BATREQ,
 				&credbuf, &credlen);
 		}
-#ifdef WIN32
+#ifdef WIN64
 	}
 #endif
 
@@ -1135,7 +1135,7 @@ send_job(job *jobp, pbs_net_t hostaddr, int port, int move_type,
 								LOG_INFO, jobp->ji_qs.ji_jobid,
 								log_buffer);
 						} else {
-#ifdef WIN32
+#ifdef WIN64
 							secure_file(name_buf, "Administrators",
 								READS_MASK|WRITES_MASK|STANDARD_RIGHTS_REQUIRED);
 							setmode(rfd, O_BINARY);
@@ -1244,7 +1244,7 @@ send_job(job *jobp, pbs_net_t hostaddr, int port, int move_type,
 	exit(i);
 	return -1;		/* NOT REACHED */
 
-#endif /* !WIN32 */
+#endif /* !WIN64 */
 }
 
 /**
@@ -1318,7 +1318,7 @@ should_retry_route(int err)
 {
 	switch (err) {
 		case 0:
-#ifdef WIN32
+#ifdef WIN64
 		case WSAEADDRINUSE:
 		case WSAEADDRNOTAVAIL:
 		case WSAECONNREFUSED:

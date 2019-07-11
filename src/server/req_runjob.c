@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -71,7 +71,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#ifdef WIN32
+#ifdef WIN64
 #include <windows.h>
 #include "win.h"
 #else
@@ -1302,7 +1302,7 @@ post_sendmom(struct work_task *pwt)
 		if (WIFEXITED(wstat)) {
 			r = WEXITSTATUS(wstat);
 		}
-#ifndef WIN32
+#ifndef WIN64
 		 else if (WIFSIGNALED(wstat)) { /* Check if send_job child process has been signaled or not */
 			r = SEND_JOB_SIGNAL;
 			snprintf(log_buffer, LOG_BUF_SIZE, msg_job_end_sig, WTERMSIG(wstat));
@@ -1339,7 +1339,7 @@ post_sendmom(struct work_task *pwt)
 
 					reject_msg = malloc(sbuf.st_size);
 					if (reject_msg != NULL) {
-#ifdef WIN32
+#ifdef WIN64
 						setmode(fd, O_BINARY);
 #endif
 						if (read(fd, reject_msg, sbuf.st_size) != sbuf.st_size) {
@@ -1458,7 +1458,7 @@ post_sendmom(struct work_task *pwt)
 				complete_running(jobp);
 			break;
 
-#ifndef WIN32
+#ifndef WIN64
 		case SEND_JOB_SIGNAL:
 
 			/* send_job child process has been signaled

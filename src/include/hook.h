@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -372,7 +372,7 @@ extern char *hook_fail_action_as_string(unsigned int);
 extern void cleanup_hooks_workdir(struct work_task *);
 #endif
 
-#ifdef WIN32
+#ifdef WIN64
 #define	ALARM_HANDLER_ARG void
 #else
 #define	ALARM_HANDLER_ARG int sig

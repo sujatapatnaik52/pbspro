@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -695,7 +695,7 @@ query_server_dyn_res(server_info *sinfo)
 	char buf[256];		/* buffer for reading from pipe */
 	schd_resource *res;		/* used for updating node resources */
 	FILE *fp;			/* for popen() for res_assn */
-#ifdef WIN32
+#ifdef WIN64
 	struct  pio_handles	  pio;  /* for win_popen() for res_assn */
 	char			  cmd_line[512];
 #endif
@@ -707,7 +707,7 @@ query_server_dyn_res(server_info *sinfo)
 				sinfo->res = res;
 
 			pipe_err = errno = 0;
-#ifdef	WIN32
+#ifdef	WIN64
 			/* In Windows, don't use popen() as this crashes if COMSPEC not set */
 			/* also, let's quote command line so that paths with spaces can be */
 			/* executed. */

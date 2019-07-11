@@ -1302,7 +1302,7 @@ main(int argc, char *argv[])
 	freopen("/dev/null", "r", stdin);
 
 	/* write schedulers pid into lockfile */
-#ifdef WIN32
+#ifdef WIN64
 	lseek(lockfds, (off_t)0, SEEK_SET);
 #else
 	(void)ftruncate(lockfds, (off_t)0);

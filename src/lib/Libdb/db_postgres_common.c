@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -294,7 +294,7 @@ pbs_get_dataservice_password(char *user, char *errmsg, int len)
 	char buf[MAXPATHLEN+1];
 	char *str;
 
-#ifdef WIN32
+#ifdef WIN64
 	sprintf(pwd_file, "%s\\server_priv\\db_password", pbs_conf.pbs_home_path);
 	if ((fd = open(pwd_file, O_RDONLY | O_BINARY)) == -1)
 #else
@@ -486,7 +486,7 @@ pbs_get_connect_string(char *host, int timeout, int *err_code, char *errmsg, int
 	return svr_conn_info;
 }
 
-#ifdef WIN32
+#ifdef WIN64
 void
 repl_slash(char *path)
 {
@@ -522,7 +522,7 @@ pbs_dataservice_control(char *cmd, char **errmsg)
 	struct stat stbuf;
 	int fd;
 	char *p;
-#ifdef WIN32
+#ifdef WIN64
 	char buf[MAXPATHLEN+1];
 #endif
 
@@ -531,7 +531,7 @@ pbs_dataservice_control(char *cmd, char **errmsg)
 		*errmsg = NULL;
 	}
 
-#ifdef WIN32
+#ifdef WIN64
 	strcpy(buf, pbs_conf.pbs_home_path);
 	repl_slash(buf);
 	/* create unique filename by appending pid */

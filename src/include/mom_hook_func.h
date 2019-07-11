@@ -44,7 +44,7 @@ extern "C" {
 
 #ifdef linux
 #define	REBOOT_CMD	"/sbin/reboot"
-#elif WIN32
+#elif WIN64
 #define REBOOT_CMD	"\\windows\\system32\\shutdown.exe /g /f /t 5"
 #else
 #define REBOOT_CMD	"/usr/sbin/reboot"

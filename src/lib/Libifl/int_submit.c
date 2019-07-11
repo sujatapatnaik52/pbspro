@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -44,7 +44,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <fcntl.h>
-#ifndef WIN32
+#ifndef WIN64
 #include <stdint.h>
 #endif
 #include "portability.h"
@@ -123,7 +123,7 @@ get_msgid(char **id)
 	} else {
 		counter++;
 	}
-#ifdef WIN32
+#ifdef WIN64
 	sprintf(msgid, "%ld:%d", now, counter);
 #else
 	sprintf(msgid, "%ju:%d", (uintmax_t)now, counter);

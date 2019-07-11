@@ -1,5 +1,5 @@
 @echo off
-REM Copyright (C) 1994-2019 Altair Engineering, Inc.
+REM Copyright (C) 1994-2017 Altair Engineering, Inc.
 REM For more information, contact Altair at www.altair.com.
 REM
 REM This file is part of the PBS Professional ("PBS Pro") software.
@@ -44,7 +44,7 @@ if not defined PYTHON_VERSION (
     echo "Please set PYTHON_VERSION to Python version!"
     exit /b 1
 )
-
+set DO_DEBUG_BUILD=1
 if %DO_DEBUG_BUILD% EQU 0 (
     echo "You are in Release mode so no need of Python debug build, skipping Python debug build"
     exit /b 0
@@ -76,11 +76,14 @@ if exist "%BINARIESDIR%\python_externals.tar.gz" (
 REM Patch python source to make it purify compatible
 REM this patch is same as compiling python with '--without-pymalloc' in Linux
 REM but unfortunately in windows we don't have command line option like Linux
-"%MSYSDIR%\bin\bash" --login -i -c "cd \"$BINARIESDIR_M/cpython-$PYTHON_VERSION\" && sed -i 's/#define WITH_PYMALLOC 1//g' PC/pyconfig.h"
+REM "%MSYSDIR%\bin\bash" --login -i -c "cd \"$BINARIESDIR_M/cpython-$PYTHON_VERSION\" && sed -i 's/#define WITH_PYMALLOC 1//g' PC/pyconfig.h"
 
-call "%BINARIESDIR%\cpython-%PYTHON_VERSION%\PCbuild\env.bat" x86
+REM "Set MSBUILD to VS2017 before calling env.bat"
+call "%BINARIESDIR%\cpython-%PYTHON_VERSION%\PCbuild\find_msbuild.bat"
 
-call "%BINARIESDIR%\cpython-%PYTHON_VERSION%\PC\VS9.0\build.bat" -e -d
+call "%BINARIESDIR%\cpython-%PYTHON_VERSION%\PCbuild\env.bat" x64
+
+call "%BINARIESDIR%\cpython-%PYTHON_VERSION%\PCbuild\build.bat" -e -p x64 -d
 if not %ERRORLEVEL% == 0 (
     echo "Failed to compile Python debug version"
     exit /b 1

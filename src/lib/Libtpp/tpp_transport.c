@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -1568,7 +1568,7 @@ work(void *v)
 	int timeout, timeout2;
 	time_t now;
 	tpp_tls_t *ptr;
-#ifndef WIN32
+#ifndef WIN64
 	int rc;
 	sigset_t	blksigs;
 #endif
@@ -1586,7 +1586,7 @@ work(void *v)
 	ptr->td = (void *) td;
 	td->tpp_tls = ptr; /* store allocated area for tls into td to free at shutdown/terminate */
 
-#ifndef WIN32
+#ifndef WIN64
 	/* block a certain set of signals that we do not care about in this IO thread
 	 * A signal directed to a multi-threaded program can be delivered to any thread
 	 * which has a unblocked signal mask for that signal. This could cause havoc for

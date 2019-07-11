@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -78,7 +78,7 @@ extern resdef **boolres;
 extern char *sc_name;
 extern int sched_port;
 extern char *logfile;
-#ifdef WIN32
+#ifdef WIN64
 extern char path_log[_MAX_PATH];
 #else
 extern char path_log[_POSIX_PATH_MAX];

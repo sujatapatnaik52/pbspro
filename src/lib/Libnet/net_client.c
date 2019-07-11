@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -46,7 +46,7 @@
 #include <errno.h>
 #include <netdb.h>
 #include <string.h>
-#ifndef WIN32
+#ifndef WIN64
 #include <unistd.h>
 #include <fcntl.h>
 #include <poll.h>
@@ -59,7 +59,7 @@
 #include "pbs_error.h"
 #include "libsec.h"
 #include "pbs_internal.h"
-#ifdef WIN32
+#ifdef WIN64
 #include "win.h"
 #include <Winerror.h>
 #endif
@@ -69,7 +69,7 @@
  */
 static int conn_timeout = PBS_DIS_TCP_TIMEOUT_CONNECT; /* timeout for connect */
 
-#ifdef WIN32
+#ifdef WIN64
 /**
  * @brief
  * 	set_client_to_svr_timeout - sets the timeout value needed
@@ -83,7 +83,7 @@ set_client_to_svr_timeout(unsigned int timeout)
 {
 	conn_timeout = timeout;
 }
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 
 /**
  * @brief
@@ -111,7 +111,7 @@ engage_authentication(int sd, struct in_addr addr, int port, int authport_flags)
 	int mode;
 	char ebuf[128];
 	char errbuf[1024];
-#if !defined(WIN32)
+#if !defined( WIN64)
 	char	dst[INET_ADDRSTRLEN+1]; /* for inet_ntop */
 #endif
 
@@ -143,7 +143,7 @@ engage_authentication(int sd, struct in_addr addr, int port, int authport_flags)
 		}
 	}
 
-#if defined(WIN32)
+#if defined( WIN64)
 	/* inet_ntoa is thread-safe on windows */
 	sprintf(ebuf,
 		"Unable to authenticate with (%s:%d)",
@@ -157,7 +157,7 @@ engage_authentication(int sd, struct in_addr addr, int port, int authport_flags)
 	cs_logerr(-1, __func__, ebuf);
 
 	if ((ret = CS_close_socket(sd)) != CS_SUCCESS) {
-#if defined(WIN32)
+#if defined( WIN64)
 		sprintf(ebuf, "Problem closing context (%s:%d)",
 			inet_ntoa(addr), port);
 #else
@@ -240,7 +240,7 @@ client_to_svr_extend(pbs_net_t hostaddr, unsigned int port, int authport_flags, 
 	int	local_port;
 	int	errn;
 	int	rc;
-#ifdef WIN32
+#ifdef WIN64
 	int	ret;
 	int	non_block = 1;
 	struct	linger      li;
@@ -310,7 +310,7 @@ client_to_svr_extend(pbs_net_t hostaddr, unsigned int port, int authport_flags, 
 				sizeof(local)) == 0)
 				break;
 
-#ifdef WIN32
+#ifdef WIN64
 			errno = WSAGetLastError();
 			if (errno != EADDRINUSE && errno != EADDRNOTAVAIL && errno != WSAEACCES) {
 				closesocket(sock);
@@ -324,7 +324,7 @@ client_to_svr_extend(pbs_net_t hostaddr, unsigned int port, int authport_flags, 
 				tryport = IPPORT_RESERVED - 1;
 			}
 			if (tryport == start_port) {
-#ifdef WIN32
+#ifdef WIN64
 				closesocket(sock);
 #else
 				close(sock);
@@ -349,7 +349,7 @@ client_to_svr_extend(pbs_net_t hostaddr, unsigned int port, int authport_flags, 
 
 	remote.sin_port = htons((unsigned short)port);
 	remote.sin_family = AF_INET;
-#ifdef WIN32
+#ifdef WIN64
 	li.l_onoff = 1;
 	li.l_linger = 5;
 
@@ -370,7 +370,7 @@ client_to_svr_extend(pbs_net_t hostaddr, unsigned int port, int authport_flags, 
 
 	if (connect(sock, (struct sockaddr *)&remote, sizeof(remote)) < 0) {
 
-#ifdef WIN32
+#ifdef WIN64
 		errno = WSAGetLastError();
 #endif
 		/*
@@ -383,7 +383,7 @@ client_to_svr_extend(pbs_net_t hostaddr, unsigned int port, int authport_flags, 
 		errn = errno;
 		pbs_errno = errn;
 		switch (errn) {
-#ifdef WIN32
+#ifdef WIN64
 			case WSAEINTR:
 #else
 			case EINTR:
@@ -391,14 +391,14 @@ client_to_svr_extend(pbs_net_t hostaddr, unsigned int port, int authport_flags, 
 			case EADDRINUSE:
 			case ETIMEDOUT:
 			case ECONNREFUSED:
-#ifdef WIN32
+#ifdef WIN64
 				closesocket(sock);
 #else
 				close(sock);
 #endif
 				return (PBS_NET_RC_RETRY);
 
-#ifdef WIN32
+#ifdef WIN64
 			case WSAEWOULDBLOCK:
 				FD_ZERO(&writeset);
 				FD_SET((unsigned int)sock, &writeset);
@@ -454,7 +454,7 @@ client_to_svr_extend(pbs_net_t hostaddr, unsigned int port, int authport_flags, 
 #endif	/* end UNIX */
 
 			default:
-#ifdef WIN32
+#ifdef WIN64
 				closesocket(sock);
 #else
 				close(sock);
@@ -464,7 +464,7 @@ client_to_svr_extend(pbs_net_t hostaddr, unsigned int port, int authport_flags, 
 	}
 
 	/* reset socket to blocking */
-#ifdef WIN32
+#ifdef WIN64
 	non_block = 0;
 	if (ioctlsocket(sock, FIONBIO, &non_block) == SOCKET_ERROR) {
 		errno = WSAGetLastError();
@@ -484,7 +484,7 @@ client_to_svr_extend(pbs_net_t hostaddr, unsigned int port, int authport_flags, 
 
 	/*authentication unsuccessful*/
 
-#ifdef WIN32
+#ifdef WIN64
 	closesocket(sock);
 #else
 	close(sock);

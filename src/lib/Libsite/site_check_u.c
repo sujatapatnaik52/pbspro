@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -122,7 +122,7 @@ site_check_user_map(void *pobj, int objtype, char *luser)
 	if (!strcasecmp(orighost, server_host) && !strcmp(owner, luser))
 		return (0);
 
-#ifdef WIN32
+#ifdef WIN64
 	rc =   ruserok(orighost, isAdminPrivilege(luser), owner, luser);
 	if (rc == -2) {
 		sprintf(log_buffer, "User %s does not exist!", luser);

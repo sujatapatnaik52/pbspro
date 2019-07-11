@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -45,7 +45,7 @@
 #endif
 #include <stdlib.h>
 #include <string.h>
-#ifndef WIN32
+#ifndef WIN64
 #include <pwd.h>
 #include <grp.h>
 #endif
@@ -691,7 +691,7 @@ hacl_match(const char *can, const char *master)
 static int
 gacl_match(const char *can, const char *master)
 {
-#ifdef WIN32
+#ifdef WIN64
 	return(strcmp(can, master));
 #else
 	int i, ng = 0;

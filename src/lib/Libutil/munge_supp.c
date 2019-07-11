@@ -58,7 +58,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <pwd.h>
-#ifndef WIN32
+#ifndef WIN64
 #include <dlfcn.h>
 #include <grp.h>
 #endif
@@ -66,7 +66,7 @@
 
 
 
-#ifndef WIN32
+#ifndef WIN64
 const char libmunge[] = "libmunge.so";  /* MUNGE library */
 void *munge_dlhandle; /* MUNGE dynamic loader handle */
 int (*munge_encode_ptr)(char **, void *, const void *, int); /* MUNGE munge_encode() function pointer */

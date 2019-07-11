@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -102,7 +102,7 @@
 int
 tpp_em_wait(void *em_ctx, em_event_t **ev_array, int timeout)
 {
-#ifndef WIN32
+#ifndef WIN64
 	return tpp_em_pwait(em_ctx, ev_array, timeout, NULL);
 #else
 	return tpp_em_wait_win(em_ctx, ev_array, timeout);
@@ -787,7 +787,7 @@ tpp_em_del_fd(void *em_ctx, int fd)
  * @par MT-safe: Yes
  *
  */
-#ifndef WIN32
+#ifndef WIN64
 int
 tpp_em_pwait(void *em_ctx, em_event_t **ev_array, int timeout, const sigset_t *sigmask)
 {

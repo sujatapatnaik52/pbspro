@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -43,7 +43,7 @@
 #include <string.h>
 #include "portability.h"
 #include "log.h"
-#ifdef WIN32
+#ifdef WIN64
 #include "win.h"
 #endif
 
@@ -114,7 +114,7 @@ setup_env(char *filen)
 					/* no newline, wonder if this is last line */
 					questionable = 1;
 				} else {
-#ifdef WIN32
+#ifdef WIN64
 					/* take care of <carriage-return> char */
 					if (len > 1 && !isalnum(buf[len-2]))
 						buf[len-2] = '\0';
@@ -146,7 +146,7 @@ setup_env(char *filen)
 	} else if (errno != ENOENT) {
 		goto err;
 	}
-#ifdef WIN32
+#ifdef WIN64
 	update_env_avltree();
 #endif
 	sprintf(log_buffer, "read environment from %s", filen);

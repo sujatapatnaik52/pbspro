@@ -56,11 +56,11 @@ extern "C" {
  *	"server_limits.h"
  */
 
-#ifdef	WIN32
+#ifdef	WIN64
 typedef	HANDLE	prov_pid;
 #else
 typedef	pid_t	prov_pid;
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 
 extern void prov_track_save(void);
 

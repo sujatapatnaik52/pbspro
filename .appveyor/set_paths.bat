@@ -1,5 +1,5 @@
 @echo off
-REM Copyright (C) 1994-2019 Altair Engineering, Inc.
+REM Copyright (C) 1994-2017 Altair Engineering, Inc.
 REM For more information, contact Altair at www.altair.com.
 REM
 REM This file is part of the PBS Professional ("PBS Pro") software.
@@ -59,10 +59,10 @@ if not defined CMAKE_BIN (
 if not defined __BINARIESDIR (
     set __BINARIESDIR=%CD%\binaries
 )
-if exist "%VS140COMNTOOLS%vsvars32.bat" (
-    call "%VS140COMNTOOLS%vsvars32.bat"
+if exist "%VS150COMNTOOLS%VsDevCmd.bat" (
+	call "%VS150COMNTOOLS%VsDevCmd.bat" -arch=amd64 -host_arch=amd64
 ) else (
-    echo "Could not find %VS140COMNTOOLS%vsvars32.bat"
+    echo "Could not find %VS150COMNTOOLS%VsDevCmd.bat"
     exit 1
 )
 
@@ -86,7 +86,7 @@ set BINARIESDIR=%CD%
 for /F "usebackq tokens=*" %%i in (`""%MSYSDIR%\bin\bash.exe" -c "pwd""`) do set BINARIESDIR_M=%%i
 
 if not defined LIBEDIT_VERSION (
-    set LIBEDIT_VERSION=2.204
+    set LIBEDIT_VERSION=2.205
 )
 if not defined LIBICAL_VERSION (
     set LIBICAL_VERSION=2.0
@@ -98,7 +98,7 @@ if not defined PYTHON_VERSION (
     set PYTHON_VERSION=3.6
 )
 if not defined OPENSSL_VERSION (
-    set OPENSSL_VERSION=1_1_0f
+    set OPENSSL_VERSION=1_1_0j
 )
 if not defined SWIG_VERSION (
     set SWIG_VERSION=3.0.12

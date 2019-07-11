@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -51,7 +51,7 @@ extern "C" {
 #include <errno.h>
 
 
-#ifndef WIN32
+#ifndef WIN64
 
 
 #define tpp_pipe_cr(a)               pipe(a)

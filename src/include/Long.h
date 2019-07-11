@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -89,7 +89,7 @@ typedef unsigned long long	u_Long;
 #define atoL(nptr)		atoll((nptr))
 
 /****************************************************************************/
-#elif defined(WIN32)	/* Windows */
+#elif defined( WIN64)	/* Windows */
 
 /* long long and unsigned long long are 64 bit signed  and unsigned */
 /* integers on Windows platforms. */

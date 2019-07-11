@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -74,7 +74,7 @@ pbs_get_dataservice_usr(char *errmsg, int len)
 	struct stat st = {0};
 	char buf[MAXPATHLEN+1];
 
-#ifdef WIN32
+#ifdef WIN64
 	snprintf(usr_file, MAXPATHLEN+1, "%s\\server_priv\\db_user", pbs_conf.pbs_home_path);
 	if ((fd = open(usr_file, O_RDONLY | O_BINARY)) == -1)
 #else

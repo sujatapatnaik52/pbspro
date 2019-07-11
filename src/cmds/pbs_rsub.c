@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -93,7 +93,7 @@ process_opts(int argc, char **argv, struct attrl **attrp, char *dest)
 	char dur_buf[800];
 	char badw[] = "pbs_rsub: illegal -W value\n";
 	int opt_re_flg = FALSE;
-#ifdef WIN32
+#ifdef WIN64
 	struct attrl *ap = NULL;
 	short nSizeofHostName = 0;
 	char* orig_apvalue = NULL;
@@ -345,7 +345,7 @@ set_resv_env(char **envp)
 
 	c = getenv("MAIL");
 	if (c != NULL) {
-#ifdef WIN32
+#ifdef WIN64
 		back2forward_slash(c);
 #endif
 		strcat(job_env, ",PBS_O_MAIL=");
@@ -640,7 +640,7 @@ main(int argc, char *argv[], char *envp[])
 
 	execution_mode(argc, argv);
 
-#ifdef WIN32
+#ifdef WIN64
 	winsock_init();
 #endif
 

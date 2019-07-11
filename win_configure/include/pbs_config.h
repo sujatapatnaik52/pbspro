@@ -67,7 +67,7 @@
  * 0x0603 = Windows 8.1
  * 0x0A00 = Windows 10
  */
-#define _WIN32_WINNT 0x0600	/* so we get extensions like winsock2.h */
+#define _WIN32_WINNT 0x0600	 /* so we get extensions like winsock2.h */
 
 #include <winsock2.h>
 #include <Ws2tcpip.h>  /* added for getaddrinfo and getnameinfo */
@@ -89,7 +89,10 @@ typedef	unsigned int	u_int;
 typedef	unsigned short	u_short;
 typedef	unsigned char	u_char;
 typedef int		pbs_socklen_t;
+
+#ifndef HAVE_SSIZE_T
 typedef int		ssize_t;
+#endif
 
 #if 0
 typedef	int		uid_t;

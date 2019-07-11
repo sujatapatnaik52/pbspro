@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -243,7 +243,7 @@ IsProcessInJob(HANDLE hProc, HANDLE hJob, BOOL *p_is_process_in_job)
 	*p_is_process_in_job = FALSE;
 	return;
 }
-#endif /* _WIN32_WINNT < 0x0501 */
+#endif /* _WIN64_WINNT < 0x0501 */
 
 /**
  * @brief
@@ -546,7 +546,7 @@ dep_cleanup()
  *
  * NOTE: To retrieve a handle to any process in the system,
  *       the calling process should have a privilege "SeDebugPrivilege".
- *       A Win32 API OpenProcess() can be used in a calling process
+ *       A WIN64 API OpenProcess() can be used in a calling process
  *       to obtain any desired process handle in the system.
  *
  *       In PBS, ena_privilege() function can be used to enable

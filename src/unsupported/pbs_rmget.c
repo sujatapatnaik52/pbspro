@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -73,7 +73,7 @@ main(int argc, char *argv[])
 	int mom_sd;
 	char *req;
 
-#ifdef WIN32
+#ifdef WIN64
 	winsock_init();
 #endif
 	if (gethostname(mom_name, (sizeof(mom_name) - 1)) < 0  )
@@ -138,7 +138,7 @@ main(int argc, char *argv[])
 
 		/* call tpp_init */
 		rc = 0;
-#ifndef WIN32
+#ifndef WIN64
 		if (pbs_conf.auth_method == AUTH_MUNGE)
 			rc = set_tpp_config(&pbs_conf, &tpp_conf, pbs_conf.pbs_leaf_name, -1, pbs_conf.pbs_leaf_routers,
 								pbs_conf.pbs_use_compression,

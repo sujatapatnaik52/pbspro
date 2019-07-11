@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -46,7 +46,7 @@
 #include <fcntl.h>
 #include <signal.h>
 #include <sys/types.h>
-#ifdef	WIN32
+#ifdef	WIN64
 #include <process.h>
 #else
 #include <unistd.h>
@@ -69,13 +69,13 @@
 unsigned int pe_alarm_time = PBS_PROLOG_TIME;
 static pid_t	child;
 static int	run_exit;
-#ifdef	WIN32
+#ifdef	WIN64
 static HANDLE	pelog_handle = INVALID_HANDLE_VALUE;
 #endif
 
 extern int pe_input(char *jobid);
 
-#ifdef	WIN32
+#ifdef	WIN64
 static void
 pelog_timeout(void)
 {
@@ -115,7 +115,7 @@ int	   buflen;	/* the length of the above buffer */
 	int       need;
 	svrattrl *patlist;
 	pbs_list_head svlist;
-#ifdef WIN32
+#ifdef WIN64
 	int tmp_buflen = buflen;
 #endif
 
@@ -138,7 +138,7 @@ int	   buflen;	/* the length of the above buffer */
 		if (patlist)
 			(void)strcat(buf, ",");
 	}
-#ifdef WIN32
+#ifdef WIN64
 	if ((buf[0] != '\0') && buflen >= 3) {
 		char *buf2=(char*)malloc(tmp_buflen * sizeof(char));
 		if (buf2 == NULL) {
@@ -181,7 +181,7 @@ char *text;
 	return (n);
 }
 
-#ifndef WIN32
+#ifndef WIN64
 /**
  * @brief
  *	pelogalm() - alarm handler for run_pelog()
@@ -242,7 +242,7 @@ char *pelog;
 job  *pjob;
 int   pe_io_type;
 {
-#ifdef	WIN32
+#ifdef	WIN64
 #endif
 	char		*arg[12];
 	char		exitcode[20];
@@ -250,7 +250,7 @@ int   pe_io_type;
 	char		resc_used[2048];
 	struct stat	sbuf;
 	char		sid[20];
-#ifdef WIN32
+#ifdef WIN64
 	int		 fd_out, fd_err;
 	HANDLE		 hOut;
 	HANDLE		 hErr;
@@ -275,7 +275,7 @@ int   pe_io_type;
 		else
 			return (pelog_err(pjob, pelog, errno, "cannot stat"));
 	}
-#ifdef WIN32
+#ifdef WIN64
 	else if (chk_file_sec(pelog, 0, 0, WRITES_MASK, 0))
 #else
 	else if ((sbuf.st_uid != 0) ||
@@ -286,7 +286,7 @@ int   pe_io_type;
 #endif
 		return (pelog_err(pjob, pelog, -1, "Permission Error"));
 
-#ifdef WIN32
+#ifdef WIN64
 
 	/*
 	 * if pe_io_type == PE_IO_TYPE_NULL, No Output, force to /dev/null
@@ -647,7 +647,7 @@ int   pe_io_type;
 		exit(255);
 	}
 
-#endif	/* WIN32 */
+#endif	/* WIN64 */
 
 	if (run_exit)
 		(void)pelog_err(pjob, pelog, run_exit, "nonzero p/e exit status");

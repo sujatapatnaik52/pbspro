@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -58,7 +58,7 @@
 #include <stdio.h>
 #include <sys/types.h>
 
-#ifndef WIN32
+#ifndef WIN64
 #include <sys/param.h>
 #endif
 
@@ -74,7 +74,7 @@
 #include "list_link.h"
 #include "attribute.h"
 
-#ifdef WIN32
+#ifdef WIN64
 #include <sys/stat.h>
 #include <io.h>
 #include <windows.h>
@@ -149,7 +149,7 @@ job_save_fs(job *pjob, int updatetype)
 	int	redo;
 	int	pmode;
 
-#ifdef WIN32
+#ifdef WIN64
 	pmode = _S_IWRITE | _S_IREAD;
 #else
 	pmode = 0600;
@@ -185,7 +185,7 @@ job_save_fs(job *pjob, int updatetype)
 			log_err(errno, "job_save", "error on open");
 			return (-1);
 		}
-#ifdef WIN32
+#ifdef WIN64
 		secure_file(namebuf1, "Administrators",
 			READS_MASK|WRITES_MASK|STANDARD_RIGHTS_REQUIRED);
 		setmode(fds, O_BINARY);
@@ -221,7 +221,7 @@ job_save_fs(job *pjob, int updatetype)
 		(void)strcat(namebuf2, JOB_FILE_COPY);
 		openflags =  O_CREAT | O_WRONLY;
 
-#ifdef WIN32
+#ifdef WIN64
 		fix_perms2(namebuf2, namebuf1);
 #endif
 
@@ -237,7 +237,7 @@ job_save_fs(job *pjob, int updatetype)
 			return (-1);
 		}
 
-#ifdef WIN32
+#ifdef WIN64
 		secure_file(filename, "Administrators",
 			READS_MASK|WRITES_MASK|STANDARD_RIGHTS_REQUIRED);
 		setmode(fds, O_BINARY);
@@ -283,7 +283,7 @@ job_save_fs(job *pjob, int updatetype)
 
 		if ((updatetype == SAVEJOB_FULL) ||
 			(updatetype == SAVEJOB_FULLFORCE)) {
-#ifdef WIN32
+#ifdef WIN64
 			if (MoveFileEx(namebuf2, namebuf1,
 				MOVEFILE_REPLACE_EXISTING|MOVEFILE_WRITE_THROUGH) == 0) {
 
@@ -387,7 +387,7 @@ job_recov_fs(char *filename)
 
 	(void)strcpy(pbs_recov_filename, path_jobs);	/* job directory path */
 	(void)strcat(pbs_recov_filename, filename);
-#ifdef WIN32
+#ifdef WIN64
 	fix_perms(pbs_recov_filename);
 #endif
 
@@ -396,7 +396,7 @@ job_recov_fs(char *filename)
 	(void)strcpy(basen, pbs_recov_filename);
 	psuffix = basen + strlen(basen) - strlen(JOB_BAD_SUFFIX);
 	(void)strcpy(psuffix, JOB_BAD_SUFFIX);
-#ifdef WIN32
+#ifdef WIN64
 	if (MoveFileEx(pbs_recov_filename, basen,
 		MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) == 0) {
 		errno = GetLastError();
@@ -425,7 +425,7 @@ job_recov_fs(char *filename)
 		free((char *)pj);
 		return NULL;
 	}
-#ifdef WIN32
+#ifdef WIN64
 	setmode(fds, O_BINARY);
 #endif
 
@@ -443,7 +443,7 @@ job_recov_fs(char *filename)
 	/* Does file name match the internal name? */
 	/* This detects ghost files */
 
-#ifdef WIN32
+#ifdef WIN64
 	pn = strrchr(pbs_recov_filename, (int)'/');
 	if (pn == NULL)
 		pn = strrchr(pbs_recov_filename, (int)'\\');
@@ -547,7 +547,7 @@ job_recov_fs(char *filename)
 	}
 	(void)close(fds);
 
-#if defined(PBS_MOM) && defined(WIN32)
+#if defined(PBS_MOM) && defined( WIN64)
 	/* get a handle to the job (may not exist) */
 	pj->ji_hJob = OpenJobObject(JOB_OBJECT_ALL_ACCESS, FALSE,
 		pj->ji_qs.ji_jobid);
@@ -555,7 +555,7 @@ job_recov_fs(char *filename)
 
 	/* all done recovering the job, change file name back to .JB */
 
-#ifdef WIN32
+#ifdef WIN64
 	if (MoveFileEx(basen, pbs_recov_filename,
 		MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) == 0) {
 		errno = GetLastError();
@@ -636,7 +636,7 @@ job_or_resv_save_fs(void *pobj, int updatetype, int objtype)
 	int		eventclass;
 	int		pmode;
 
-#ifdef WIN32
+#ifdef WIN64
 	pmode = _S_IWRITE | _S_IREAD;
 #else
 	pmode = 0600;
@@ -729,7 +729,7 @@ job_or_resv_save_fs(void *pobj, int updatetype, int objtype)
 			log_err(errno, err_msg, "error on open");
 			return (-1);
 		}
-#ifdef WIN32
+#ifdef WIN64
 		secure_file(namebuf1, "Administrators",
 			READS_MASK|WRITES_MASK|STANDARD_RIGHTS_REQUIRED);
 		setmode(fds, O_BINARY);
@@ -769,7 +769,7 @@ job_or_resv_save_fs(void *pobj, int updatetype, int objtype)
 
 		(void)strcat(namebuf2, cpsuffix);
 		openflags =  O_CREAT | O_WRONLY;
-#ifdef WIN32
+#ifdef WIN64
 		fix_perms2(namebuf2, namebuf1);
 #endif
 		if (updatetype == SAVEJOB_NEW || updatetype == SAVERESV_NEW)
@@ -783,7 +783,7 @@ job_or_resv_save_fs(void *pobj, int updatetype, int objtype)
 			return (-1);
 		}
 
-#ifdef WIN32
+#ifdef WIN64
 		secure_file(filename, "Administrators",
 			READS_MASK|WRITES_MASK|STANDARD_RIGHTS_REQUIRED);
 		setmode(fds, O_BINARY);
@@ -821,7 +821,7 @@ job_or_resv_save_fs(void *pobj, int updatetype, int objtype)
 			updatetype == SAVEJOB_FULLFORCE ||
 			updatetype == SAVERESV_FULL) {
 
-#ifdef WIN32
+#ifdef WIN64
 			if (MoveFileEx(namebuf2, namebuf1,
 				MOVEFILE_REPLACE_EXISTING|MOVEFILE_WRITE_THROUGH) ==
 				0) {
@@ -942,7 +942,7 @@ job_or_resv_recov_fs(char *filename, int objtype)
 
 	(void)strcpy(namebuf, path);	/* job (reservation) directory path */
 	(void)strcat(namebuf, filename);
-#ifdef WIN32
+#ifdef WIN64
 	fix_perms(namebuf);
 #endif
 	fds = open(namebuf, O_RDONLY, 0);
@@ -952,7 +952,7 @@ job_or_resv_recov_fs(char *filename, int objtype)
 		free((char *)pobj);
 		return NULL;
 	}
-#ifdef WIN32
+#ifdef WIN64
 	setmode(fds, O_BINARY);
 #endif
 
@@ -969,7 +969,7 @@ job_or_resv_recov_fs(char *filename, int objtype)
 	/* Does file name match the internal name? */
 	/* This detects ghost files */
 
-#ifdef WIN32
+#ifdef WIN64
 	pn = strrchr(namebuf, (int)'/');
 	if (pn == NULL)
 		pn = strrchr(namebuf, (int)'\\');
@@ -1018,7 +1018,7 @@ job_or_resv_recov_fs(char *filename, int objtype)
 
 	(void)close(fds);
 
-#if defined(PBS_MOM) && defined(WIN32)
+#if defined(PBS_MOM) && defined( WIN64)
 	/* get a handle to the job (may not exist) */
 	pj->ji_hJob = OpenJobObject(JOB_OBJECT_ALL_ACCESS, FALSE,
 		pj->ji_qs.ji_jobid);

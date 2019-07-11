@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1994-2018 Altair Engineering, Inc.
+ * Copyright (C) 1994-2019 Altair Engineering, Inc.
  * For more information, contact Altair at www.altair.com.
  *
  * This file is part of the PBS Professional ("PBS Pro") software.
@@ -105,7 +105,7 @@ main(int argc, char *argv[], char *env[])
 	/*the real deal or output pbs_version and exit?*/
 	execution_mode(argc, argv);
 
-#ifdef WIN32
+#ifdef WIN64
 	winsock_init();
 #endif
 
@@ -124,7 +124,7 @@ main(int argc, char *argv[], char *env[])
 		return 1;
 	}
 
-#ifndef WIN32
+#ifndef WIN64
 	h_errno = 0;
 #endif
 
@@ -181,7 +181,7 @@ main(int argc, char *argv[], char *env[])
 				printf(" (%u dec)  ", (int)(ina+i)->s_addr);
 
 
-#ifndef WIN32
+#ifndef WIN64
 				h_errno = 0;
 #endif
 				hosta = gethostbyaddr((char *)(ina+i), host->h_length,

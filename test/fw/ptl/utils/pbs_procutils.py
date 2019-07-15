@@ -89,6 +89,22 @@ class ProcUtils(object):
     def _init_processes(self):
         self.processes = {}
 
+    def _get_proc_open_fds(self, hostname=None, pid=None):
+        """
+        Helper function to get open file descriptors by a process
+        :param pid: Process id
+        :type pid: str or None
+        :returns: integer representing the count
+        """
+        ls_cmd = self.du.which(exe="ls")
+        cmd = [ls_cmd, "-l", "/proc/"+pid+"/fd"]
+        if not pid==None:
+            ret = self.du.run_cmd(hostname, (cmd), level=logging.DEBUG2,
+                                  sudo=True)
+        else:
+            return
+        return len(ret['out'])
+
     def _get_proc_info_unix(self, hostname=None, name=None,
                             pid=None, regexp=False):
         """
@@ -137,7 +153,7 @@ class ProcUtils(object):
                     _pi.size = size
                     _pi.cputime = cputime
                     _pi.command = command
-
+                    _pi.open_fds = self._get_proc_open_fds(hostname, _pi.pid)
                 if _pi is not None:
                     if command in self.processes:
                         self.processes[command].append(_pi)
@@ -246,15 +262,16 @@ class ProcInfo(object):
         self.pmem = None
         self.size = None
         self.cputime = None
+        self.open_fds = None
         self.time = time.time()
         self.command = None
 
     def __str__(self):
         return "%s pid: %s rss: %s vsz: %s pcpu: %s pmem: %s \
-               size: %s cputime: %s command: %s" % \
+               size: %s cputime: %s command: %s open_fds: %s" % \
                (self.name, str(self.pid), str(self.rss), str(self.vsz),
                 str(self.pcpu), str(self.pmem), str(self.size),
-                str(self.cputime), self.command)
+                str(self.cputime), self.command, self.open_fds)
 
 
 class ProcMonitor(threading.Thread):
@@ -317,6 +334,7 @@ class ProcMonitor(threading.Thread):
                         _to_db['pmem'] = _per_proc.pmem
                         _to_db['size'] = _per_proc.size
                         _to_db['cputime'] = _per_proc.cputime
+                        _to_db['open_fds'] = _per_proc.open_fds
                         _to_db['name'] = _per_proc.name
                         self.db_proc_info.append(_to_db)
             self.get_system_stats()

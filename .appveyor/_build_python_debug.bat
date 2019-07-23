@@ -81,9 +81,9 @@ REM "%MSYSDIR%\bin\bash" --login -i -c "cd \"$BINARIESDIR_M/cpython-$PYTHON_VERS
 REM "Set MSBUILD to VS2017 before calling env.bat"
 call "%BINARIESDIR%\cpython-%PYTHON_VERSION%\PCbuild\find_msbuild.bat"
 
-call "%BINARIESDIR%\cpython-%PYTHON_VERSION%\PCbuild\env.bat" x64
+call "%BINARIESDIR%\cpython-%PYTHON_VERSION%\PCbuild\env.bat" x86
 
-call "%BINARIESDIR%\cpython-%PYTHON_VERSION%\PCbuild\build.bat" -e -p x64 -d
+call "%BINARIESDIR%\cpython-%PYTHON_VERSION%\PCbuild\build.bat" -e -p x86 -d
 if not %ERRORLEVEL% == 0 (
     echo "Failed to compile Python debug version"
     exit /b 1

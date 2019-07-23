@@ -103,7 +103,7 @@
       <PrecompiledHeaderOutputFile>..\..\..\win_build\src\svr_periodic_hook\Debug\svr_periodic_hook.pch</PrecompiledHeaderOutputFile>
       <AssemblerListingLocation>..\..\..\win_build\src\svr_periodic_hook\Debug\</AssemblerListingLocation>
       <ObjectFileName>..\..\..\win_build\src\svr_periodic_hook\Debug\</ObjectFileName>
-      <ProgramDataBaseFileName>..\..\..\win_build\src\svr_periodic_hook\Debug\</ProgramDataBaseFileName>
+      <ProgramDataBaseFileName>$(IntDir)$(ProjectName).pdb</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
@@ -186,7 +186,7 @@
       <PrecompiledHeaderOutputFile>..\..\..\win_build\src\server\Release\svr_periodic_hook.pch</PrecompiledHeaderOutputFile>
       <AssemblerListingLocation>..\..\..\win_build\src\server\Release\</AssemblerListingLocation>
       <ObjectFileName>..\..\..\win_build\src\server\Release\</ObjectFileName>
-      <ProgramDataBaseFileName>..\..\..\win_build\src\server\Release\</ProgramDataBaseFileName>
+      <ProgramDataBaseFileName>$(IntDir)$(ProjectName).pdb</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <CompileAs>Default</CompileAs>

@@ -103,7 +103,7 @@
       <PrecompiledHeaderOutputFile>..\..\..\win_build\src\start_provision\Debug\start_provision.pch</PrecompiledHeaderOutputFile>
       <AssemblerListingLocation>..\..\..\win_build\src\start_provision\Debug\</AssemblerListingLocation>
       <ObjectFileName>..\..\..\win_build\src\start_provision\Debug\</ObjectFileName>
-      <ProgramDataBaseFileName>..\..\..\win_build\src\start_provision\Debug\</ProgramDataBaseFileName>
+      <ProgramDataBaseFileName>$(IntDir)$(ProjectName).pdb</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
@@ -186,7 +186,7 @@
       <PrecompiledHeaderOutputFile>..\..\..\win_build\src\start_provision\Release\start_provision.pch</PrecompiledHeaderOutputFile>
       <AssemblerListingLocation>..\..\..\win_build\src\start_provision\Release\</AssemblerListingLocation>
       <ObjectFileName>..\..\..\win_build\src\start_provision\Release\</ObjectFileName>
-      <ProgramDataBaseFileName>..\..\..\win_build\src\start_provision\Release\</ProgramDataBaseFileName>
+      <ProgramDataBaseFileName>$(IntDir)$(ProjectName).pdb</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <CompileAs>Default</CompileAs>

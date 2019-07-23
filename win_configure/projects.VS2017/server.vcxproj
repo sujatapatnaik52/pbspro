@@ -107,7 +107,7 @@
       <PrecompiledHeaderOutputFile>..\..\..\win_build\src\server\Debug\server.pch</PrecompiledHeaderOutputFile>
       <AssemblerListingLocation>..\..\..\win_build\src\server\Debug\</AssemblerListingLocation>
       <ObjectFileName>..\..\..\win_build\src\server\Debug\</ObjectFileName>
-      <ProgramDataBaseFileName>..\..\..\win_build\src\server\Debug\</ProgramDataBaseFileName>
+      <ProgramDataBaseFileName>$(IntDir)$(ProjectName).pdb</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -190,7 +190,7 @@
       <PrecompiledHeaderOutputFile>..\..\..\win_build\src\server\Release\server.pch</PrecompiledHeaderOutputFile>
       <AssemblerListingLocation>..\..\..\win_build\src\server\Release\</AssemblerListingLocation>
       <ObjectFileName>..\..\..\win_build\src\server\Release\</ObjectFileName>
-      <ProgramDataBaseFileName>..\..\..\win_build\src\server\Release\</ProgramDataBaseFileName>
+      <ProgramDataBaseFileName>$(IntDir)$(ProjectName).pdb</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>

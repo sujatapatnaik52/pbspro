@@ -102,7 +102,7 @@
       <PrecompiledHeaderOutputFile>..\..\..\win_build\src\scheduler\Debug\pbsfs.pch</PrecompiledHeaderOutputFile>
       <AssemblerListingLocation>..\..\..\win_build\src\scheduler\Debug\</AssemblerListingLocation>
       <ObjectFileName>..\..\..\win_build\src\scheduler\Debug\</ObjectFileName>
-      <ProgramDataBaseFileName>..\..\..\win_build\src\scheduler\Debug\</ProgramDataBaseFileName>
+      <ProgramDataBaseFileName>$(IntDir)$(ProjectName).pdb</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <CompileAs>Default</CompileAs>
@@ -181,7 +181,7 @@
       <PrecompiledHeaderOutputFile>..\..\..\win_build\src\scheduler\Release\pbsfs.pch</PrecompiledHeaderOutputFile>
       <AssemblerListingLocation>..\..\..\win_build\src\scheduler\Release\</AssemblerListingLocation>
       <ObjectFileName>..\..\..\win_build\src\scheduler\Release\</ObjectFileName>
-      <ProgramDataBaseFileName>..\..\..\win_build\src\scheduler\Release\</ProgramDataBaseFileName>
+      <ProgramDataBaseFileName>$(IntDir)$(ProjectName).pdb</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <CompileAs>Default</CompileAs>

@@ -103,7 +103,7 @@
       <PrecompiledHeaderOutputFile>..\..\..\win_build\src\send_job\Debug\send_job.pch</PrecompiledHeaderOutputFile>
       <AssemblerListingLocation>..\..\..\win_build\src\send_job\Debug\</AssemblerListingLocation>
       <ObjectFileName>..\..\..\win_build\src\send_job\Debug\</ObjectFileName>
-      <ProgramDataBaseFileName>..\..\..\win_build\src\send_job\Debug\</ProgramDataBaseFileName>
+      <ProgramDataBaseFileName>$(IntDir)$(ProjectName).pdb</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
@@ -186,7 +186,7 @@
       <PrecompiledHeaderOutputFile>..\..\..\win_build\src\send_job\Release\send_job.pch</PrecompiledHeaderOutputFile>
       <AssemblerListingLocation>..\..\..\win_build\src\send_job\Release\</AssemblerListingLocation>
       <ObjectFileName>..\..\..\win_build\src\send_job\Release\</ObjectFileName>
-      <ProgramDataBaseFileName>..\..\..\win_build\src\send_job\Release\</ProgramDataBaseFileName>
+      <ProgramDataBaseFileName>$(IntDir)$(ProjectName).pdb</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <CompileAs>Default</CompileAs>

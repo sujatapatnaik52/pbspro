@@ -103,7 +103,7 @@
       <PrecompiledHeaderOutputFile>..\..\..\win_build\src\send_hooks\Debug\send_hooks.pch</PrecompiledHeaderOutputFile>
       <AssemblerListingLocation>..\..\..\win_build\src\send_hooks\Debug\</AssemblerListingLocation>
       <ObjectFileName>..\..\..\win_build\src\send_hooks\Debug\</ObjectFileName>
-      <ProgramDataBaseFileName>..\..\..\win_build\src\send_hooks\Debug\</ProgramDataBaseFileName>
+      <ProgramDataBaseFileName>$(IntDir)$(ProjectName).pdb</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
@@ -186,7 +186,7 @@
       <PrecompiledHeaderOutputFile>..\..\..\win_build\src\send_hooks\Release\send_hooks.pch</PrecompiledHeaderOutputFile>
       <AssemblerListingLocation>..\..\..\win_build\src\send_hooks\Release\</AssemblerListingLocation>
       <ObjectFileName>..\..\..\win_build\src\send_hooks\Release\</ObjectFileName>
-      <ProgramDataBaseFileName>..\..\..\win_build\src\send_hooks\Release\</ProgramDataBaseFileName>
+      <ProgramDataBaseFileName>$(IntDir)$(ProjectName).pdb</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <CompileAs>Default</CompileAs>

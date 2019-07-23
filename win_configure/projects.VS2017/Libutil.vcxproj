@@ -91,7 +91,7 @@
       <PrecompiledHeaderOutputFile>..\..\..\win_build\src\lib\Libutil\Debug\Libutil.pch</PrecompiledHeaderOutputFile>
       <AssemblerListingLocation>..\..\..\win_build\src\lib\Libutil\Debug\</AssemblerListingLocation>
       <ObjectFileName>..\..\..\win_build\src\lib\Libutil\Debug\</ObjectFileName>
-      <ProgramDataBaseFileName>..\..\..\win_build\src\lib\Libutils\Debug\</ProgramDataBaseFileName>
+      <ProgramDataBaseFileName>$(IntDir)$(ProjectName).pdb</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <CompileAs>Default</CompileAs>
@@ -133,6 +133,9 @@
       <PrecompiledHeaderOutputFile>..\..\..\win_build\src\lib\Libutil\Release\Libutil.pch</PrecompiledHeaderOutputFile>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <AssemblerListingLocation>..\..\..\win_build\src\lib\Libutil\Release\</AssemblerListingLocation>
+      <ObjectFileName>..\..\..\win_build\src\lib\Libutil\Release\</ObjectFileName>
+      <ProgramDataBaseFileName>$(IntDir)$(ProjectName).pdb</ProgramDataBaseFileName>
     </ClCompile>
     <Lib>
       <OutputFile>..\..\..\win_build\src\lib\Libutil\Release\Libutil.lib</OutputFile>

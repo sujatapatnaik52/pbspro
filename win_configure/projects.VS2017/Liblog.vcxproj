@@ -93,7 +93,7 @@
       <PrecompiledHeaderOutputFile>..\..\..\win_build\src\lib\Liblog\Debug\Liblog.pch</PrecompiledHeaderOutputFile>
       <AssemblerListingLocation>..\..\..\win_build\src\lib\Liblog\Debug\</AssemblerListingLocation>
       <ObjectFileName>..\..\..\win_build\src\lib\Liblog\Debug\</ObjectFileName>
-      <ProgramDataBaseFileName>..\..\..\win_build\src\lib\Liblog\Debug\</ProgramDataBaseFileName>
+      <ProgramDataBaseFileName>$(IntDir)$(ProjectName).pdb</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
@@ -148,7 +148,7 @@
       <PrecompiledHeaderOutputFile>..\..\..\win_build\src\lib\Liblog\Release\Liblog.pch</PrecompiledHeaderOutputFile>
       <AssemblerListingLocation>..\..\..\win_build\src\lib\Liblog\Release\</AssemblerListingLocation>
       <ObjectFileName>..\..\..\win_build\src\lib\Liblog\Release\</ObjectFileName>
-      <ProgramDataBaseFileName>..\..\..\win_build\src\lib\Liblog\Release\</ProgramDataBaseFileName>
+      <ProgramDataBaseFileName>$(IntDir)$(ProjectName).pdb</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <CompileAs>Default</CompileAs>

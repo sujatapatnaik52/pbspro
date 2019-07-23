@@ -96,7 +96,7 @@
       <PrecompiledHeader />
       <AssemblerListingLocation>..\..\..\win_build\src\lib\Libpbsaif\Debug\</AssemblerListingLocation>
       <ObjectFileName>..\..\..\win_build\src\lib\Libpbsaif\Debug\</ObjectFileName>
-      <ProgramDataBaseFileName>..\..\..\win_build\src\lib\Libpbsaif\Debug\</ProgramDataBaseFileName>
+      <ProgramDataBaseFileName>$(IntDir)$(ProjectName).pdb</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
     </ClCompile>
@@ -151,7 +151,7 @@
       <PrecompiledHeader />
       <AssemblerListingLocation>..\..\..\win_build\src\lib\Libpbsaif\Release\</AssemblerListingLocation>
       <ObjectFileName>..\..\..\win_build\src\lib\Libpbsaif\Release\</ObjectFileName>
-      <ProgramDataBaseFileName>..\..\..\win_build\src\lib\Libpbsaif\Release\</ProgramDataBaseFileName>
+      <ProgramDataBaseFileName>$(IntDir)$(ProjectName).pdb</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>

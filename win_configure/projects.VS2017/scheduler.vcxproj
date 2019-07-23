@@ -104,7 +104,7 @@
       <PrecompiledHeaderOutputFile>..\..\..\win_build\src\scheduler\Debug\scheduler.pch</PrecompiledHeaderOutputFile>
       <AssemblerListingLocation>..\..\..\win_build\src\scheduler\Debug\</AssemblerListingLocation>
       <ObjectFileName>..\..\..\win_build\src\scheduler\Debug\</ObjectFileName>
-      <ProgramDataBaseFileName>..\..\..\win_build\src\scheduler\Debug\</ProgramDataBaseFileName>
+      <ProgramDataBaseFileName>$(IntDir)$(ProjectName).pdb</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -185,7 +185,7 @@
       <PrecompiledHeaderOutputFile>..\..\..\win_build\src\scheduler\Release\scheduler.pch</PrecompiledHeaderOutputFile>
       <AssemblerListingLocation>..\..\..\win_build\src\scheduler\Release\</AssemblerListingLocation>
       <ObjectFileName>..\..\..\win_build\src\scheduler\Release\</ObjectFileName>
-      <ProgramDataBaseFileName>..\..\..\win_build\src\scheduler\Release\</ProgramDataBaseFileName>
+      <ProgramDataBaseFileName>$(IntDir)$(ProjectName).pdb</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>

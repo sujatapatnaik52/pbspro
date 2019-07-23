@@ -44,7 +44,7 @@
  *  in  Windows.
  */
 
-#ifdef WIN64
+#ifdef WIN32
 #define pbs_stat(path, buffer)   _stati64(path, buffer)
 typedef struct _stati64  pbs_stat_struct;
 typedef INT64 off_t_pbs;

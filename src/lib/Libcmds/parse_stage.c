@@ -89,7 +89,7 @@ parse_stage_name(char *pair, char *local_name, char *host_name, char *remote_nam
 	}
 	if (l_pos == 0) return 1;
 
-#ifdef WIN64
+#ifdef WIN32
 	if ((*c == '@') && (c+1 != NULL) && (IS_UNCPATH(c+1))) {
 		c++;
 		/*
@@ -121,7 +121,7 @@ parse_stage_name(char *pair, char *local_name, char *host_name, char *remote_nam
 		if (h_pos == 0) return 1;
 	}
 
-#ifdef WIN64
+#ifdef WIN32
 	/*
 	 * h_pos may be 1 if non-UNC path is given
 	 * without host part which is not allowed
@@ -224,7 +224,7 @@ parse_stage_list(char *list)
 			(void) free(l);
 			return 1;
 		}
-#ifdef WIN64
+#ifdef WIN32
 		if ((strlen(host) == 0) && (strlen(remote) > 0) && (!IS_UNCPATH(remote)))
 #else
 		if (strlen(host) == 0)

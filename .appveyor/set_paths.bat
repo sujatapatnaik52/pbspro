@@ -60,7 +60,7 @@ if not defined __BINARIESDIR (
     set __BINARIESDIR=%CD%\binaries
 )
 if exist "%VS150COMNTOOLS%VsDevCmd.bat" (
-	call "%VS150COMNTOOLS%VsDevCmd.bat" -arch=amd64 -host_arch=amd64
+	call "%VS150COMNTOOLS%VsDevCmd.bat"
 ) else (
     echo "Could not find %VS150COMNTOOLS%VsDevCmd.bat"
     exit 1

@@ -67,7 +67,7 @@
 #define _POSIX_PATH_MAX _MAX_PATH
 
 #define uint		UINT
-#define sleep(x)	(Sleep(x*1000))	/* in WIN64, Sleep parameter is in milliseconds */
+#define sleep(x)	(Sleep(x*1000))	/* in WIN32, Sleep parameter is in milliseconds */
 #define	strcasecmp	stricmp
 #define strncasecmp	strnicmp
 #ifndef HAVE_SNPRINTF
@@ -366,7 +366,7 @@ extern void winsock_cleanup(void);
 #define	DIR_END		2
 
 /*
- **	Misc stuff left out of WIN64
+ **	Misc stuff left out of WIN32
  */
 #define R_OK	04	/* Test for Read permission */
 #define W_OK	02	/* Test for Write permission */

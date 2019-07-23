@@ -45,7 +45,7 @@
 #endif
 #include <stdlib.h>
 #include <string.h>
-#ifndef WIN64
+#ifndef WIN32
 #include <pwd.h>
 #include <grp.h>
 #endif
@@ -691,7 +691,7 @@ hacl_match(const char *can, const char *master)
 static int
 gacl_match(const char *can, const char *master)
 {
-#ifdef WIN64
+#ifdef WIN32
 	return(strcmp(can, master));
 #else
 	int i, ng = 0;

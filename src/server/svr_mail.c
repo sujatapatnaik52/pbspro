@@ -68,7 +68,7 @@
 #include "server_limits.h"
 #include "log.h"
 
-#ifdef WIN64
+#ifdef WIN32
 #include <windows.h>
 #include <process.h>
 #include "win.h"
@@ -96,7 +96,7 @@ extern char *msg_resv_end;
 extern char *msg_resv_confirm;
 extern char *msg_job_stageinfail;
 
-#ifdef WIN64
+#ifdef WIN32
 
 struct mail_param {
 	int		type;
@@ -562,7 +562,7 @@ err:
 		free(pmp);
 	return;
 }
-#endif	/* WIN64 */
+#endif	/* WIN32 */
 
 #define MAIL_ADDR_BUF_LEN 1024
 /**
@@ -594,7 +594,7 @@ svr_mailowner_id(char *jid, job *pjob, int mailpoint, int force, char *text)
 	char	*pat;
 	extern  char server_host[];
 
-#ifndef WIN64
+#ifndef WIN32
 	FILE   *outmail;
 	char   *margs[5];
 	int     mfds[2];
@@ -638,7 +638,7 @@ svr_mailowner_id(char *jid, job *pjob, int mailpoint, int force, char *text)
 	 * hold up the server's other work.
 	 */
 
-#ifndef WIN64
+#ifndef WIN32
 	mcpid = fork();
 	if (mcpid == -1) { /* Error on fork */
 		log_err(errno, __func__, "fork failed\n");
@@ -658,7 +658,7 @@ svr_mailowner_id(char *jid, job *pjob, int mailpoint, int force, char *text)
 	/* Unprotect child from being killed by kernel */
 	daemon_protect(0, PBS_DAEMON_PROTECT_OFF);
 
-#endif	/* ! WIN64 */
+#endif	/* ! WIN32 */
 
 	/* Who is mail from, if SVR_ATR_mailfrom not set use default */
 
@@ -733,7 +733,7 @@ svr_mailowner_id(char *jid, job *pjob, int mailpoint, int force, char *text)
 		strcpy(mailto, mailfrom);
 	}
 
-#ifdef WIN64
+#ifdef WIN32
 	/* if pjob is not null, then send a JOB type email (1st param=0); */
 	/* otherwise, send a SERVER type email (1st param=2)               */
 
@@ -822,7 +822,7 @@ svr_mailowner_id(char *jid, job *pjob, int mailpoint, int force, char *text)
 	fclose(outmail);
 
 	exit(0);
-#endif	/* WIN64 */
+#endif	/* WIN32 */
 }
 /**
  * @brief
@@ -869,7 +869,7 @@ svr_mailownerResv(resc_resv *presv, int mailpoint, int force, char *text)
 	struct array_strings *pas;
 	char	*pat;
 	char	*stdmessage = NULL;
-#ifndef WIN64
+#ifndef WIN32
 	FILE	*outmail;
 	char	*margs[5];
 	int	 mfds[2];
@@ -905,7 +905,7 @@ svr_mailownerResv(resc_resv *presv, int mailpoint, int force, char *text)
 	 * hold up the server's other work.
 	 */
 
-#ifndef WIN64
+#ifndef WIN32
 	mcpid = fork();
 	if (mcpid == -1) { /* Error on fork */
 		log_err(errno, __func__, "fork failed\n");
@@ -925,7 +925,7 @@ svr_mailownerResv(resc_resv *presv, int mailpoint, int force, char *text)
 	/* Unprotect child from being killed by kernel */
 	daemon_protect(0, PBS_DAEMON_PROTECT_OFF);
 
-#endif	/* ! WIN64 */
+#endif	/* ! WIN32 */
 
 	/* Who is mail from, if SVR_ATR_mailfrom not set use default */
 
@@ -991,7 +991,7 @@ svr_mailownerResv(resc_resv *presv, int mailpoint, int force, char *text)
 		}
 	}
 
-#ifdef WIN64
+#ifdef WIN32
 	send_mail_detach(1, mailfrom, mailto, presv->ri_qs.ri_resvID, mailpoint,
 		presv->ri_wattr[(int)RESV_ATR_resv_name].at_val.at_str, text);
 #else
@@ -1072,5 +1072,5 @@ svr_mailownerResv(resc_resv *presv, int mailpoint, int force, char *text)
 	fclose(outmail);
 
 	exit(0);
-#endif	/* ! WIN64 */
+#endif	/* ! WIN32 */
 }

@@ -136,7 +136,7 @@ main(int argc, char *argv[])
 	}
 	set_logfile(stderr);
 
-#ifdef WIN64
+#ifdef WIN32
 	winsock_init();
 	Tcl_FindExecutable(argv[0]);
 #endif
@@ -150,7 +150,7 @@ main(int argc, char *argv[])
 	if (!getenv("TCL_LIBRARY")) {
 		if (pbs_conf.pbs_exec_path) {
 			sprintf(tbuf_env,
-#ifdef WIN64
+#ifdef WIN32
                                 "%s/lib/tcl%s",
 #else
                                 "%s/tcltk/lib/tcl%s",
@@ -188,7 +188,7 @@ main(int argc, char *argv[])
 
 		/* call tpp_init */
 		rc = 0;
-#ifndef WIN64
+#ifndef WIN32
 		if (pbs_conf.auth_method == AUTH_MUNGE)
 			rc = set_tpp_config(&pbs_conf, &tpp_conf, pbs_conf.pbs_leaf_name, -1, pbs_conf.pbs_leaf_routers,
 								pbs_conf.pbs_use_compression,

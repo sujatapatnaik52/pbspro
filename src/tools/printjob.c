@@ -465,7 +465,7 @@ char *argv[];
 	 * display appropriate error message and exit. Else, continue.
 	 */
 
-#ifdef WIN64
+#ifdef WIN32
 	if (!isAdminPrivilege(getlogin())) {
 		fprintf(stderr, "printjob must be run by Admin\n");
 		exit(1);
@@ -516,7 +516,7 @@ char *argv[];
 		return 1;
 	}
 
-#if defined(PRINTJOBSVR) && defined( WIN64)
+#if defined(PRINTJOBSVR) && defined( WIN32)
 	winsock_init();
 #endif
 
@@ -724,7 +724,7 @@ char *argv[];
 	if (conn != NULL) {
 		pbs_db_disconnect(conn);
 	}
-#ifdef WIN64
+#ifdef WIN32
 	winsock_cleanup();
 #endif
 #endif

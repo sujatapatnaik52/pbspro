@@ -59,7 +59,7 @@ extern "C" {
 
 #include <libpq-fe.h>
 #include <netinet/in.h>
-#ifndef WIN64
+#ifndef WIN32
 #include <sys/types.h>
 #include <inttypes.h>
 #endif
@@ -69,7 +69,7 @@ extern "C" {
 #include "attribute.h"
 
 /* work around strtoll on some platforms */
-#if defined( WIN64)
+#if defined( WIN32)
 #define strtoll(n, e, b)	_strtoi64((n), (e), (b))
 typedef __int32 int32_t;
 typedef __int64 int64_t;

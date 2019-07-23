@@ -58,7 +58,7 @@
 #include "pbs_ifl.h"
 #include "tm.h"
 #include "pbs_version.h"
-#ifdef WIN64
+#ifdef WIN32
 #include <windows.h>
 #include "win.h"
 #include "win_remote_shell.h"
@@ -80,7 +80,7 @@ void
 usage(char *id)
 {
 	fprintf(stderr, "usage: %s [-j jobid] [-m port] -p pid\n", id);
-#ifdef WIN64
+#ifdef WIN32
 	/* Windows has an additional option -c, in order to run built-in DOS commands using a new command shell */
 	fprintf(stderr, "usage: %s [-j jobid] [-m port] [-P] [-s] [-c] cmd [arg1 ...]\n", id);
 #else
@@ -90,7 +90,7 @@ usage(char *id)
 	exit(2);
 }
 
-#ifdef WIN64
+#ifdef WIN32
 /**
  * @brief
  *	attach the process session to a job via TM on Windows
@@ -242,7 +242,7 @@ main(int argc, char *argv[])
 	int		newsid = 0;
 	int		port = 0;
 	int		err = 0;
-#ifdef WIN64
+#ifdef WIN32
 	BOOL use_cmd = FALSE;/* spawn the process using a new cmd shell */
 #else
 	char		*cookie = NULL;
@@ -259,7 +259,7 @@ main(int argc, char *argv[])
 
 	execution_mode(argc, argv);
 
-#ifdef WIN64
+#ifdef WIN32
 	winsock_init();
 	/* Windows has an additional option -c, in order to run built-in DOS commands using a new command shell */
 	while ((c = getopt(argc, argv, "+j:p:h:m:csP")) != EOF) {
@@ -286,7 +286,7 @@ main(int argc, char *argv[])
 			case 'h':
 				host = optarg;
 				break;
-#ifdef WIN64
+#ifdef WIN32
 			case 'c':
 				use_cmd = TRUE;
 				break;
@@ -336,7 +336,7 @@ main(int argc, char *argv[])
 		pbs_loadconf(0);
 		port = pbs_conf.manager_service_port;
 	}
-#ifdef WIN64 /* Windows - attach */
+#ifdef WIN32 /* Windows - attach */
 	argv += optind;
 	argc -= optind;
 	win_attach(use_cmd, newsid, port, doparent, pid, jobid, host, argc, argv);

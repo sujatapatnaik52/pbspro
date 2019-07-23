@@ -76,7 +76,7 @@ is_local_host(char *hname)
 	/*
 	 * Compare with "locahost" and "localhost.localdomain".
 	 */
-#ifdef WIN64
+#ifdef WIN32
 	if (stricmp(hname, cname_short) == 0 ||
 		stricmp(hname, LOCALHOST_SHORTNAME) == 0 ||
 		stricmp(hname, LOCALHOST_FULLNAME)== 0)
@@ -142,7 +142,7 @@ prepare_path(char *path_in, char *path_out)
 	if (*c == '\0')
 		return 1;
 
-#ifdef WIN64
+#ifdef WIN32
 	/* Check for drive letter in Windows */
 	if (!(isalpha(*c) && (*(c + 1) == ':')))
 #endif
@@ -152,7 +152,7 @@ prepare_path(char *path_in, char *path_out)
 			/* Capture the hostname portion */
 			for (h_pos = 0; (h_pos < sizeof(host_name)); h_pos++, c++) {
 				if (isalnum(*c) || (*c == '.') || (*c == '-')
-#ifdef WIN64
+#ifdef WIN32
 					/* Underscores are legal in Windows */
 					|| (*c == '_')
 #endif
@@ -194,7 +194,7 @@ prepare_path(char *path_in, char *path_out)
 		}
 	}
 
-#ifdef WIN64
+#ifdef WIN32
 	if (IS_UNCPATH(path_name)) {
 		/*
 		 * given path is UNC path
@@ -234,7 +234,7 @@ prepare_path(char *path_in, char *path_out)
 			strcat(path_out, ":");
 	}
 
-#ifdef WIN64
+#ifdef WIN32
 	if (path_name[0] != '/' && path_name[0] != '\\' &&
 		host_given == NULL && strchr(path_name, ':') == NULL )
 #else
@@ -271,7 +271,7 @@ prepare_path(char *path_in, char *path_out)
 				return (1);
 			}
 		}
-#ifdef WIN64
+#ifdef WIN32
 		/* get UNC path (if available) if it is mapped drive */
 		get_uncpath(cwd);
 		if (IS_UNCPATH(cwd)) {
@@ -288,7 +288,7 @@ prepare_path(char *path_in, char *path_out)
 	}
 
 
-#ifdef WIN64
+#ifdef WIN32
 	/* get UNC path (if available) if it is mapped drive */
 	get_uncpath(path_name);
 	if (IS_UNCPATH(path_name))

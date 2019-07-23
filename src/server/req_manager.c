@@ -76,7 +76,7 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#ifdef WIN64
+#ifdef WIN32
 #include <Winsock2.h>
 #include <Ws2tcpip.h>
 #else
@@ -194,7 +194,7 @@ struct pul_store {
 	int len;		/* length */
 };
 
-#ifdef WIN64
+#ifdef WIN32
 #if (_WIN32_WINNT < 0x0600)
 /**
  * @brief
@@ -233,7 +233,7 @@ InetPton(int fam, const char *src_const, void *dst)
 	return 0;
 }
 #endif /* _WIN32_WINNT < 0x0600 */
-#endif /* WIN64 */
+#endif /* WIN32 */
 
 /**
  * @brief
@@ -252,7 +252,7 @@ is_local_root(user, host)
 char *user;
 char *host;
 {
-#ifdef WIN64
+#ifdef WIN32
 	char  server_host_netbios[MAX_COMPUTERNAME_LENGTH+1];
 	DWORD hsize = MAX_COMPUTERNAME_LENGTH;
 
@@ -2797,7 +2797,7 @@ make_host_addresses_list(char *phost, u_long **pul)
 	struct addrinfo *aip, *pai;
 	struct addrinfo hints;
 	struct sockaddr_in *inp;
-#ifdef WIN64
+#ifdef WIN32
 	int		num_ip;
 #endif
 
@@ -3146,7 +3146,7 @@ create_pbs_node2(char *objname, svrattrl *plist, int perms, int *bad, struct pbs
 
 			strncpy(realfirsthost, pnode->nd_attr[(int)ND_ATR_Mom].at_val.at_arst->as_string[0], (sizeof(realfirsthost) - 1));
 			realfirsthost[PBS_MAXHOSTNAME] = '\0';
-#ifdef WIN64
+#ifdef WIN32
 			if ((InetPton(AF_INET, realfirsthost, &(sa4.sin_addr)) != 1) &&
 					(InetPton(AF_INET6, realfirsthost, &(sa6.sin6_addr)) != 1))
 #else

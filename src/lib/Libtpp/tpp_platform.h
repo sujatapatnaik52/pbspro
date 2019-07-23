@@ -51,7 +51,7 @@ extern "C" {
 #include <errno.h>
 
 
-#ifndef WIN64
+#ifndef WIN32
 
 
 #define tpp_pipe_cr(a)               pipe(a)

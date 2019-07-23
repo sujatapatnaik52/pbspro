@@ -138,7 +138,7 @@ susystem(char *s,
 	char *username) /* used in windows */
 {
 
-#ifdef WIN64
+#ifdef WIN32
 	HANDLE 	hUser;
 	int	rc;
 
@@ -222,7 +222,7 @@ allocbuf(BUF *bp, int fd, int blksize)
 		return (0);
 	}
 
-#ifdef WIN64
+#ifdef WIN32
 	size = 0;
 #else
 	size = (((int)stb.st_blksize + blksize - 1) / blksize) * blksize;

@@ -53,7 +53,7 @@
 #include <stdio.h>
 #include "avltree.h"
 #include "pbs_entlim.h"
-#ifdef WIN64
+#ifdef WIN32
 #include <windows.h>
 #include <win.h>
 #endif

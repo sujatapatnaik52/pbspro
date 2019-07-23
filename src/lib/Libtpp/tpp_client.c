@@ -87,7 +87,7 @@
 #include <netdb.h>
 #include <string.h>
 #include <sys/time.h>
-#ifndef WIN64
+#ifndef WIN32
 #include <stdint.h>
 #endif
 
@@ -781,7 +781,7 @@ tpp_init(struct tpp_config *cnf)
 		return -1;
 	}
 
-#ifndef WIN64
+#ifndef WIN32
 	/* for unix, set a pthread_atfork handler */
 	if (pthread_atfork(NULL, NULL, tpp_terminate) != 0) {
 		tpp_log_func(LOG_CRIT, __func__, "TPP atfork handler registration failed");

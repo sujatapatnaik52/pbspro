@@ -756,7 +756,7 @@ pbs_python_run_code_in_namespace(struct python_interpreter_data *interp_data,
 			Py_XDECREF(ptype);
 			Py_XDECREF(pvalue);
 
-#if !defined( WIN64)
+#if !defined( WIN32)
 			Py_XDECREF(ptraceback);
 #elif !defined(_DEBUG)
 			/* for some reason this crashes on Windows Debug version */

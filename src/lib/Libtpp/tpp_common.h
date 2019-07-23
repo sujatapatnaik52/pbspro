@@ -509,7 +509,7 @@ extern int tpp_dbprt;
 void free_router(tpp_router_t *r);
 void free_leaf(tpp_leaf_t *l);
 
-#ifdef WIN64
+#ifdef WIN32
 int tr_2_errno(int win_errno);
 #endif
 
@@ -635,7 +635,7 @@ int tpp_em_add_fd(void *em_ctx, int fd, int event_mask);
 int tpp_em_mod_fd(void *em_ctx, int fd, int event_mask);
 int tpp_em_del_fd(void *em_ctx, int fd);
 int tpp_em_wait(void *em_ctx, em_event_t **ev_array, int timeout);
-#ifndef WIN64
+#ifndef WIN32
 int tpp_em_pwait(void *em_ctx, em_event_t **ev_array, int timeout, const sigset_t *sigmask);
 #else
 int tpp_em_wait_win(void *em_ctx, em_event_t **ev_array, int timeout);

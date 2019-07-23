@@ -66,7 +66,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#ifdef WIN64
+#ifdef WIN32
 #include <windows.h>
 #include "win.h"
 #include <time.h>

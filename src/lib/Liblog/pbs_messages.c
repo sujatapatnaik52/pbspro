@@ -197,7 +197,7 @@ char *msg_qunoenb	= "Queue is not enabled";
 char *msg_qacess	= "Access to queue is denied";
 char *msg_nodestale	= "Cannot change state of stale node";
 
-#ifdef WIN64
+#ifdef WIN32
 char *msg_baduser	= "Bad UID for job execution - could be an administrator-type account currently not allowed to run jobs (can be configured)";
 #else
 char *msg_baduser	= "Bad UID for job execution";

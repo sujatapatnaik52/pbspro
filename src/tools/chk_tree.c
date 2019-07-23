@@ -113,7 +113,7 @@ main(int argc, char *argv[])
 	}
 
 	for (i=optind; i < argc; ++i) {
-#ifdef WIN64
+#ifdef WIN32
 		/* we're not checking fullpath */
 		j = chk_file_sec(argv[i], dir, sticky, WRITES_MASK, 0);
 #else

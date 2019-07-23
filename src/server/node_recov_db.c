@@ -59,7 +59,7 @@
 #include <stdio.h>
 #include <sys/types.h>
 
-#ifndef WIN64
+#ifndef WIN32
 #include <sys/param.h>
 #endif
 
@@ -75,7 +75,7 @@
 #include "list_link.h"
 #include "attribute.h"
 
-#ifdef WIN64
+#ifdef WIN32
 #include <sys/stat.h>
 #include <io.h>
 #include <windows.h>

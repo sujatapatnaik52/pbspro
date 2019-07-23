@@ -43,7 +43,7 @@
 #include <string.h>
 #include "portability.h"
 #include "log.h"
-#ifdef WIN64
+#ifdef WIN32
 #include "win.h"
 #endif
 
@@ -114,7 +114,7 @@ setup_env(char *filen)
 					/* no newline, wonder if this is last line */
 					questionable = 1;
 				} else {
-#ifdef WIN64
+#ifdef WIN32
 					/* take care of <carriage-return> char */
 					if (len > 1 && !isalnum(buf[len-2]))
 						buf[len-2] = '\0';
@@ -146,7 +146,7 @@ setup_env(char *filen)
 	} else if (errno != ENOENT) {
 		goto err;
 	}
-#ifdef WIN64
+#ifdef WIN32
 	update_env_avltree();
 #endif
 	sprintf(log_buffer, "read environment from %s", filen);

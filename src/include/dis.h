@@ -197,7 +197,7 @@ extern const char *dis_emsg[];
 
 /* the following routines set/control DIS over tcp */
 
-#ifdef WIN64
+#ifdef WIN32
 extern void     DIS_tcparray_init(void);
 #endif
 

@@ -216,7 +216,7 @@ track_save(struct work_task *pwt)
 		log_err(errno, __func__, "Unable to open tracking file");
 		return;
 	}
-#ifdef WIN64
+#ifdef WIN32
 	secure_file(path_track, "Administrators", READS_MASK|WRITES_MASK|STANDARD_RIGHTS_REQUIRED);
 	setmode(fd, O_BINARY);
 #endif

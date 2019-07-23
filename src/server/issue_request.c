@@ -745,7 +745,7 @@ process_Dreply(int sock)
 	struct work_task	*ptask;
 	int			 rc;
 	struct batch_request	*request;
-#ifdef WIN64
+#ifdef WIN32
 	int                     i;
 #endif
 
@@ -758,7 +758,7 @@ process_Dreply(int sock)
 
 	ptask = (struct work_task *)GET_NEXT(task_list_event);
 
-#ifdef WIN64
+#ifdef WIN32
 	handle = -1;
 	for (i=0;i < PBS_MAX_CONNECTIONS; i++) {
 		if (connection[i].ch_inuse && connection[i].ch_socket == sock) {

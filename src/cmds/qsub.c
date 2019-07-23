@@ -85,7 +85,7 @@
 #include <signal.h>
 #include <termios.h>
 #include <assert.h>
-#ifndef WIN64
+#ifndef WIN32
 #include <sys/un.h>
 #include <syslog.h>
 #endif
@@ -107,12 +107,12 @@
 
 #include "credential.h"
 #include "ticket.h"
-#ifdef WIN64
+#ifdef WIN32
 #include "win_remote_shell.h"
 #endif
 #define CMDLINE 3
 
-#ifdef WIN64
+#ifdef WIN32
 #define INET_ADDR_STRLEN 15
 #endif
 
@@ -134,7 +134,7 @@
 #include <sys/ioctl.h>
 #endif /* HAVE_SYS_IOCTL_H */
 
-#if !defined(sgi) && !defined(linux) && !defined( WIN64)
+#if !defined(sgi) && !defined(linux) && !defined( WIN32)
 #include <sys/tty.h>
 #endif
 
@@ -172,7 +172,7 @@ extern char *msg_force_qsub_update;
 #define PBS_O_ENV "PBS_O_" /* prefix for environment variables created by qsub */
 
 /* Warning/Error messages */
-#ifdef WIN64
+#ifdef WIN32
 #define INTER_GUI_WARN "qsub: only interactive jobs can have GUI\n"
 #endif
 #define INTER_BLOCK_WARN "qsub (Warning) : setting \"block\" attribute as \"true\"" \
@@ -203,7 +203,7 @@ static int X11_comm_sock; /* Socket for x11 communication */
 #define XAUTH_ERR_REDIRECTION "2>&1" /* redirection string used for xauth command */
 #define X11_MSG_OFFSET sizeof(XAUTH_ERR_REDIRECTION) /* offset of the redirection clause */
 
-#ifdef WIN64 /* Windows */
+#ifdef WIN32 /* Windows */
 static CRITICAL_SECTION continuethread_cs;
 #else /* Unix */
 static struct termios oldtio; /* Terminal info */
@@ -225,7 +225,7 @@ static struct batch_status *ss = NULL;
 static char *dfltqsubargs = NULL; /* Default qsub arguments */
 static int sd_svr; /* return from pbs_connect */
 static char script_tmp[MAXPATHLEN + 1] = {'\0'}; /* name of script file copy */
-#ifdef WIN64
+#ifdef WIN32
 static char fl[(2 * MAXPATHLEN) + 1] = {'\0'}; /* the filename used as the pipe name */
 #else
 static char fl[sizeof(((struct sockaddr_un *)0)->sun_path)] = {'\0'}; /* the filename used as the pipe name */
@@ -247,7 +247,7 @@ static char *v_value = NULL; /* expanded variable list from v opt */
 static char *v_value_o = NULL; /* copy of v_value before set_job_env() */
 static char *basic_envlist = NULL; /* basic comma-separated environment variables list string */
 static char *qsub_envlist = NULL; /* comma-separated variables list string */
-#ifndef WIN64
+#ifndef WIN32
 static int x11_disp = FALSE; /* whether DISPLAY environment variable is available */
 #endif
 
@@ -283,7 +283,7 @@ static int Stageout_opt = FALSE;
 static int Sandbox_opt = FALSE;
 static int Grouplist_opt = FALSE;
 static int Forwardx11_opt = FALSE;
-#ifdef WIN64
+#ifdef WIN32
 static int gui_opt = FALSE;
 #endif
 static int Resvstart_opt = FALSE;
@@ -325,7 +325,7 @@ static int Stagein_opt_o = FALSE;
 static int Stageout_opt_o = FALSE;
 static int Sandbox_opt_o = FALSE;
 static int Grouplist_opt_o = FALSE;
-#ifdef WIN64
+#ifdef WIN32
 static int gui_opt_o = FALSE;
 #endif
 static int Resvstart_opt_o = FALSE;
@@ -356,7 +356,7 @@ log_cmds_portfw_msg(char *msg)
 }
 
 
-#ifndef WIN64
+#ifndef WIN32
 /**
  * @brief
  * 	Log a simple message to syslog
@@ -658,7 +658,7 @@ refresh_dfltqsubargs(void)
 	pbs_statfree(ss_save);
 }
 
-#ifndef WIN64
+#ifndef WIN32
 /**
  * @Brief
  *      This function returns a string that consists of the protocol getting
@@ -801,7 +801,7 @@ x11_get_authstring(void)
 static void
 exit_qsub(int exitstatus)
 {
-#ifdef WIN64
+#ifdef WIN32
 	/* A thread that makes qsub exit, should try and acquire the Critical Section. */
 	EnterCriticalSection(&continuethread_cs);
 #endif
@@ -879,7 +879,7 @@ static void
 print_usage(void)
 {
 	static char usage2[]="       qsub --version\n";
-#ifdef WIN64
+#ifdef WIN32
 	static char usage[]=
 		"usage: qsub [-a date_time] [-A account_string] [-c interval]\n"
 	"\t[-C directive_prefix] [-e path] [-f ] [-G] [-h ] [-j oe|eo] [-J X-Y[:Z]]\n"
@@ -959,7 +959,7 @@ interactive_port(void)
 	return (portstring);
 }
 
-#ifndef WIN64
+#ifndef WIN32
 /**
  * @brief
  *	This function creates a socket to listen for "X11" data
@@ -1383,7 +1383,7 @@ no_suspend(int sig)
 	printf("Sorry, you cannot suspend qsub until the job is started\n");
 	fflush(stdout);
 }
-#endif /* ! WIN64 */
+#endif /* ! WIN32 */
 
 /**
  * @brief
@@ -1399,11 +1399,11 @@ static void
 close_sock(int sock)
 {
 	shutdown(sock, 2);
-#ifdef WIN64
+#ifdef WIN32
 	closesocket(sock);
 #else
 	close(sock);
-#endif /* WIN64 */
+#endif /* WIN32 */
 }
 
 /**
@@ -1441,7 +1441,7 @@ bailout(int ret)
 static void
 enable_gui(void)
 {
-#ifndef WIN64 /* Unix */
+#ifndef WIN32 /* Unix */
 	char *x11authstr = NULL;
 	if (Forwardx11_opt) {
 		if (!Interact_opt) {
@@ -1470,7 +1470,7 @@ enable_gui(void)
 #endif
 }
 
-#ifndef WIN64
+#ifndef WIN32
 /**
  * @brief
  *	signal handler for timeout scenario
@@ -2034,7 +2034,7 @@ block_port(void)
 
 static int sig_happened = 0;
 
-#ifdef WIN64
+#ifdef WIN32
 /**
  * @brief
  *	signal handler to avoid race condition
@@ -2110,7 +2110,7 @@ exit_on_sigpipe(int sig)
 static void
 set_sig_handlers(void)
 {
-#ifdef WIN64
+#ifdef WIN32
 	signal(SIGINT, win_blockint);
 	signal(SIGBREAK, win_blockint);
 	signal(SIGTERM, win_blockint);
@@ -2157,7 +2157,7 @@ block(void)
 	int version;
 	int exitval;
 
-#ifndef WIN64
+#ifndef WIN32
 	struct sigaction act;
 
 	/* Catch SIGHUP, SIGINT, SIGQUIT and SIGTERM */
@@ -2178,7 +2178,7 @@ retry:
 	fromlen = sizeof(from);
 	if ((news = accept(comm_sock, (struct sockaddr *)&from,
 		&fromlen)) < 0) {
-#ifdef WIN64
+#ifdef WIN32
 		if (errno == WSAEINTR)
 #else
 		if (errno == EINTR)
@@ -2203,7 +2203,7 @@ retry:
 	 * does job deletion and other related stuff. So main thread can exit now.
 	 */
 
-#ifdef WIN64
+#ifdef WIN32
 	if ((sig_happened == SIGINT) || (sig_happened == SIGBREAK))
 		exit_qsub(3);
 #endif
@@ -2337,7 +2337,7 @@ process_opts(int argc, char **argv, int passet)
 	char *pc;
 	struct attrl *pattr = NULL;
 	size_t N_len = 0;
-#ifdef WIN64
+#ifdef WIN32
 	struct attrl *ap = NULL;
 	short int n_sizeof_hostname = 0;
 	char *orig_apvalue = NULL;
@@ -2345,7 +2345,7 @@ process_opts(int argc, char **argv, int passet)
 #endif
 	int ddash_index = -1;
 
-#ifdef WIN64
+#ifdef WIN32
 #define GETOPT_ARGS "a:A:c:C:e:fGhIj:J:k:l:m:M:N:o:p:q:r:R:S:u:v:VW:zP:"
 #else
 #if !defined(PBS_NO_POSIX_VIOLATION)
@@ -2353,7 +2353,7 @@ process_opts(int argc, char **argv, int passet)
 #else
 #define GETOPT_ARGS "a:A:c:C:e:fhj:J:k:l:m:M:N:o:p:q:r:R:S:u:v:VW:zP:"
 #endif /* PBS_NO_POSIX_VIOLATION */
-#endif /* WIN64 */
+#endif /* WIN32 */
 
 /*
  * The following macro, together the value of passet is used
@@ -2371,7 +2371,7 @@ process_opts(int argc, char **argv, int passet)
 #define if_cmd_line(x) if (x <= passet)
 
 	if (passet != CMDLINE) {
-#if defined(linux) || defined( WIN64)
+#if defined(linux) || defined( WIN32)
 		optind = 0; /* prime getopt's starting point */
 #else
 		optind = 1; /* prime getopt's starting point */
@@ -2618,7 +2618,7 @@ process_opts(int argc, char **argv, int passet)
 				if_cmd_line(v_opt) {
 					v_opt = passet;
 					free(v_value);
-#ifdef WIN64
+#ifdef WIN32
 					/*
 					 * Need to change '\' to '/' before expanding the
 					 * environment because '\' is used to protect commas
@@ -2643,7 +2643,7 @@ process_opts(int argc, char **argv, int passet)
 					errflg++;
 					break;
 				}
-#ifdef WIN64
+#ifdef WIN32
 				back2forward_slash2(optarg);
 #endif
 				i = parse_equal_string(optarg, &keyword, &valuewd);
@@ -2817,7 +2817,7 @@ process_opts(int argc, char **argv, int passet)
 			case 'X':
 				if_cmd_line(Forwardx11_opt) {
 					Forwardx11_opt = passet;
-#if !defined(PBS_NO_POSIX_VIOLATION) && !defined( WIN64)
+#if !defined(PBS_NO_POSIX_VIOLATION) && !defined( WIN32)
 					if (!(display = getenv("DISPLAY"))) {
 						fprintf(stderr, "qsub: DISPLAY not set\n");
 						errflg++;
@@ -2825,7 +2825,7 @@ process_opts(int argc, char **argv, int passet)
 #endif
 				}
 				break;
-#ifdef WIN64
+#ifdef WIN32
 			case 'G':
 				if_cmd_line(gui_opt) {
 					gui_opt = passet;
@@ -2849,7 +2849,7 @@ process_opts(int argc, char **argv, int passet)
 			"interactive jobs\n");
 		exit_qsub(1);
 	}
-#ifdef WIN64
+#ifdef WIN32
 	if ((gui_opt == CMDLINE) && (Interact_opt == FALSE)) {
 		fprintf(stderr, INTER_GUI_WARN);
 		gui_opt = FALSE;
@@ -3143,7 +3143,7 @@ get_script(FILE *file, char *script, char *prefix)
 	char tmp_name[MAXPATHLEN + 1];
 	FILE *TMP_FILE;
 	char *in;
-#ifndef WIN64
+#ifndef WIN32
 	int fds;
 #endif
 	static char tmp_template[] = "pbsscrptXXXXXX";
@@ -3153,7 +3153,7 @@ get_script(FILE *file, char *script, char *prefix)
 	 * gets cleaned up in case of an error.
 	 */
 
-#ifdef WIN64
+#ifdef WIN32
 
 	_snprintf(tmp_name, sizeof(tmp_name), "%s\\%s", tmpdir, tmp_template);
 	if ((in = _mktemp(tmp_name)) != NULL) {
@@ -3228,7 +3228,7 @@ get_script(FILE *file, char *script, char *prefix)
 		}
 	}
 
-#ifdef WIN64
+#ifdef WIN32
 	if ((s[0] != '\0') && (s[strlen(s) - 1] != '\n')) {
 		fputs("\n", TMP_FILE);
 		printf("qsub: added missing newline in job script.\n");
@@ -3296,7 +3296,7 @@ read_job_script(char *script)
 	if ((strcmp(script, "") == 0) || (strcmp(script, "-") == 0)) {
 		/* if this is a terminal, print a short info */
 		if (isatty(STDIN_FILENO) && Interact_opt == FALSE) {
-#ifdef WIN64
+#ifdef WIN32
 			printf("Job script will be read from standard input. Submit with CTRL+Z.\n");
 #else
 			printf("Job script will be read from standard input. Submit with CTRL+D.\n");
@@ -3375,7 +3375,7 @@ job_env_basic(void)
 	char *c = NULL;
 	char *p = NULL;
 	char *env = NULL;
-#ifdef WIN64
+#ifdef WIN32
 	OSVERSIONINFO os_info;
 #else
 	struct utsname uns;
@@ -3432,7 +3432,7 @@ job_env_basic(void)
 
 	/* Send the required variables with the job. */
 	c = strdup_esc_commas(getenv("HOME"));
-#ifdef WIN64
+#ifdef WIN32
 	back2forward_slash(c);
 #endif
 	strcat(job_env, "PBS_O_HOME=");
@@ -3456,7 +3456,7 @@ job_env_basic(void)
 		free(c);
 	}
 	c = strdup_esc_commas(getenv("PATH"));
-#ifdef WIN64
+#ifdef WIN32
 	back2forward_slash(c);
 #endif
 	if (c != NULL) {
@@ -3465,7 +3465,7 @@ job_env_basic(void)
 		free(c);
 	}
 	c = strdup_esc_commas(getenv("MAIL"));
-#ifdef WIN64
+#ifdef WIN32
 	back2forward_slash(c);
 #endif
 	if (c != NULL) {
@@ -3474,7 +3474,7 @@ job_env_basic(void)
 		free(c);
 	}
 	c = strdup_esc_commas(getenv("SHELL"));
-#ifdef WIN64
+#ifdef WIN32
 	back2forward_slash(c);
 #endif
 	if (c != NULL) {
@@ -3536,13 +3536,13 @@ job_env_basic(void)
 
 		/* save current working dir for daemon */
 		snprintf(qsub_cwd, sizeof(qsub_cwd), "%s", c);
-#ifdef WIN64
+#ifdef WIN32
 		/* get UNC path (if available) if it is mapped drive */
 		get_uncpath(c);
 #endif
 		c_escaped = strdup_esc_commas(c);
 		if (c_escaped != NULL) {
-#ifdef WIN64
+#ifdef WIN32
 			back2forward_slash(c_escaped);
 #endif
 			strncpy(p, c_escaped, len - (p - job_env));
@@ -3553,7 +3553,7 @@ job_env_basic(void)
 	} else
 		*s = '\0';
 
-#ifdef WIN64 /* Windows */
+#ifdef WIN32 /* Windows */
 	os_info.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
 	if (GetVersionEx(&os_info)) {
 		switch (os_info.dwPlatformId) {
@@ -3639,7 +3639,7 @@ env_array_to_varlist(char **envp)
 			strcat(job_env, ",");
 			strcat(job_env, *evp);
 			strcat(job_env, "=");
-#ifdef WIN64
+#ifdef WIN32
 			back2forward_slash(s + 1);
 #endif
 			(void)copy_env_value(job_env, s + 1, 1);
@@ -3740,7 +3740,7 @@ set_job_env(char *basic_vlist, char *current_vlist)
 			strcat(job_env, ",");
 			strcat(job_env, s);
 			strcat(job_env, "=");
-#ifdef WIN64
+#ifdef WIN32
 			back2forward_slash(env);
 #endif
 			if (copy_env_value(job_env, env, 1) == NULL) {
@@ -3757,7 +3757,7 @@ set_job_env(char *basic_vlist, char *current_vlist)
 		/* From state4, goes back to state1, using 'c' as input */
 		*c++ = '\0';;
 
-#ifndef WIN64
+#ifndef WIN32
 		if (v_opt && Forwardx11_opt) {
 			if (strcmp(s, "DISPLAY") == 0) {
 				x11_disp = TRUE;
@@ -3770,7 +3770,7 @@ set_job_env(char *basic_vlist, char *current_vlist)
 		(void)strcat(job_env, ",");
 		(void)strcat(job_env, s);
 		(void)strcat(job_env, "=");
-#ifdef WIN64
+#ifdef WIN32
 		back2forward_slash(c);
 #endif
 		if ((c = copy_env_value(job_env, c, 0)) == NULL) {
@@ -3843,7 +3843,7 @@ resize_daemon_buf(int bufused, int lenreq)
 	return 0;
 }
 
-#ifdef WIN64
+#ifdef WIN32
 #ifdef DEBUG
 /**
  * @brief
@@ -3891,7 +3891,7 @@ dorecv(void *s, char *buf, int bufsize)
 	int bytes = 0;
 	char *p = buf;
 	int remaining = bufsize;
-#ifdef WIN64
+#ifdef WIN32
 	BOOL f_success = 0;
 	HANDLE h_pipe = (HANDLE) s;
 
@@ -3948,7 +3948,7 @@ static int
 dosend(void *s, char *buf, int bufsize)
 {
 	int bytes = 0;
-#ifdef WIN64
+#ifdef WIN32
 	BOOL f_success = 0;
 	HANDLE h_pipe = (HANDLE) s;
 
@@ -4509,7 +4509,7 @@ do_submit(char *retmsg)
 
 	/* set_job_env must be done here to pick up -v, -V options passed by default_qsub_arguments */
 	if (!set_job_env(basic_envlist, qsub_envlist)) {
-#ifndef WIN64
+#ifndef WIN32
 		if (x11_disp)
 			snprintf(retmsg, MAXPATHLEN, "qsub: invalid usage of incompatible option –X with –v DISPLAY\n");
 		else
@@ -4603,7 +4603,7 @@ save_opts(void)
 	Stageout_opt_o = Stageout_opt;
 	Sandbox_opt_o = Sandbox_opt;
 	Grouplist_opt_o = Grouplist_opt;
-#ifdef WIN64
+#ifdef WIN32
 	gui_opt_o = gui_opt;
 #endif
 	Resvstart_opt_o = Resvstart_opt;
@@ -4747,7 +4747,7 @@ get_conf_path(void)
 			free(dup_cnf_path);
 			dup_cnf_path = p;
 			while (*p) {
-#ifdef WIN64
+#ifdef WIN32
 				if (*p == '\\' || *p == ':' || *p == ' ' || *p == '.')
 					*p = '_';
 #else
@@ -4857,7 +4857,7 @@ do_submit2(char *rmsg)
 	return (rc);
 }
 
-#ifdef WIN64
+#ifdef WIN32
 /**
  * @brief
  *	Get the filename to be used for communications. This is created by
@@ -5692,7 +5692,7 @@ regular_submit(int daemon_up)
 		else
 			rc = -1;
 	}
-#ifndef WIN64
+#ifndef WIN32
 	if ((rc == 0) && !(Interact_opt != FALSE || block_opt) && (daemon_up == 0) && (no_background == 0) && !V_opt)
 		fork_and_stay();
 #endif
@@ -5713,7 +5713,7 @@ main(int argc, char **argv, char **envp) /* qsub */
 	int command_flag = 0;
 	int rc = 0; /* error code for submit */
 	int do_regular_submit = 1; /* used if daemon based submit fails */
-#ifdef WIN64 /* Windows */
+#ifdef WIN32 /* Windows */
 	char qsub_exe[MAXPATHLEN + 1];
 #endif
 	int daemon_up = 0;
@@ -5739,7 +5739,7 @@ main(int argc, char **argv, char **envp) /* qsub */
 		exit_qsub(2);
 	}
 
-#ifdef WIN64
+#ifdef WIN32
 	/*
 	 * In windows, the foreground qsub process does a createprocess of the
 	 * same executable (since there is no equivalent of fork). It calls the
@@ -5810,7 +5810,7 @@ main(int argc, char **argv, char **envp) /* qsub */
 	free(argv_cpy);
 	/* Process special arguments */
 	command_flag = process_special_args(argc, argv, script);
-#ifdef WIN64
+#ifdef WIN32
 	back2forward_slash(script);
 #endif
 
@@ -5860,7 +5860,7 @@ main(int argc, char **argv, char **envp) /* qsub */
 	 */
 	if ((Interact_opt || block_opt || no_background) == 0) {
 		/* Try to submit jobs using a daemon */
-#ifdef WIN64
+#ifdef WIN32
 		rc = daemon_submit(qsub_exe, &do_regular_submit);
 #else
 		rc = daemon_submit(&daemon_up, &do_regular_submit);

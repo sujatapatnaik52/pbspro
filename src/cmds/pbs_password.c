@@ -141,7 +141,7 @@ int
 main(int argc, char *argv[])
 {
 	char	*the_server;
-#ifdef WIN64
+#ifdef WIN32
 	char	the_user[UNLEN+1];
 	char	cur_user[UNLEN+1];
 #else
@@ -179,7 +179,7 @@ main(int argc, char *argv[])
 		exit(1);
 	}
 
-#ifdef WIN64
+#ifdef WIN32
 	winsock_init();
 #endif
 
@@ -187,7 +187,7 @@ main(int argc, char *argv[])
 
 	the_server = pbs_default();
 
-#ifdef WIN64
+#ifdef WIN32
 	strcpy(the_user, getlogin());
 #else
 	/*
@@ -202,7 +202,7 @@ main(int argc, char *argv[])
 		exit(1);
 	}
 	strcpy(the_user, pwd->pw_name);
-#endif	/* WIN64 */
+#endif	/* WIN32 */
 	strcpy(cur_user, the_user);
 
 	while ((i = getopt(argc, argv, "s:rd")) != EOF) {

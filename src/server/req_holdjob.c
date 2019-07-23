@@ -170,7 +170,7 @@ req_holdjob(struct batch_request *preq)
 	}
 
 	/* HOLD_bad_password can only be done by root or admin */
-#ifdef WIN64
+#ifdef WIN32
 	if ( (temphold.at_val.at_long & HOLD_bad_password) && \
 				!isAdminPrivilege(preq->rq_user) )
 #else

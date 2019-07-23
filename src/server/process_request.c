@@ -83,7 +83,7 @@
 #include <netinet/in.h>
 #include <memory.h>
 #include <assert.h>
-#ifndef WIN64
+#ifndef WIN32
 #include <fcntl.h>
 #include <grp.h>
 #include <pwd.h>
@@ -211,7 +211,7 @@ authenticate_external(conn_t *conn, struct batch_request *request)
 	int rc = 0;
 
 	switch(request->rq_ind.rq_authen_external.rq_auth_type) {
-#ifndef WIN64
+#ifndef WIN32
 		case AUTH_MUNGE:
 			if (pbs_conf.auth_method != AUTH_MUNGE) {
 				rc = -1;
@@ -268,7 +268,7 @@ process_request(int sfds)
 	if (!conn) {
 		log_event(PBSEVENT_SYSTEM, PBS_EVENTCLASS_REQUEST, LOG_ERR,
 			"process_request", "did not find socket in connection table");
-#ifdef WIN64
+#ifdef WIN32
 		(void)closesocket(sfds);
 #else
 		(void)close(sfds);
@@ -515,7 +515,7 @@ set_to_non_blocking(conn_t *conn)
 
 	if (conn->cn_sock != PBS_LOCAL_CONNECTION) {
 
-#ifndef WIN64
+#ifndef WIN32
 
 		int flg;
 		flg = fcntl(conn->cn_sock, F_GETFL);
@@ -526,7 +526,7 @@ set_to_non_blocking(conn_t *conn)
 			return -1;
 		}
 		conn->cn_sockflgs = flg;
-#endif	/* WIN64 */
+#endif	/* WIN32 */
 	}
 	return 0;
 }
@@ -548,13 +548,13 @@ clear_non_blocking(conn_t *conn)
 	if(!conn)
 		return;
 	if (conn->cn_sock != PBS_LOCAL_CONNECTION) {
-#ifndef WIN64
+#ifndef WIN32
 		int flg;
 		if ((flg = conn->cn_sockflgs) != -1)
 			/* reset socket flag to prior value */
 			(void)fcntl(conn->cn_sock, F_SETFL, flg);
 		conn->cn_sockflgs = 0;
-#endif /* WIN64 */
+#endif /* WIN32 */
 	}
 }
 #endif	/* !PBS_MOM */
@@ -625,7 +625,7 @@ dispatch_request(int sfds, struct batch_request *request)
 
 		case PBS_BATCH_UserCred:
 #ifdef PBS_MOM
-#ifdef	WIN64
+#ifdef	WIN32
 			req_reject(PBSE_NOSUP, 0, request);
 #else
 			req_reject(PBSE_UNKREQ, 0, request);
@@ -638,11 +638,11 @@ dispatch_request(int sfds, struct batch_request *request)
 
 		case PBS_BATCH_UserMigrate:
 #ifdef	PBS_MOM
-#ifdef	WIN64
+#ifdef	WIN32
 			req_reject(PBSE_NOSUP, 0, request);
 #else
 			req_reject(PBSE_UNKREQ, 0, request);
-#endif	/* WIN64 */
+#endif	/* WIN32 */
 			close_client(sfds);
 #else
 			req_user_migrate(request);

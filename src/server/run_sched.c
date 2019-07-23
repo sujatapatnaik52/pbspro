@@ -273,14 +273,14 @@ contact_sched(int cmd, char *jobid, pbs_net_t pbs_scheduler_addr, unsigned int p
 {
 	int sock;
 	conn_t *conn;
-#ifndef WIN64
+#ifndef WIN32
 	struct sigaction act, oact;
 #endif
 
 	if ((cmd == SCH_SCHEDULE_AJOB) && (jobid == NULL))
 		return -1;	/* need a jobid */
 
-#ifndef WIN64
+#ifndef WIN32
 
 	/* connect to the Scheduler */
 	/* put a timeout alarm around the connect */
@@ -293,12 +293,12 @@ contact_sched(int cmd, char *jobid, pbs_net_t pbs_scheduler_addr, unsigned int p
 	alarm(SCHEDULER_ALARM_TIME);
 #endif
 
-	/* Under WIN64, this function does a timeout wait on the non-blocking socket */
+	/* Under WIN32, this function does a timeout wait on the non-blocking socket */
 	sock = client_to_svr(pbs_scheduler_addr, pbs_scheduler_port, 1); /* scheduler connection still uses resv-ports */
 	if (pbs_errno == PBSE_NOLOOPBACKIF)
 		log_err(PBSE_NOLOOPBACKIF, "client_to_svr" , msg_noloopbackif);
 
-#ifndef WIN64
+#ifndef WIN32
 	alarm(0);
 
 	(void)sigaction(SIGALRM, &oact, NULL);	/* reset handler for SIGALRM */
@@ -319,7 +319,7 @@ contact_sched(int cmd, char *jobid, pbs_net_t pbs_scheduler_addr, unsigned int p
 	net_add_close_func(sock, scheduler_close);
 
 	if (set_nodelay(sock) == -1) {
-#ifdef WIN64
+#ifdef WIN32
 		errno = WSAGetLastError();
 #endif
 		snprintf(log_buffer, sizeof(log_buffer), "cannot set nodelay on connection %d (errno=%d)\n", sock, errno);

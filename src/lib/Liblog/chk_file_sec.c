@@ -59,7 +59,7 @@
 #define	S_ISLNK(m)	(((m) & S_IFMT) == S_IFLNK)
 #endif
 
-#ifdef WIN64
+#ifdef WIN32
 
 /**
  * @brief
@@ -240,7 +240,7 @@ chk_file_sec(char *path, int isdir, int sticky, int disallow, int fullpath)
 		goto chkerr;
 	}
 
-#ifdef WIN64
+#ifdef WIN32
 	if ( ( (real[0] == '/') || \
 		((real[1] == ':') && (real[2] == '/')) ) && fullpath ) {
 		char *slash;
@@ -303,7 +303,7 @@ chk_file_sec(char *path, int isdir, int sticky, int disallow, int fullpath)
 
 	assert(S_ISLNK(sbuf.st_mode) == 0);
 
-#ifdef WIN64
+#ifdef WIN32
 	rc = teststat(&sbuf, isdir, sticky, disallow, real, log_buffer);
 #else
 	rc = teststat(&sbuf, isdir, sticky, disallow);
@@ -317,7 +317,7 @@ chkerr:
 			"Security violation \"%s\" resolves to \"%s\"",
 			path, real);
 		log_err(rc, __func__, error_buf);
-#ifdef WIN64
+#ifdef WIN32
 		if (strlen(log_buffer) > 0)
 			log_err(rc, __func__, log_buffer);
 #endif
@@ -367,7 +367,7 @@ tmp_file_sec(char *path, int isdir, int sticky, int disallow, int fullpath)
 		goto chkerr;
 	}
 
-#ifdef WIN64
+#ifdef WIN32
 	if ( ( (real[0] == '/') || \
 		((real[1] == ':') && (real[2] == '/')) ) && fullpath ) {
 		char *slash;
@@ -428,7 +428,7 @@ tmp_file_sec(char *path, int isdir, int sticky, int disallow, int fullpath)
 
 	assert(S_ISLNK(sbuf.st_mode) == 0);
 
-#ifdef WIN64
+#ifdef WIN32
 	rc = teststat(&sbuf, isdir, sticky, disallow, real, log_buffer);
 #else
 	rc = tempstat(&sbuf, isdir, sticky, disallow);
@@ -442,7 +442,7 @@ chkerr:
 			"Security violation \"%s\" resolves to \"%s\"",
 			path, real);
 		log_err(rc, __func__, error_buf);
-#ifdef WIN64
+#ifdef WIN32
 		if (strlen(log_buffer) > 0)
 			log_err(rc, __func__, log_buffer);
 #endif

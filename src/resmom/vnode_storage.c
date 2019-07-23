@@ -36,7 +36,7 @@
  *
  */
 #ifdef  PBS_MOM
-#ifdef	WIN64
+#ifdef	WIN32
 #include	"pbs_config.h"
 #endif
 #include	<stdlib.h>

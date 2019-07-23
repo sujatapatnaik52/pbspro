@@ -51,7 +51,7 @@
 #include "dis.h"
 #include "sched_cmds.h"
 
-#ifndef WIN64
+#ifndef WIN32
 #include <sys/types.h>
 #include <sys/time.h>
 #include <unistd.h>

@@ -45,7 +45,7 @@
 
 
 
-#ifdef WIN64	/* we're including the space character under windows */
+#ifdef WIN32	/* we're including the space character under windows */
 #define ISNAMECHAR(x) ((isprint(x)) && ((x) != '#') && ((x) != '@'))
 #else
 #define ISNAMECHAR(x) ((isgraph(x)) && ((x) != '#') && ((x) != '@'))
@@ -157,7 +157,7 @@ parse_at_list(char *list, int use_count, int abs_path)
 	if ((list == NULL) || (*list == '\0'))
 		return 1;
 
-#ifdef WIN64
+#ifdef WIN32
 	back2forward_slash(list);        /* "\" translate to "/" for path */
 #endif
 

@@ -131,7 +131,7 @@ static char *class_names[] = {
 	"TPP"
 };
 
-#ifdef WIN64
+#ifdef WIN32
 /**
  * @brief
  *		gettimeofday - This function returns the current calendar
@@ -219,7 +219,7 @@ set_logfile(FILE *fp)
 static char *
 mk_log_name(char *pbuf, size_t pbufsz)
 {
-#ifndef WIN64
+#ifndef WIN32
 	struct tm ltm;
 #endif
 	struct tm *ptm;
@@ -227,7 +227,7 @@ mk_log_name(char *pbuf, size_t pbufsz)
 
 	time_now = time(NULL);
 
-#ifdef WIN64
+#ifdef WIN32
 	ptm = localtime(&time_now);
 	(void)snprintf(pbuf, pbufsz, "%s\\%04d%02d%02d", log_directory,
 		ptm->tm_year+1900, ptm->tm_mon+1, ptm->tm_mday);
@@ -327,7 +327,7 @@ log_mutex_unlock()
 	return 0;
 }
 
-#ifndef WIN64
+#ifndef WIN32
 
 /**
  * @brief
@@ -386,7 +386,7 @@ log_init(void)
 		exit(1);
 	}
 
-#ifndef WIN64
+#ifndef WIN32
 	/* for unix, set a pthread_atfork handler */
 	if (pthread_atfork(log_atfork_prepare, log_atfork_parent, log_atfork_child) != 0) {
 		fprintf(stderr, "log mutex atfork handler failed\n");
@@ -559,7 +559,7 @@ log_open_main(char *filename, char *directory, int silent)
 			filename = mk_log_name(buf, _POSIX_PATH_MAX);
 			log_auto_switch = 1;
 		}
-#ifdef WIN64
+#ifdef WIN32
 		else if (*filename != '\\' && (strlen(filename) > 1 && \
 				*(filename+1) != ':') ) {
 			return (-1);	/* must be absolute path */
@@ -570,7 +570,7 @@ log_open_main(char *filename, char *directory, int silent)
 		}
 #endif
 
-#ifdef WIN64
+#ifdef WIN32
 		if ((fds = open(filename, O_CREAT|O_WRONLY|O_APPEND, S_IREAD | S_IWRITE)) < 0)
 #elif defined (O_LARGEFILE )
 		if ((fds = open(filename, O_CREAT|O_WRONLY|O_APPEND|O_LARGEFILE, 0644)) < 0)
@@ -582,7 +582,7 @@ log_open_main(char *filename, char *directory, int silent)
 				return (-1);
 			}
 
-#ifdef WIN64
+#ifdef WIN32
 		secure_file2(filename, "Administrators",
 			READS_MASK|WRITES_MASK|STANDARD_RIGHTS_REQUIRED,
 			"Everyone", READS_MASK | READ_CONTROL);
@@ -598,7 +598,7 @@ log_open_main(char *filename, char *directory, int silent)
 		}
 		logfile = fdopen(fds, "a");
 
-#ifdef WIN64
+#ifdef WIN32
 		(void)setvbuf(logfile, NULL, _IONBF, 0);	/* no buffering to get instant log */
 #else
 		(void)setvbuf(logfile, NULL, _IOLBF, 0);	/* set line buffering */
@@ -687,7 +687,7 @@ log_err(int errnum, const char *routine, const char *text)
 
 	if (errnum == -1) {
 
-#ifdef WIN64
+#ifdef WIN32
 		LPVOID	lpMsgBuf;
 		int	err = GetLastError();
 		int		len;
@@ -758,7 +758,7 @@ log_joberr(int errnum, const char *routine, const char *text, const char *pjid)
 
 	if (errnum == -1) {
 
-#ifdef WIN64
+#ifdef WIN32
 		LPVOID	lpMsgBuf;
 		int	err = GetLastError();
 		int		len;
@@ -862,7 +862,7 @@ log_record(int eventtype, int objclass, int sev, const char *objname, const char
 {
 	time_t now = 0;
 	struct tm *ptm;
-#ifndef WIN64
+#ifndef WIN32
 	struct tm ltm;
 #endif
 	int    rc = 0;
@@ -896,7 +896,7 @@ log_record(int eventtype, int objclass, int sev, const char *objname, const char
 			snprintf(microsec_buf, sizeof(microsec_buf), ".%06ld", (long)tp.tv_usec);
 	}
 
-#ifdef WIN64
+#ifdef WIN32
 	ptm = localtime(&now);
 #else
 	ptm = localtime_r(&now, &ltm);

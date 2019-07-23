@@ -105,7 +105,7 @@ main(int argc, char *argv[], char *env[])
 	/*the real deal or output pbs_version and exit?*/
 	execution_mode(argc, argv);
 
-#ifdef WIN64
+#ifdef WIN32
 	winsock_init();
 #endif
 
@@ -124,7 +124,7 @@ main(int argc, char *argv[], char *env[])
 		return 1;
 	}
 
-#ifndef WIN64
+#ifndef WIN32
 	h_errno = 0;
 #endif
 
@@ -181,7 +181,7 @@ main(int argc, char *argv[], char *env[])
 				printf(" (%u dec)  ", (int)(ina+i)->s_addr);
 
 
-#ifndef WIN64
+#ifndef WIN32
 				h_errno = 0;
 #endif
 				hosta = gethostbyaddr((char *)(ina+i), host->h_length,

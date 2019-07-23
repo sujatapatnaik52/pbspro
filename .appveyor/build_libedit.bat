@@ -77,12 +77,12 @@ if not exist "%BINARIESDIR%\wineditline-%LIBEDIT_VERSION%" (
 )
 
 2>nul rd /S /Q "%BINARIESDIR%\wineditline-%LIBEDIT_VERSION%\build"
-2>nul rd /S /Q "%BINARIESDIR%\wineditline-%LIBEDIT_VERSION%\bin64"
-2>nul rd /S /Q "%BINARIESDIR%\wineditline-%LIBEDIT_VERSION%\lib64"
+2>nul rd /S /Q "%BINARIESDIR%\wineditline-%LIBEDIT_VERSION%\bin32"
+2>nul rd /S /Q "%BINARIESDIR%\wineditline-%LIBEDIT_VERSION%\lib32"
 2>nul rd /S /Q "%BINARIESDIR%\wineditline-%LIBEDIT_VERSION%\include"
 mkdir "%BINARIESDIR%\wineditline-%LIBEDIT_VERSION%\build"
 
-cd "%BINARIESDIR%\wineditline-%LIBEDIT_VERSION%\build" && %CMAKE_BIN% -DLIB_SUFFIX=64 -DMSVC_USE_STATIC_RUNTIME=OFF -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -G "NMake Makefiles" ..
+cd "%BINARIESDIR%\wineditline-%LIBEDIT_VERSION%\build" && %CMAKE_BIN% -DLIB_SUFFIX=32 -DMSVC_USE_STATIC_RUNTIME=OFF -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -G "NMake Makefiles" ..
 if not %ERRORLEVEL% == 0 (
     echo "Failed to generate makefiles for libedit"
     exit /b 1
@@ -102,7 +102,7 @@ if not %ERRORLEVEL% == 0 (
 
 2>nul mkdir "%BINARIESDIR%\%LIBEDIT_DIR_NAME%" && cd "%BINARIESDIR%\wineditline-%LIBEDIT_VERSION%"
 if %ERRORLEVEL% == 0 (
-    for %%f in (bin64 include lib64) do (
+    for %%f in (bin32 include lib32) do (
         robocopy /S %%f "%BINARIESDIR%\%LIBEDIT_DIR_NAME%\%%f"
         if %ERRORLEVEL% GTR 1 (
             goto exitloop
@@ -113,7 +113,7 @@ if %ERRORLEVEL% == 0 (
 )
 :exitloop
 if not %ERRORLEVEL% == 0 (
-    echo "Failed to copy bin64, include and lib64 from %BINARIESDIR%\wineditline-%LIBEDIT_VERSION% to %BINARIESDIR%\%LIBEDIT_DIR_NAME%"
+    echo "Failed to copy bin32, include and lib32 from %BINARIESDIR%\wineditline-%LIBEDIT_VERSION% to %BINARIESDIR%\%LIBEDIT_DIR_NAME%"
     exit /b 1
 )
 

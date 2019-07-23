@@ -89,7 +89,7 @@ main(int argc, char **argv)
 
 	execution_mode(argc, argv);
 
-#ifdef WIN64
+#ifdef WIN32
 	winsock_init();
 #endif
 

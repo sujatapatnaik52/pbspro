@@ -64,7 +64,7 @@
 #include "batch_request.h"
 #include "net_connect.h"
 
-#ifdef WIN64
+#ifdef WIN32
 #include <windows.h>
 #include "win.h"
 #else
@@ -121,7 +121,7 @@ svr_chk_owner(struct batch_request *preq, job *pjob)
 	char  rmtuser[PBS_MAXUSER+PBS_MAXHOSTNAME+2];
 	extern int ruserok(const char *rhost, int suser, const char *ruser,
 		const char *luser);
-#ifdef	WIN64
+#ifdef	WIN32
 	extern int user_read_password(char *user, char **cred, size_t *len);
 	extern int read_cred(job *pjob, char **cred, size_t *len);
 	extern int decrypt_pwd(char *crypted, size_t len, char **passwd);
@@ -163,7 +163,7 @@ svr_chk_owner(struct batch_request *preq, job *pjob)
 		return (strcmp(rmtuser, pu));
 	} else  {
 		/* non-flatuid space, must validate rmtuser vs owner */
-#ifdef	WIN64
+#ifdef	WIN32
 		if ( (server.sv_attr[SRV_ATR_ssignon_enable].at_flags &      \
                                                    ATR_VFLAG_SET) &&         \
              	     (server.sv_attr[SRV_ATR_ssignon_enable].at_val.at_long  \
@@ -244,7 +244,7 @@ svr_get_privilege(char *user, char *host)
 	int   is_root = 0;
 	int   priv = (ATR_DFLAG_USRD | ATR_DFLAG_USWR);
 	char  uh[PBS_MAXUSER + PBS_MAXHOSTNAME + 2];
-#ifdef WIN64
+#ifdef WIN32
 	char  server_host_netbios[MAX_COMPUTERNAME_LENGTH+1];
 	DWORD hsize = MAX_COMPUTERNAME_LENGTH;
 
@@ -260,7 +260,7 @@ svr_get_privilege(char *user, char *host)
 	(void)strcat(uh, "@");
 	(void)strcat(uh, host);
 
-#ifdef WIN64
+#ifdef WIN32
 	/* Try to match requesting host against: 		  */
 	/*    localhost						  */
 	/*    <server_host> 			 		  */
@@ -306,7 +306,7 @@ svr_get_privilege(char *user, char *host)
 			}
 		}
 	}
-#endif	/* WIN64 */
+#endif	/* WIN32 */
 
 #ifdef PBS_ROOT_ALWAYS_ADMIN
 	if (is_root)

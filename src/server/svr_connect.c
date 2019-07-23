@@ -67,7 +67,7 @@
 
 #include <stdio.h>
 #include <sys/types.h>
-#ifndef WIN64
+#ifndef WIN32
 #include <unistd.h>
 #include <sys/socket.h>
 #include <signal.h>
@@ -100,7 +100,7 @@ extern char		*msg_daemonname;
 extern char		*msg_noloopbackif;
 
 extern pbs_net_t	 pbs_server_addr;
-#ifndef WIN64
+#ifndef WIN32
 extern sigset_t		 allsigs;		/* see pbsd_main.c */
 #endif
 
@@ -159,12 +159,12 @@ svr_connect(pbs_net_t hostaddr, unsigned int port, void (*func)(int), enum conn_
 
 	/* obtain the connection to the other server */
 
-#ifndef WIN64
+#ifndef WIN32
 	/*  block signals while we attempt to connect */
 
 	if (sigprocmask(SIG_BLOCK, &allsigs, NULL) == -1)
 		log_err(errno, msg_daemonname, "sigprocmask(BLOCK)");
-#endif	/* WIN64 */
+#endif	/* WIN32 */
 
 	mode = B_RESERVED;
 	if (pbs_conf.auth_method == AUTH_MUNGE)
@@ -173,7 +173,7 @@ svr_connect(pbs_net_t hostaddr, unsigned int port, void (*func)(int), enum conn_
 	sock = client_to_svr(hostaddr, port, 0x0 | mode);
 	if (pbs_errno == PBSE_NOLOOPBACKIF)
 		log_err(PBSE_NOLOOPBACKIF, "client_to_svr", msg_noloopbackif);
-#ifdef WIN64
+#ifdef WIN32
 	if ((sock < 0) && (errno == WSAECONNREFUSED)) {
 		/* try one additional time */
 		sock = client_to_svr(hostaddr, port, 0x0 | mode);
@@ -191,7 +191,7 @@ svr_connect(pbs_net_t hostaddr, unsigned int port, void (*func)(int), enum conn_
 	/* unblock signals */
 	if (sigprocmask(SIG_UNBLOCK, &allsigs, NULL) == -1)
 		log_err(errno, msg_daemonname, "sigprocmask(UNBLOCK)");
-#endif	/* WIN64 */
+#endif	/* WIN32 */
 
 	if (sock < 0) {
 		/* if execution node, mark it down  */
@@ -216,7 +216,7 @@ svr_connect(pbs_net_t hostaddr, unsigned int port, void (*func)(int), enum conn_
 
 
 	if (!conn) {
-#ifdef WIN64
+#ifdef WIN32
 		(void)closesocket(sock);
 #else
 		(void)close(sock);
@@ -308,7 +308,7 @@ svr_disconnect_with_wait_option(int handle, int wait)
 					/* wait for EOF (closed connection) */
 					/* from remote host, in response to */
 					/* PBS_BATCH_Disconnect */
-#ifdef WIN64
+#ifdef WIN32
 					if (recv(sock, &x, 1, 0) < 1)
 #else
 					if (read(sock, &x, 1) < 1)
@@ -316,7 +316,7 @@ svr_disconnect_with_wait_option(int handle, int wait)
 						break;
 				}
 
-#ifdef WIN64
+#ifdef WIN32
 				(void)closesocket(connection[handle].ch_socket);
 #else
 				(void)close(connection[handle].ch_socket);

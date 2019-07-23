@@ -1860,7 +1860,7 @@ tcl_init()
 		home = pw->pw_dir;
 	}
 
-#ifdef WIN64
+#ifdef WIN32
 	snprintf(script, sizeof(script), "%s\\.qstatrc", home);
 #else
 	snprintf(script, sizeof(script), "%s/.qstatrc", home);
@@ -1911,7 +1911,7 @@ tcl_init()
 	if (pw == NULL)
 		return;
 
-#ifdef WIN64
+#ifdef WIN32
 	sprintf(script, "%s\\.qstatrc", pw->pw_dir);
 #else
 	sprintf(script, "%s/.qstatrc", pw->pw_dir);
@@ -2224,7 +2224,7 @@ main(int argc, char **argv, char **envp) /* qstat */
 
 	execution_mode(argc, argv);
 
-#ifdef WIN64
+#ifdef WIN32
 	winsock_init();
 #endif
 
@@ -2243,7 +2243,7 @@ main(int argc, char **argv, char **envp) /* qstat */
 
 #if TCL_QSTAT
 
-#ifdef WIN64
+#ifdef WIN32
 	/* needed so that program recognizes correct TCL_LIBRARY */
 	Tcl_FindExecutable(argv[0]);
 #endif

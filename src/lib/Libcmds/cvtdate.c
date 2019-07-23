@@ -84,9 +84,9 @@ cvtdate(char *datestr)
 	int	   year = 0;
 	int	   month = -1;
 	int	   day = 0;
-#ifdef WIN64
+#ifdef WIN32
 	SYSTEMTIME win_ltm;
-#endif /* WIN64 */
+#endif /* WIN32 */
 	struct tm  ltm;
 	struct tm *ptm;
 
@@ -108,7 +108,7 @@ cvtdate(char *datestr)
 
 	buf[2] = '\0';
 	clock = time(NULL);
-#ifdef WIN64
+#ifdef WIN32
 	GetLocalTime(&win_ltm);
 	ltm.tm_year = win_ltm.wYear - 1900; /* unix is counted from 1900 */
 	ltm.tm_mon = win_ltm.wMonth - 1; /* unix starts from 0 */
@@ -119,7 +119,7 @@ cvtdate(char *datestr)
 	ltm.tm_isdst = -1;
 #else
 	localtime_r(&clock, &ltm);
-#endif /* WIN64 */
+#endif /* WIN32 */
 	ptm = &ltm;
 	tm.tm_year = ptm->tm_year;	/* default year to current */
 	tm.tm_mon  = ptm->tm_mon;	/* default month to current */

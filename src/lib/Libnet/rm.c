@@ -202,7 +202,7 @@ openrm(char *host, unsigned int port)
 		if (connect(stream, (struct sockaddr *)&addr,
 			sizeof(addr)) == -1) {
 			pbs_errno = errno;
-#ifdef WIN64
+#ifdef WIN32
 			closesocket(stream);
 #else
 			close(stream);
@@ -491,7 +491,7 @@ configrm(int stream, char *file)
 		pbs_errno = ENOCONNECT;
 #else
 
-#ifdef WIN64
+#ifdef WIN32
 		pbs_errno = ERROR_IO_INCOMPLETE;
 #else
 		pbs_errno = ETXTBSY;
@@ -543,7 +543,7 @@ doreq(struct out *op, char *line)
 #elif	defined(ENOCONNECT)
 		pbs_errno = ENOCONNECT;
 #else
-#ifdef WIN64
+#ifdef WIN32
 		pbs_errno = ERROR_IO_INCOMPLETE;
 #else
 		pbs_errno = ETXTBSY;

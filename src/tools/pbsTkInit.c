@@ -117,7 +117,7 @@ main(int argc, char *argv[])
 	execution_mode(argc, argv);
 	set_logfile(stderr);
 
-#ifdef WIN64
+#ifdef WIN32
 	winsock_init();
 	Tcl_FindExecutable(argv[0]);
 #endif
@@ -136,7 +136,7 @@ main(int argc, char *argv[])
 	if (!getenv("TK_LIBRARY")) {
 		if (pbs_conf.pbs_exec_path) {
 			sprintf(tbuf_env, 
-#ifdef WIN64
+#ifdef WIN32
                                 "%s/lib/tk%s",
 #else
                                 "%s/tcltk/lib/tk%s",

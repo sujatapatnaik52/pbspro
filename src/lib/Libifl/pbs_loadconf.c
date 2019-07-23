@@ -52,7 +52,7 @@
 #include "pbs_client_thread.h"
 #include "net_connect.h"
 
-#ifdef WIN64
+#ifdef WIN32
 #include <sys/stat.h>
 #include <unistd.h>
 #else
@@ -123,7 +123,7 @@ struct pbs_config pbs_conf = {
 	4,					/* default number of threads */
 	NULL,					/* mom short name override */
 	0					/* high resolution timestamp logging */
-#ifdef WIN64
+#ifdef WIN32
 	,NULL					/* remote viewer launcher executable along with launch options */
 #endif
 };
@@ -285,7 +285,7 @@ pbs_loadconf(int reload)
 	char *conf_value;		/* the value from the conf file or env*/
 	char *gvalue;			/* used with getenv() */
 	unsigned int uvalue;		/* used with sscanf() */
-#ifndef WIN64
+#ifndef WIN32
 	struct servent *servent;	/* for use with getservent */
 	char **servalias;		/* service alias list */
 	unsigned int *pui;		/* for use with identify_service_entry */
@@ -317,7 +317,7 @@ pbs_loadconf(int reload)
 	 * file or environment variables. If not available, retain
 	 * whatever we were using before.
 	 */
-#ifdef WIN64
+#ifdef WIN32
 	/* Windows does not have the getservent() call. */
 	pbs_conf.batch_service_port = get_svrport(
 		PBS_BATCH_SERVICE_NAME, "tcp",
@@ -570,13 +570,13 @@ pbs_loadconf(int reload)
 				if (sscanf(conf_value, "%u", &uvalue) == 1)
 					pbs_conf.pbs_log_highres_timestamp = ((uvalue > 0) ? 1 : 0);
 			}
-#ifdef WIN64
+#ifdef WIN32
 			else if (!strcmp(conf_name, PBS_CONF_REMOTE_VIEWER)) {
 				free(pbs_conf.pbs_conf_remote_viewer);
 				pbs_conf.pbs_conf_remote_viewer = strdup(conf_value);
 			}
 #endif
-#ifndef WIN64
+#ifndef WIN32
 			else if (!strcmp(conf_name, PBS_CONF_AUTH)) {
 				if (!strcasecmp(conf_value, "MUNGE")) {
 				   pbs_conf.auth_method = AUTH_MUNGE;
@@ -802,7 +802,7 @@ pbs_loadconf(int reload)
 			pbs_conf.pbs_log_highres_timestamp = ((uvalue > 0) ? 1 : 0);
 	}
 
-#ifdef WIN64
+#ifdef WIN32
 	if ((gvalue = getenv(PBS_CONF_REMOTE_VIEWER)) != NULL) {
 		free(pbs_conf.pbs_conf_remote_viewer);
 		pbs_conf.pbs_conf_remote_viewer = strdup(gvalue);
@@ -876,7 +876,7 @@ pbs_loadconf(int reload)
 			malloc(strlen(pbs_conf.pbs_home_path) + 17)) != NULL) {
 			sprintf(pbs_conf.pbs_environment, "%s/pbs_environment",
 				pbs_conf.pbs_home_path);
-#ifdef WIN64
+#ifdef WIN32
 			back2forward_slash(pbs_conf.pbs_environment);
 #endif
 		} else {
@@ -889,7 +889,7 @@ pbs_loadconf(int reload)
 	if ((pbs_conf.iff_path =
 		malloc(strlen(pbs_conf.pbs_exec_path) + 14)) != NULL) {
 		sprintf(pbs_conf.iff_path, "%s/sbin/pbs_iff", pbs_conf.pbs_exec_path);
-#ifdef WIN64
+#ifdef WIN32
 		back2forward_slash(pbs_conf.iff_path);
 #endif
 	} else {
@@ -900,7 +900,7 @@ pbs_loadconf(int reload)
 		if ((pbs_conf.rcp_path =
 			malloc(strlen(pbs_conf.pbs_exec_path) + 14)) != NULL) {
 			sprintf(pbs_conf.rcp_path, "%s/sbin/pbs_rcp", pbs_conf.pbs_exec_path);
-#ifdef WIN64
+#ifdef WIN32
 			back2forward_slash(pbs_conf.rcp_path);
 #endif
 		} else {
@@ -914,7 +914,7 @@ pbs_loadconf(int reload)
 		malloc(strlen(pbs_conf.pbs_exec_path) + 16)) != NULL) {
 		sprintf(pbs_conf.pbs_demux_path, "%s/sbin/pbs_demux",
 			pbs_conf.pbs_exec_path);
-#ifdef WIN64
+#ifdef WIN32
 		back2forward_slash(pbs_conf.pbs_demux_path);
 #endif
 	} else {
@@ -928,7 +928,7 @@ pbs_loadconf(int reload)
 		}
 	}
 
-#ifndef WIN64
+#ifndef WIN32
 	if ((gvalue = getenv(PBS_CONF_AUTH)) != NULL) {
 		if (!strcasecmp(gvalue, "MUNGE")) {
 			pbs_conf.auth_method = AUTH_MUNGE;
@@ -1058,7 +1058,7 @@ pbs_get_tmpdir(void)
 	char *conf_name = NULL;
 	char *conf_value = NULL;
 	char *p = NULL;
-#ifdef WIN64
+#ifdef WIN32
 	struct stat sb;
 #endif
 
@@ -1067,7 +1067,7 @@ pbs_get_tmpdir(void)
 		return (pbs_conf.pbs_tmpdir);
 
 	/* Next, try the environment. */
-#ifdef WIN64
+#ifdef WIN32
 	if ((p = getenv("TMP")) != NULL)
 #else
 	if ((p = getenv("TMPDIR")) != NULL)
@@ -1104,7 +1104,7 @@ pbs_get_tmpdir(void)
 		return tmpdir;
 
 	/* Finally, resort to the default. */
-#ifdef WIN64
+#ifdef WIN32
 	if (stat(TMP_DIR, &sb) == 0) {
 		tmpdir = shorten_and_cleanup_path(TMP_DIR);
 	} else if (stat("C:\\WINDOWS\\TEMP", &sb) == 0) {
@@ -1124,7 +1124,7 @@ pbs_get_tmpdir(void)
 		}
 	}
 	/* Strip the trailing separator. */
-#ifdef WIN64
+#ifdef WIN32
 	if (tmpdir[strlen(tmpdir)-1] == '\\')
 		tmpdir[strlen(tmpdir)-1] = '\0';
 #else

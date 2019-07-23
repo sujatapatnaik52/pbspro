@@ -102,7 +102,7 @@ main(int argc, char *argv[])
 	execution_mode(argc, argv);
 	set_msgdaemonname("pbsfs");
 
-#ifdef WIN64
+#ifdef WIN32
 	winsock_init();
 #endif
 

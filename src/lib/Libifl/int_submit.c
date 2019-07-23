@@ -44,7 +44,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <fcntl.h>
-#ifndef WIN64
+#ifndef WIN32
 #include <stdint.h>
 #endif
 #include "portability.h"
@@ -123,7 +123,7 @@ get_msgid(char **id)
 	} else {
 		counter++;
 	}
-#ifdef WIN64
+#ifdef WIN32
 	sprintf(msgid, "%ld:%d", now, counter);
 #else
 	sprintf(msgid, "%ju:%d", (uintmax_t)now, counter);

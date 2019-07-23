@@ -122,7 +122,7 @@ site_check_user_map(void *pobj, int objtype, char *luser)
 	if (!strcasecmp(orighost, server_host) && !strcmp(owner, luser))
 		return (0);
 
-#ifdef WIN64
+#ifdef WIN32
 	rc =   ruserok(orighost, isAdminPrivilege(luser), owner, luser);
 	if (rc == -2) {
 		sprintf(log_buffer, "User %s does not exist!", luser);

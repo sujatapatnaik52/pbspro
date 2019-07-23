@@ -161,7 +161,7 @@
 #ifndef SIGKILL
 #include <signal.h>
 #endif
-#ifdef	WIN64
+#ifdef	WIN32
 #include "windows.h"
 #endif
 #include "server_limits.h"
@@ -4442,7 +4442,7 @@ prov_track_save()
 		DBPRT(("%s: unable to open tracking file\n", __func__))
 		return;
 	}
-#ifdef WIN64
+#ifdef WIN32
 	secure_file(path_prov_track, "Administrators",
 		READS_MASK|WRITES_MASK|STANDARD_RIGHTS_REQUIRED);
 #endif
@@ -5624,7 +5624,7 @@ is_vnode_prov_done(char * vnode)
 	if (ptracking == NULL)
 		/* prov tracking record not created */
 		return;
-#ifdef WIN64
+#ifdef WIN32
 	if (ptracking->pvtk_pid != INVALID_HANDLE_VALUE)
 #else
 	if (ptracking->pvtk_pid > -1)
@@ -5831,12 +5831,12 @@ prov_request_deferred(struct work_task *wtask)
 
 	prov_vnode_info = (struct prov_vnode_info *) wtask->wt_parm1;
 	pnode = (struct pbsnode *) find_nodebyname(prov_vnode_info->pvnfo_vnode);
-#ifdef	WIN64
+#ifdef	WIN32
 	this_pid = (HANDLE) wtask->wt_event;
 #else
 	this_pid = (pid_t) wtask->wt_event;
 	DBPRT(("%s: pid = %ld\n", __func__, (long)this_pid))
-#endif	/* WIN64 */
+#endif	/* WIN32 */
 	timeout_task = (struct work_task *) prov_vnode_info->ptask_timed;
 
 
@@ -5845,7 +5845,7 @@ prov_request_deferred(struct work_task *wtask)
 
 	/* update the fact that the process is gone in the prov table */
 	prov_tracking = get_prov_record_by_pid(this_pid);
-#ifdef WIN64
+#ifdef WIN32
 	prov_tracking->pvtk_pid = INVALID_HANDLE_VALUE; /* indicating the process has exited */
 #else
 	prov_tracking->pvtk_pid = -1; /* indicating the process has exited */
@@ -5981,7 +5981,7 @@ prov_request_timed(struct work_task *wtask)
 		__func__, prov_vnode_info->pvnfo_vnode))
 
 	ptracking = get_prov_record_by_vnode(prov_vnode_info->pvnfo_vnode);
-#ifdef WIN64
+#ifdef WIN32
 	if (ptracking->pvtk_pid != INVALID_HANDLE_VALUE)
 #else
 	if (ptracking->pvtk_pid > -1)
@@ -5992,11 +5992,11 @@ prov_request_timed(struct work_task *wtask)
 		DBPRT(("%s: pid = %d\n", __func__, this_pid))
 
 		/* Kill all process belonging to this process group */
-#ifdef	WIN64
+#ifdef	WIN32
 		if (processtree_op_by_handle(this_pid, TERMINATE, 0xdeadbeef) == -1)
 #else
 		if (kill(((-1)*this_pid), SIGKILL) == -1)
-#endif	/* WIN64 */
+#endif	/* WIN32 */
 		{
 			DBPRT(("%s: couldn't kill prov process pgid = %d\n",
 				__func__, this_pid))
@@ -6275,12 +6275,12 @@ start_vnode_provisioning(struct prov_vnode_info * prov_vnode_info)
 	struct pbsnode		*pnode;
 	job 			*pjob;
 	int 			rc = -1;
-#ifndef	WIN64
+#ifndef	WIN32
 	struct 			sigaction act;
 #endif
 	hook 			*phook;
 
-#ifdef 	WIN64
+#ifdef 	WIN32
 	char    cmdline[LOG_BUF_SIZE];
 	STARTUPINFO             si = { 0 };
 	PROCESS_INFORMATION     pi = { 0 };
@@ -6288,7 +6288,7 @@ start_vnode_provisioning(struct prov_vnode_info * prov_vnode_info)
 		CREATE_NEW_CONSOLE|CREATE_NEW_PROCESS_GROUP;
 	SECURITY_ATTRIBUTES sa = { sizeof(SECURITY_ATTRIBUTES),
 		NULL, TRUE};
-#endif	/* WIN64 */
+#endif	/* WIN32 */
 
 	DBPRT(("%s: Provisioning vnode: %s with aoe: %s\n", __func__,
 		prov_vnode_info->pvnfo_vnode, prov_vnode_info->pvnfo_aoe_req))
@@ -6316,7 +6316,7 @@ start_vnode_provisioning(struct prov_vnode_info * prov_vnode_info)
 		return rc;
 	}
 
-#ifdef WIN64
+#ifdef WIN32
 
 	/* In Windows, do not need to unprotect the process created as */
 	/* it will not inherit the protection value from the parent    */
@@ -6377,7 +6377,7 @@ start_vnode_provisioning(struct prov_vnode_info * prov_vnode_info)
 		/* if python did sys.exit we wont be here */
 		exit(rc);
 	}
-#endif	/* WIN64 */
+#endif	/* WIN32 */
 
 	/* parent process */
 	/* set node state to provisioning */
@@ -6406,14 +6406,14 @@ start_vnode_provisioning(struct prov_vnode_info * prov_vnode_info)
 	 * wt_parm1 is passed the address of the prov_vnode_info
 	 * structure allocated earlier
 	 */
-#ifdef WIN64
+#ifdef WIN32
 	ptask_defer = set_task(WORK_Deferred_Child, (long)pid,
 		prov_request_deferred, (void *)prov_vnode_info);
 #else
 	ptask_defer = set_task(WORK_Deferred_Child, pid,
 		prov_request_deferred,
 		(void *)prov_vnode_info);
-#endif	/* WIN64 */
+#endif	/* WIN32 */
 	if (!ptask_defer)
 		return (PBSE_INTERNAL);
 
@@ -6993,7 +6993,7 @@ svr_create_tmp_jobscript(job *pj, char *script_name)
 	int filemode = 0600;
 	int len;
 
-#ifdef WIN64
+#ifdef WIN32
 	struct stat sb;
 	char str_buf[MAXPATHLEN+1] = {0};
 #endif
@@ -7004,7 +7004,7 @@ svr_create_tmp_jobscript(job *pj, char *script_name)
 		return -1;
 	}
 
-#ifdef WIN64
+#ifdef WIN32
 	if (stat(pbs_conf.pbs_tmpdir, &sb) == 0) {
 		strcpy(script_name, pbs_conf.pbs_tmpdir);
 		(void)strcat(script_name, "\\");
@@ -7033,14 +7033,14 @@ svr_create_tmp_jobscript(job *pj, char *script_name)
 		return -1;
 	}
 
-#ifdef WIN64
+#ifdef WIN32
 #ifndef PBS_MOM
 	secure_file(script_name, "Administrators", READS_MASK | WRITES_MASK | STANDARD_RIGHTS_REQUIRED);
 #else
 	secure_file2(script_name, "Administrators", READS_MASK | WRITES_MASK | STANDARD_RIGHTS_REQUIRED, "Everyone", READS_MASK | READ_CONTROL);
 #endif
 	setmode(fds, O_BINARY);
-#endif /* WIN64 */
+#endif /* WIN32 */
 
 	len = strlen(pj->ji_script);
 	if (write(fds, pj->ji_script, len) != len) {
@@ -7300,7 +7300,7 @@ set_attr_svr(attribute *pattr, attribute_def *pdef, char *value)
  * @par Side Effects: None
  *
  */
-#ifndef WIN64
+#ifndef WIN32
 void memory_debug_log(struct work_task *ptask) {
 
 	if (ptask)
@@ -7318,4 +7318,4 @@ void memory_debug_log(struct work_task *ptask) {
 	}
 #endif /* malloc_info */
 }
-#endif /* WIN64 */
+#endif /* WIN32 */

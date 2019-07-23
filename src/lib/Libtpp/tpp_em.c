@@ -102,7 +102,7 @@
 int
 tpp_em_wait(void *em_ctx, em_event_t **ev_array, int timeout)
 {
-#ifndef WIN64
+#ifndef WIN32
 	return tpp_em_pwait(em_ctx, ev_array, timeout, NULL);
 #else
 	return tpp_em_wait_win(em_ctx, ev_array, timeout);
@@ -787,7 +787,7 @@ tpp_em_del_fd(void *em_ctx, int fd)
  * @par MT-safe: Yes
  *
  */
-#ifndef WIN64
+#ifndef WIN32
 int
 tpp_em_pwait(void *em_ctx, em_event_t **ev_array, int timeout, const sigset_t *sigmask)
 {

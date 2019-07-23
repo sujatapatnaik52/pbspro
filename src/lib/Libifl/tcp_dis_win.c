@@ -73,7 +73,7 @@
 #include <stdio.h>
 
 #include <sys/types.h>
-#ifdef WIN64
+#ifdef WIN32
 #include <time.h>
 #include <io.h>
 #include "pbs_ifl.h"
@@ -111,7 +111,7 @@ struct	tcp_chan {
 	struct	tcpdisbuf	writebuf;
 };
 
-#ifdef WIN64
+#ifdef WIN32
 struct conlink {
 	int		c_fd;
 	struct tcp_chan	c_tcp;
@@ -127,7 +127,7 @@ static	int			tcparraymax = 0;
 
 
 /* windows 2000 needs prototypes */
-#ifdef WIN64
+#ifdef WIN32
 static void DIS_tcp_clear(struct tcpdisbuf *tp);
 static void DIS_delete_tcp_chan(int fd);
 
@@ -297,7 +297,7 @@ struct tcpdisbuf * tcp_get_readbuf(int fd)
 	rc = pbs_client_thread_lock_tcp();
 	assert(rc == 0);
 
-#ifdef WIN64
+#ifdef WIN32
 	tp = &(DIS_find_tcp_chan(fd)->readbuf);
 #else
 	tp = &tcparray[fd]->readbuf;
@@ -344,7 +344,7 @@ struct tcpdisbuf * tcp_get_writebuf(int fd)
 	rc = pbs_client_thread_lock_tcp();
 	assert(rc == 0);
 
-#ifdef WIN64
+#ifdef WIN32
 	tp = &(DIS_find_tcp_chan(fd)->writebuf);
 #else
 	tp = &tcparray[fd]->writebuf;
@@ -438,7 +438,7 @@ tcp_readi(int fd)
 			NULL, &timeout);
 		if (pbs_tcp_interrupt)
 			break;
-#ifdef WIN64
+#ifdef WIN32
 	} while ((i == -1) && (errno == WSAEINTR));
 #else
 	} while ((i == -1) && (errno == EINTR));
@@ -447,7 +447,7 @@ tcp_readi(int fd)
 	if ((i == 0) || (i < 0))
 		return i;
 
-#ifdef WIN64
+#ifdef WIN32
 	/* need CS_recv() interface when we extend to windows */
 
 	while ((i = recv(fd, &tp->tdis_thebuf[tp->tdis_eod],
@@ -530,7 +530,7 @@ DIS_tcp_wflush(int fd)
 	if (ct == 0)
 		return 0;
 
-#ifdef WIN64
+#ifdef WIN32
 	/* need CS_send() interface when we extend to windows */
 
 	/*
@@ -807,7 +807,7 @@ DIS_tcp_funcs()
 void
 DIS_tcp_setup(int fd)
 {
-#ifdef WIN64
+#ifdef WIN32
 	struct	tcp_chan	*tcp;
 	static  int	initialized = 0; /* protected by the tcp lock */
 	int			rc;

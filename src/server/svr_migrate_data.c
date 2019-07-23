@@ -64,7 +64,7 @@
 #include <sys/stat.h>
 #include <libutil.h>
 
-#ifdef WIN64
+#ifdef WIN32
 
 #include <direct.h>
 #include <windows.h>
@@ -81,7 +81,7 @@
 #include <sys/resource.h>
 #include <sys/time.h>
 
-#endif 	/* WIN64 */
+#endif 	/* WIN32 */
 
 #include "libpbs.h"
 #include "pbs_ifl.h"
@@ -538,8 +538,8 @@ svr_migrate_data_from_fs(void)
 			if (pjob->ji_qs.ji_svrflags & JOB_SVFLG_SCRIPT) {
 				/* load the job script file */
 				strcpy(scrfile, path_jobs);
-#ifndef WIN64
-				/* under WIN64, there's already a prefixed '/' */
+#ifndef WIN32
+				/* under WIN32, there's already a prefixed '/' */
 				(void) strcat(scrfile, "/");
 #endif
 				strcat(scrfile, pdirent->d_name);
@@ -547,7 +547,7 @@ svr_migrate_data_from_fs(void)
 				scrfile[baselen] = 0; /* put null char */
 				strcat(scrfile, JOB_SCRIPT_SUFFIX);
 				rc = 1;
-#ifdef WIN64
+#ifdef WIN32
 				if ((fd = open(scrfile, O_BINARY | O_RDONLY)) != -1)
 #else
 				if ((fd = open(scrfile, O_RDONLY)) != -1)
@@ -574,7 +574,7 @@ svr_migrate_data_from_fs(void)
 					(void) strcpy(jobfile, scrfile);
 					psuffix = jobfile + strlen(jobfile) - strlen(JOB_SCRIPT_SUFFIX);
 					(void) strcpy(psuffix, JOB_FILE_SUFFIX);
-#ifdef WIN64
+#ifdef WIN32
 					if (MoveFileEx(jobfile, basen,
 						MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) == 0) {
 						errno = GetLastError();
@@ -713,8 +713,8 @@ rm_migrated_files(char *dirname)
 	while (errno = 0, (pdirt = readdir(dir)) != NULL) {
 		(void) strcpy(path, dirname);
 
-#ifndef WIN64
-		/* under WIN64, there's already a prefixed '/' */
+#ifndef WIN32
+		/* under WIN32, there's already a prefixed '/' */
 		(void) strcat(path, "/");
 #endif
 		(void) strcat(path, pdirt->d_name);
@@ -727,7 +727,7 @@ rm_migrated_files(char *dirname)
 					rm_migrated_files(path);
 					/* remove the top level directory */
 					if (strcmp(pdirt->d_name, "jobs")!= 0) {
-#ifdef WIN64
+#ifdef WIN32
 						if (_rmdir(path) == -1)
 #else
 						if (rmdir(path) == -1)

@@ -40,7 +40,7 @@
 #ifdef	__cplusplus
 extern "C" {
 #endif
-#ifdef WIN64
+#ifdef WIN32
 #include "win.h"
 #endif
 

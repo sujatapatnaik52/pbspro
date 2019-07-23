@@ -314,7 +314,7 @@ main(int argc, char *argv[])
 			if (path_hooks_tracking == NULL)
 				exit(-1);
 		} else if (strcmp(param_name, "hook_action_tid") == 0) {
-#ifdef WIN64
+#ifdef WIN32
 			hook_action_tid_set(_atoi64(param_val));
 #else
 			hook_action_tid_set(atoll(param_val));

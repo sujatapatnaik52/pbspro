@@ -89,7 +89,7 @@ typedef unsigned long long	u_Long;
 #define atoL(nptr)		atoll((nptr))
 
 /****************************************************************************/
-#elif defined( WIN64)	/* Windows */
+#elif defined( WIN32)	/* Windows */
 
 /* long long and unsigned long long are 64 bit signed  and unsigned */
 /* integers on Windows platforms. */

@@ -42,7 +42,7 @@
  */
 
 static char	*cput		(struct rm_attribute *attrib);
-#ifndef WIN64
+#ifndef WIN32
 static char	*mem		(struct rm_attribute *attrib);
 static char	*sessions	(struct rm_attribute *attrib);
 static char	*pids		(struct rm_attribute *attrib);
@@ -56,7 +56,7 @@ extern char	*nullproc	(struct rm_attribute *attrib);
 
 struct  config  standard_config[] = {
 	{ "cput",	{ cput } },
-#ifndef	WIN64
+#ifndef	WIN32
 	{ "mem",	{ mem } },
 	{ "sessions",	{ sessions } },
 	{ "pids",	{ pids } },

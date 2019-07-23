@@ -68,7 +68,7 @@
 #include	<stdio.h>
 #include	<string.h>
 #include	<stdlib.h>
-#ifndef WIN64
+#ifndef WIN32
 #include	<unistd.h>
 #endif
 #include	<time.h>
@@ -76,7 +76,7 @@
 #include	"pbs_error.h"
 #include	"log.h"
 #include	"placementsets.h"
-#ifdef	WIN64
+#ifdef	WIN32
 #include	"pbs_config.h"
 #endif
 #include	"list_link.h"

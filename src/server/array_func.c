@@ -87,7 +87,7 @@
 #include "pbs_nodes.h"
 #include "svrfunc.h"
 #include "acct.h"
-#ifdef WIN64
+#ifdef WIN32
 #include <sys/timeb.h>
 #else
 #include <sys/time.h>
@@ -818,7 +818,7 @@ create_subjob(job *parent, char *newjid, int *rc)
 	job 	  *subj;
 	long	   eligibletime;
 	long	    time_msec;
-#ifdef	WIN64
+#ifdef	WIN32
 	struct	_timeb	    tval;
 #else
 	struct timeval	    tval;
@@ -926,7 +926,7 @@ create_subjob(job *parent, char *newjid, int *rc)
 		subj->ji_wattr[(int)JOB_ATR_eligible_time].at_flags |= ATR_VFLAG_MODIFY | ATR_VFLAG_MODCACHE;
 
 	}
-#ifdef WIN64
+#ifdef WIN32
 	_ftime_s(&tval);
 	time_msec = (tval.time * 1000L) + tval.millitm;
 #else

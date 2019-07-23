@@ -46,7 +46,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#ifdef WIN64
+#ifdef WIN32
 #include <io.h>
 #include <windows.h>
 #include "win.h"
@@ -75,7 +75,7 @@ extern char rcperr[MAXPATHLEN];			/* path to rcp errfile for current copy */
 extern char *pbs_jobdir;			/* path to staging and execution dir of current job */
 extern char *cred_buf;				/* cred buffer */
 extern size_t cred_len;				/* length of cred buffer */
-#ifndef WIN64
+#ifndef WIN32
 extern char *shell;
 extern char *argv[BUF_SIZE];		/* lots of args */
 extern int argc;
@@ -91,7 +91,7 @@ static int sys_copy(int, int, char *, char *, struct rqfpair *, int, char *);
  * A path in windows is not case sensitive so do a define
  * to do the right compare.
  */
-#ifdef	WIN64
+#ifdef	WIN32
 #define	PATHCMP	strncasecmp
 #else
 #define	PATHCMP	strncmp
@@ -177,7 +177,7 @@ is_child_path(char *dir, char *path)
 	/* even if the file path is relative to some directory, */
 	/* it may use /../../ notation and escape that directory, */
 	/* so always perform full check of parent-child directory relation */
-#ifdef WIN64
+#ifdef WIN32
 	forward2back_slash(fullpath);
 	strncpy(dir_real, lpath2short(dir), MAXPATHLEN);
 	strncpy(fullpath_real, lpath2short(fullpath), 2 * MAXPATHLEN + 1);
@@ -364,7 +364,7 @@ local_or_remote(char **path)
 
 	*pcolon = '\0';
 	len = strlen(*path);
-#ifdef WIN64
+#ifdef WIN32
 	if (IS_UNCPATH(pcolon+1)) {
 		/*
 		 * UNC path found
@@ -449,7 +449,7 @@ is_direct_write(job *pjob, enum job_file which, char *path, int *direct_write_po
 				/* Make local working copy of path for call to local_or_remote */
 				snprintf(working_path, MAXPATHLEN + 1, "%s", pjob->ji_wattr[JOB_ATR_outpath].at_val.at_str);
 			if (
-#ifdef WIN64
+#ifdef WIN32
 					(working_path[strlen(working_path) -1] == '\\')
 #else
 					(working_path[strlen(working_path) -1] == '/')
@@ -466,7 +466,7 @@ is_direct_write(job *pjob, enum job_file which, char *path, int *direct_write_po
 				/* Make local working copy of path for call to local_or_remote */
 				snprintf(working_path, MAXPATHLEN + 1, "%s", pjob->ji_wattr[JOB_ATR_errpath].at_val.at_str);
 		if (
-#ifdef WIN64
+#ifdef WIN32
 				(working_path[strlen(working_path) -1] == '\\')
 #else
 				(working_path[strlen(working_path) -1] == '/')
@@ -506,7 +506,7 @@ is_direct_write(job *pjob, enum job_file which, char *path, int *direct_write_po
 	return(1);
 }
 
-#ifdef WIN64
+#ifdef WIN32
 /**
  * @brief
  *	remtree - wrapper function to remove a tree (or single file) to support for UNC path
@@ -556,12 +556,12 @@ remtree(char *dirname)
  */
 int
 remdir(char *dirname)
-#else /* WIN64 */
+#else /* WIN32 */
 int
 remtree(char *dirname)
 #endif
 {
-#ifdef WIN64
+#ifdef WIN32
 	static char id[] = "remdir";
 #else
 	static char id[] = "remtree";
@@ -592,7 +592,7 @@ remtree(char *dirname)
 		}
 
 		(void)strcpy(namebuf, dirname);
-#ifdef WIN64
+#ifdef WIN32
 		(void)strcat(namebuf, "\\");
 #else
 		(void)strcat(namebuf, "/");
@@ -609,7 +609,7 @@ remtree(char *dirname)
 			}
 
 			(void)strcpy(filnam, pdir->d_name);
-#ifdef WIN64
+#ifdef WIN32
 			rtnv = remdir(namebuf);
 #else
 			rtnv = remtree(namebuf);
@@ -742,7 +742,7 @@ copy_file(int dir, int rmtflag, char *owner, char *src, struct rqfpair *pair, in
 	 */
 	if (dir == STAGE_DIR_IN) {
 		/* if destination is a directory, append filename */
-#ifdef WIN64
+#ifdef WIN32
 		if (stat_uncpath(pair->fp_local, &buf) == 0 && S_ISDIR(buf.st_mode))
 #else
 		if (stat(pair->fp_local, &buf) == 0 && S_ISDIR(buf.st_mode))
@@ -1038,7 +1038,7 @@ stage_file(int dir, int	rmtflag, char *owner, struct rqfpair *pair, int conn, cp
 	}
 
 	while (errno = 0, (pdirent = readdir(dirp)) != NULL) {
-#ifdef WIN64
+#ifdef WIN32
 		DWORD fa = 0;
 
 		if (strcmp(pdirent->d_name, ".") == 0 ||
@@ -1132,7 +1132,7 @@ rmjobdir(char *jobid, char *jobdir, uid_t uid, gid_t gid)
 	struct	stat	sb = {0};
 	char	*newdir = NULL;
 	char	*nameptr = NULL;
-#ifdef WIN64
+#ifdef WIN32
 	struct pio_handles pio = {0};
 	char cmdbuf[MAXPATHLEN+1] = {'\0'};
 	char	sep = '\\';
@@ -1146,7 +1146,7 @@ rmjobdir(char *jobid, char *jobdir, uid_t uid, gid_t gid)
 	if (jobdir == NULL)
 		return;
 
-#ifndef WIN64
+#ifndef WIN32
 	if (pbs_jobdir_root[0] == '\0') {
 		/* In user's home, need to be user */
 		/* The rest must be done as the User */
@@ -1157,7 +1157,7 @@ rmjobdir(char *jobid, char *jobdir, uid_t uid, gid_t gid)
 
 	/* Hello, is any body there? */
 	if (stat(jobdir, &sb) == -1) {
-#ifndef WIN64
+#ifndef WIN32
 		if (pbs_jobdir_root[0] == '\0') {
 			/* oops, have to go back to being root */
 			revert_from_user();
@@ -1192,7 +1192,7 @@ rmjobdir(char *jobid, char *jobdir, uid_t uid, gid_t gid)
 	}
 
 	if (strncmp(nameptr, "pbs.", 4) != 0) {
-#ifndef WIN64
+#ifndef WIN32
 		if (pbs_jobdir_root[0] == '\0')
 			revert_from_user();
 #endif
@@ -1204,7 +1204,7 @@ rmjobdir(char *jobid, char *jobdir, uid_t uid, gid_t gid)
 	snprintf(rmdir_buf, sizeof(rmdir_buf)-1, "%s_remove", jobdir);
 	newdir = rmdir_buf;
 
-#ifdef WIN64
+#ifdef WIN32
 	make_dir_files_service_account_read(jobdir);
 
 	if (!MoveFile(jobdir, newdir)) {
@@ -1247,7 +1247,7 @@ rmjobdir(char *jobid, char *jobdir, uid_t uid, gid_t gid)
 #endif
 }
 
-#ifndef WIN64
+#ifndef WIN32
 
 /**
  * @brief
@@ -1386,7 +1386,7 @@ sys_copy(int dir, int rmtflg, char *owner, char *src, struct rqfpair *pair, int 
 	int rc = 0;
 	time_t original = 0;
 	struct stat sb = {0};
-#ifdef WIN64
+#ifdef WIN32
 	char str_buf[MAXPATHLEN+1] = {'\0'};
 	char *sp = NULL;
 	char *dp = NULL;
@@ -1412,7 +1412,7 @@ sys_copy(int dir, int rmtflg, char *owner, char *src, struct rqfpair *pair, int 
 		rmtflg ? "remote" : "local",
 		(dir == STAGE_DIR_OUT) ? "out" : "in", src))
 
-#ifdef WIN64
+#ifdef WIN32
 	ZeroMemory(&si, sizeof(SYSTEM_INFO));
 	sa.nLength = sizeof(sa);
 	sa.lpSecurityDescriptor = NULL;
@@ -1432,7 +1432,7 @@ sys_copy(int dir, int rmtflg, char *owner, char *src, struct rqfpair *pair, int 
 	sprintf(rcperr, "%srcperr.%d", path_spool, getpid());
 
 	if (dir == STAGE_DIR_OUT) {
-#ifndef WIN64
+#ifndef WIN32
 		if (*src == '-')
 			strcpy(ag2, "./"); /* prefix leading '-' with "./" */
 #endif
@@ -1442,7 +1442,7 @@ sys_copy(int dir, int rmtflg, char *owner, char *src, struct rqfpair *pair, int 
 		else
 			strcpy(ag2, src);
 
-#ifndef WIN64
+#ifndef WIN32
 		/* Is the file there?  If not, don`t try copy */
 		if (access(ag2, F_OK|R_OK) < 0)
 #else
@@ -1455,7 +1455,7 @@ sys_copy(int dir, int rmtflg, char *owner, char *src, struct rqfpair *pair, int 
 
 		/* take (remote) destination name from request */
 		if (rmtflg) {
-#ifdef WIN64
+#ifdef WIN32
 			/* using rcp, need to prepend the owner name */
 			if (is_scp_path() || is_pbs_rcp_path()) {
 				strcat(ag3, owner);
@@ -1485,7 +1485,7 @@ sys_copy(int dir, int rmtflg, char *owner, char *src, struct rqfpair *pair, int 
 				return 1;
 #endif
 		} else {
-#ifndef WIN64
+#ifndef WIN32
 			if (*prmt == '-')
 				strcat(ag3, "./"); /* prefix '-' with "./" */
 #endif
@@ -1498,7 +1498,7 @@ sys_copy(int dir, int rmtflg, char *owner, char *src, struct rqfpair *pair, int 
 	} else {	/* in bound (stage-in) file */
 		/* take (remote) source name from request */
 		if (rmtflg) {
-#ifdef WIN64
+#ifdef WIN32
 			/* using rcp, need to prepend the owner name */
 			if (is_scp_path() || is_pbs_rcp_path()) {
 				strcat(ag2, owner);
@@ -1528,7 +1528,7 @@ sys_copy(int dir, int rmtflg, char *owner, char *src, struct rqfpair *pair, int 
 				return 1;
 #endif
 		} else {
-#ifndef WIN64
+#ifndef WIN32
 			if (*src == '-')
 				strcpy(ag2, "./"); /* prefix '-' with "./" */
 #endif
@@ -1538,7 +1538,7 @@ sys_copy(int dir, int rmtflg, char *owner, char *src, struct rqfpair *pair, int 
 			else
 				strcat(ag2, src);
 		}
-#ifndef WIN64
+#ifndef WIN32
 		if (*pair->fp_local == '-')
 			strcpy(ag3, "./"); /* prefix leading '-' with "./" */
 #endif
@@ -1549,7 +1549,7 @@ sys_copy(int dir, int rmtflg, char *owner, char *src, struct rqfpair *pair, int 
 			strcpy(ag3, pair->fp_local);
 	}
 
-#ifndef WIN64
+#ifndef WIN32
 	for (loop = 1; loop < 5; ++loop) {
 		original = 0;
 		if (rmtflg == 0) {	/* local copy */
@@ -1987,7 +1987,7 @@ sys_copy_end:
 	return (rc);	/* tried a bunch of times, just give up */
 }
 
-#ifdef WIN64
+#ifdef WIN32
 /**
  * @brief
  *	free_pcphosts - Free allocated cphosts struct (i.e. pcphosts)

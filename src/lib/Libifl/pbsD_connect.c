@@ -59,7 +59,7 @@
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <netinet/in.h>
-#ifndef WIN64
+#ifndef WIN32
 #include <netinet/tcp.h>
 #endif
 #include <arpa/inet.h>
@@ -201,7 +201,7 @@ PBSD_authenticate(int psock, char * server_name, int server_port,
 	char*  pbs_client_addr = NULL;
 	u_short psock_port = 0;
 	int	rc;
-#ifdef WIN64
+#ifdef WIN32
 	struct	pio_handles	pio;
 #else
 	FILE	*piff;
@@ -219,7 +219,7 @@ PBSD_authenticate(int psock, char * server_name, int server_port,
 	(void)snprintf(cmd[1], sizeof(cmd[1])-1, "%s -i %s %s %u %d %u",
 		pbs_conf.iff_path, pbs_client_addr,
 		server_name, server_port, psock, psock_port);
-#ifdef WIN64
+#ifdef WIN32
 
 	(void)snprintf(cmd[0], sizeof(cmd[0])-1, "%s %s %u %d %u", pbs_conf.iff_path,
 		server_name, server_port, psock, psock_port);
@@ -371,7 +371,7 @@ hostnmcmp(char *s1, char *s2)
 	/* Return failure if any/both the names are NULL. */
 	if (s1 == NULL || s2 == NULL)
 		return 1;
-#ifdef WIN64
+#ifdef WIN32
 	/* Return success if both names are names of localhost. */
 	if (is_local_host(s1) && is_local_host(s2))
 		return 0;
@@ -428,7 +428,7 @@ engage_external_authentication(int sock, int auth_type, int fromsvr, char *ebuf,
 	struct batch_reply *reply = NULL;
 
 	switch (auth_type) {
-#ifndef WIN64
+#ifndef WIN32
 		case AUTH_MUNGE:
 			ebuf[0] = '\0';
 			cred = pbs_get_munge_auth_data(fromsvr, ebuf, ebufsz);
@@ -563,16 +563,16 @@ __pbs_connect_extend(char *server, char *extend_data)
 	unsigned int server_port;
 	struct sockaddr_in sockname;
 	pbs_socklen_t	 socknamelen;
-#ifdef WIN64
+#ifdef WIN32
 	struct sockaddr_in to_sock;
 	struct sockaddr_in from_sock;
 #endif
 
-#ifndef WIN64
+#ifndef WIN32
 	char   pbsrc[_POSIX_PATH_MAX];
 	struct stat sb;
 	int    using_secondary = 0;
-#endif  /* not WIN64 */
+#endif  /* not WIN32 */
 
 	/* initialize the thread context data, if not already initialized */
 	if (pbs_client_thread_init_thread_context() != 0)
@@ -599,7 +599,7 @@ __pbs_connect_extend(char *server, char *extend_data)
 			/* to the Secondary, then it created the .pbsrc.USER file. */
 
 			/* see if already seen Primary down */
-#ifdef WIN64
+#ifdef WIN32
 			/* due to windows quirks, all try both in same order */
 			altservers[0] = pbs_conf.pbs_primary;
 			altservers[1] = pbs_conf.pbs_secondary;
@@ -660,7 +660,7 @@ __pbs_connect_extend(char *server, char *extend_data)
 
 		/* get socket	*/
 
-#ifdef WIN64
+#ifdef WIN32
 		/* the following lousy hack is needed since the socket call needs */
 		/* SYSTEMROOT env variable properly set! */
 		if (getenv("SYSTEMROOT") == NULL) {
@@ -720,7 +720,7 @@ __pbs_connect_extend(char *server, char *extend_data)
 		return -1; 		/* cannot connect */
 	}
 
-#ifndef WIN64
+#ifndef WIN32
 	if (have_alt && (i == 1)) {
 		/* had to use the second listed server ... */
 		if (using_secondary == 1) {
@@ -920,7 +920,7 @@ __pbs_disconnect(int connect)
 		pbs_current_user) == 0) &&
 		(DIS_tcp_wflush(sock) == 0)) {
 		for (;;) {	/* wait for server to close connection */
-#ifdef WIN64
+#ifdef WIN32
 			if (recv(sock, &x, 1, 0) < 1)
 #else
 			if (read(sock, &x, 1) < 1)
@@ -1010,13 +1010,13 @@ pbs_connect_noblk(char *server, int tout)
 	struct sockaddr_in sockname;
 	pbs_socklen_t	 socknamelen;
 
-#ifdef WIN64
+#ifdef WIN32
 	int     non_block = 1;
 	struct sockaddr_in to_sock;
 	struct sockaddr_in from_sock;
 #endif
 
-#ifndef WIN64
+#ifndef WIN32
 	int nflg;
 	int oflg;
 #endif
@@ -1062,7 +1062,7 @@ pbs_connect_noblk(char *server, int tout)
 
 	/* get socket	*/
 
-#ifdef WIN64
+#ifdef WIN32
 	/* the following lousy hack is needed since the socket call needs */
 	/* SYSTEMROOT env variable properly set! */
 	if (getenv("SYSTEMROOT") == NULL) {
@@ -1086,7 +1086,7 @@ pbs_connect_noblk(char *server, int tout)
 
 	/* set socket non-blocking */
 
-#ifdef WIN64
+#ifdef WIN32
 	if (ioctlsocket(connection[out].ch_socket, FIONBIO, &non_block) == SOCKET_ERROR)
 #else
 	oflg = fcntl(connection[out].ch_socket, F_GETFL) & ~O_ACCMODE;
@@ -1143,7 +1143,7 @@ pbs_connect_noblk(char *server, int tout)
 		/* connect attempt failed */
 		pbs_errno = ERRORNO;
 		switch (pbs_errno) {
-#ifdef WIN64
+#ifdef WIN32
 			case WSAEWOULDBLOCK:
 #else
 			case EINPROGRESS:
@@ -1166,7 +1166,7 @@ pbs_connect_noblk(char *server, int tout)
 						else
 							goto err;
 					} if ((n < 0) &&
-#ifdef WIN64
+#ifdef WIN32
 						(ERRORNO == WSAEINTR)
 #else
 						(ERRORNO == EINTR)
@@ -1191,7 +1191,7 @@ err:
 	freeaddrinfo(pai);
 
 	/* reset socket blocking */
-#ifdef WIN64
+#ifdef WIN32
 	non_block = 0;
 	if (ioctlsocket(connection[out].ch_socket, FIONBIO, &non_block) == SOCKET_ERROR)
 #else

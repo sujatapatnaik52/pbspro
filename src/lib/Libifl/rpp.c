@@ -700,7 +700,7 @@ blog_out(char *filename)
 	if ((f = fopen(filename, "a")) == NULL)
 		return;
 
-#ifdef WIN64
+#ifdef WIN32
 	secure_file(filename, "Administrators",
 		READS_MASK|WRITES_MASK|STANDARD_RIGHTS_REQUIRED);
 #endif
@@ -884,7 +884,7 @@ crc(u_char *buf, u_long	clen)
  *	END of included source
  */
 
-#ifdef WIN64
+#ifdef WIN32
 /**
  * @brief
  * 	Given some bytes of data in 'buf' of size 'buf_sz', return a
@@ -957,7 +957,7 @@ crc_file(char *filepath)
 	int	nread = 0;
 	int	count;
 	u_char	*tmpbuf;	
-#ifdef WIN64
+#ifdef WIN32
 	u_char	*tr_buf = NULL;
 	int	tr_buf_sz = 0;
 #endif
@@ -979,7 +979,7 @@ crc_file(char *filepath)
 		return (0);
 	}
 
-#ifdef WIN64
+#ifdef WIN32
 	setmode(fd, O_BINARY);
 #endif
 
@@ -1014,7 +1014,7 @@ crc_file(char *filepath)
 	}
 
 	close(fd);
-#ifdef WIN64
+#ifdef WIN32
 	tr_buf = dos2unix(buf, sb.st_size, &tr_buf_sz);
 	return (crc(tr_buf, tr_buf_sz));
 #else
@@ -1077,7 +1077,7 @@ netaddr(struct sockaddr_in *ap)
 	return out;
 }
 
-#ifdef WIN64
+#ifdef WIN32
 
 #ifndef SIO_UDP_CONNRESET
 #define SIO_UDP_CONNRESET _WSAIOW(IOC_VENDOR, 12)
@@ -1105,7 +1105,7 @@ fix_connreset_msbug(int sd)
 	WSAIoctl(sd, SIO_UDP_CONNRESET, &bNewBehavior, sizeof(bNewBehavior),
 		NULL, 0, &dwBytesReturned, NULL, NULL);
 }
-#endif	/* WIN64 */
+#endif	/* WIN32 */
 
 /**
  * @brief
@@ -1836,7 +1836,7 @@ __rpp_recv_pkt(int fd)
 
 		if (len != -1)
 			break;
-#ifdef WIN64
+#ifdef WIN32
 		errno = WSAGetLastError();
 		if (errno == WSAEINTR)
 			continue;
@@ -2405,7 +2405,7 @@ int
 __rpp_bind(uint port)
 {
 	struct	sockaddr_in	from;
-#ifdef WIN64
+#ifdef WIN32
 	unsigned long 		num_bytes = 1;
 #else
 	int			flags;
@@ -2419,7 +2419,7 @@ __rpp_bind(uint port)
 		if ((rpp_fd = socket(PF_INET, SOCK_DGRAM, 0)) == -1)
 			return -1;
 
-#ifdef WIN64
+#ifdef WIN32
 		fix_connreset_msbug(rpp_fd);
 
 		/* set no delay - windows 2000 port version */
@@ -2500,7 +2500,7 @@ __rpp_bind(uint port)
 			}
 		}
 
-#endif /* end of ifdef WIN64 */
+#endif /* end of ifdef WIN32 */
 
 		/* save who started it all for __rpp_shutdown */
 		bind_pid = (pid_t)getpid();
@@ -2521,7 +2521,7 @@ __rpp_bind(uint port)
 	from.sin_port = htons((u_short)port);
 
 	if (bind(rpp_fd, (struct sockaddr *)&from, sizeof(from)) == -1) {
-#ifdef WIN64
+#ifdef WIN32
 		errno = WSAGetLastError();
 #endif
 		return -1;
@@ -2562,7 +2562,7 @@ __rpp_open(char *name, uint port)
 	int			i, stream;
 	struct	hostent		*hp;
 	struct	stream		*sp;
-#ifdef WIN64
+#ifdef WIN32
 	struct sockaddr_in	*host_addr;
 #endif
 
@@ -2726,7 +2726,7 @@ __rpp_terminate(void)
 	int			i;
 
 	for (i=0; i<rpp_fd_num; i++)
-#ifdef WIN64
+#ifdef WIN32
 		(void)closesocket(rpp_fd_array[i]);
 #else
 		(void)close(rpp_fd_array[i]);

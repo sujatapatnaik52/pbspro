@@ -176,7 +176,7 @@ extern int   local_checkpoint(job *, int, struct batch_request *);
 extern int   start_restart(job *, struct batch_request *);
 extern int   local_restart(job *, struct batch_request *);
 
-#ifdef WIN64
+#ifdef WIN32
 extern void  wait_action(void);
 #endif
 
@@ -261,7 +261,7 @@ extern int	generate_pbs_nodefile(job *pjob, char *nodefile,
 extern int	job_nodes_inner(struct job *pjob, hnodent **mynp);
 extern int	job_nodes(job *pjob);
 extern int	tm_reply(int stream, int version, int com, tm_event_t event);
-#ifdef WIN64
+#ifdef WIN32
 extern int      dep_procinfo(pid_t pid, pid_t *psid, uid_t *puid, char *puname, size_t uname_len, char *comm, size_t comm_len);
 #else
 extern int	dep_procinfo(pid_t, pid_t *, uid_t *, char *, size_t);
@@ -304,7 +304,7 @@ struct cpy_files {
 };
 typedef struct cpy_files cpy_files;
 
-#ifdef WIN64
+#ifdef WIN32
 enum stagefile_errcode {
 	STAGEFILE_OK = 0,
 	STAGEFILE_NOCOPYFILE,
@@ -339,7 +339,7 @@ extern int is_child_path(char *, char *);
 extern int pbs_glob(char *, char *);
 extern void  rmjobdir(char *, char *, uid_t, gid_t);
 extern int stage_file(int, int, char *, struct rqfpair *, int, cpy_files *, char *);
-#ifdef WIN64
+#ifdef WIN32
 extern void  bld_wenv_variables(char *, char *);
 extern void  init_envp(void);
 extern char  *make_envp(void);

@@ -372,7 +372,7 @@ extern char *hook_fail_action_as_string(unsigned int);
 extern void cleanup_hooks_workdir(struct work_task *);
 #endif
 
-#ifdef WIN64
+#ifdef WIN32
 #define	ALARM_HANDLER_ARG void
 #else
 #define	ALARM_HANDLER_ARG int sig

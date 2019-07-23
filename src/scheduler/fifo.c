@@ -126,7 +126,7 @@
 static prev_job_info *last_running = NULL;
 static int last_running_size = 0;
 
-#ifdef WIN64
+#ifdef WIN32
 extern void win_toolong(void);
 #endif
 
@@ -2543,7 +2543,7 @@ sched_settings_frm_svr(struct batch_status *status)
 						priv_dir_update_fail = 1;
 					} else {
 						/* write schedulers pid into lockfile */
-						#ifdef WIN64
+						#ifdef WIN32
 							lseek(lockfds, (off_t)0, SEEK_SET);
 						#else
 							(void)ftruncate(lockfds, (off_t)0);

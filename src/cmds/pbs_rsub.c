@@ -93,7 +93,7 @@ process_opts(int argc, char **argv, struct attrl **attrp, char *dest)
 	char dur_buf[800];
 	char badw[] = "pbs_rsub: illegal -W value\n";
 	int opt_re_flg = FALSE;
-#ifdef WIN64
+#ifdef WIN32
 	struct attrl *ap = NULL;
 	short nSizeofHostName = 0;
 	char* orig_apvalue = NULL;
@@ -345,7 +345,7 @@ set_resv_env(char **envp)
 
 	c = getenv("MAIL");
 	if (c != NULL) {
-#ifdef WIN64
+#ifdef WIN32
 		back2forward_slash(c);
 #endif
 		strcat(job_env, ",PBS_O_MAIL=");
@@ -640,7 +640,7 @@ main(int argc, char *argv[], char *envp[])
 
 	execution_mode(argc, argv);
 
-#ifdef WIN64
+#ifdef WIN32
 	winsock_init();
 #endif
 

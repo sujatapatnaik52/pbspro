@@ -79,9 +79,9 @@ cd "%BINARIESDIR%\openssl-OpenSSL_%OPENSSL_VERSION%"
 call "%VS90COMNTOOLS%vsvars32.bat
 
 if %DO_DEBUG_BUILD% EQU 1 (
-    "%PERL_BIN%" "%BINARIESDIR%\openssl-OpenSSL_%OPENSSL_VERSION%\Configure" --prefix="%BINARIESDIR%\%OPENSSL_DIR_NAME%" --debug VC-WIN64I no-asm no-shared
+    "%PERL_BIN%" "%BINARIESDIR%\openssl-OpenSSL_%OPENSSL_VERSION%\Configure" --prefix="%BINARIESDIR%\%OPENSSL_DIR_NAME%" --debug VC-WIN32 no-asm no-shared
 ) else (
-    "%PERL_BIN%" "%BINARIESDIR%\openssl-OpenSSL_%OPENSSL_VERSION%\Configure" --prefix="%BINARIESDIR%\%OPENSSL_DIR_NAME%" VC-WIN64I no-asm no-shared
+    "%PERL_BIN%" "%BINARIESDIR%\openssl-OpenSSL_%OPENSSL_VERSION%\Configure" --prefix="%BINARIESDIR%\%OPENSSL_DIR_NAME%" VC-WIN32 no-asm no-shared
 )
 if not %ERRORLEVEL% == 0 (
     echo "Failed to generate makefiles for openssl"

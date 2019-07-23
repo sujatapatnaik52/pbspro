@@ -97,7 +97,7 @@ int
 get_cols()
 {
 
-#ifdef WIN64
+#ifdef WIN32
 	CONSOLE_SCREEN_BUFFER_INFO csbi;
 
 	if (GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi)) {

@@ -51,7 +51,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <signal.h>
-#ifdef WIN64
+#ifdef WIN32
 #include <windows.h>
 #include "win.h"
 #endif

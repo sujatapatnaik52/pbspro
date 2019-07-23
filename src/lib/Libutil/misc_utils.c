@@ -76,7 +76,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <pwd.h>
-#ifndef WIN64
+#ifndef WIN32
 #include <dlfcn.h>
 #include <grp.h>
 #endif
@@ -434,7 +434,7 @@ pbs_asprintf(char **dest, const char *fmt, ...)
 	if (!fmt)
 		return -1;
 	va_start(args, fmt);
-#ifdef WIN64
+#ifdef WIN32
 	len = _vscprintf(fmt, args);
 #else
 	{
@@ -556,7 +556,7 @@ lock_file(FILE *fp, int op, char *filename, int lock_retry,
 	char *err_msg, size_t err_msg_len)
 {
 	int		i;
-#ifdef WIN64
+#ifdef WIN32
 	struct stat  	sbuf;
 	long		nbytes = 0;
 #else
@@ -566,7 +566,7 @@ lock_file(FILE *fp, int op, char *filename, int lock_retry,
 	if (fp == NULL)
 		return 0; /* nothing to lock */
 
-#ifdef WIN64
+#ifdef WIN32
 
 	if (stat(filename, &sbuf) == -1) {
 		if (err_msg != NULL)
@@ -696,7 +696,7 @@ is_full_path(char *path)
 	if (*cp == '"')
 		++cp;
 
-#ifdef WIN64
+#ifdef WIN32
 	if ((cp[0] == '/') || (cp[0] == '\\') ||
 		(strlen(cp) >= 3 &&
 		isalpha(cp[0]) && cp[1] == ':' &&
@@ -869,7 +869,7 @@ file_exists(char *path)
 {
 	struct stat sbuf;
 
-#ifdef WIN64
+#ifdef WIN32
 	if (lstat(path, &sbuf) == -1) {
 		int ret = GetLastError();
 		if (ret == ERROR_FILE_NOT_FOUND || \
@@ -1053,7 +1053,7 @@ get_ext_auth_data(int auth_type, int *data_len, char *ebuf, int ebufsz)
 
 	*data_len = 0;
 
-#ifndef WIN64
+#ifndef WIN32
 	/* right now, we only know about munge authentication */
 	adata = pbs_get_munge_auth_data(1, ebuf, ebufsz);
 	if (adata)
@@ -1090,7 +1090,7 @@ validate_ext_auth_data(int auth_type, void *data, int data_len, char *ebuf, int 
 	int fromsvr = 0;
 	int rc = -1;
 
-#ifndef WIN64
+#ifndef WIN32
 	/* right now, we only know about munge authentication */
 	rc = pbs_munge_validate(data, &fromsvr, ebuf, ebufsz);
 	if (rc == 0 && fromsvr == 1)
@@ -1323,7 +1323,7 @@ ends_with_triple_quotes(char *str, int strip_quotes)
 
 	if (*p == '\n') {
 		p--;
-#ifdef WIN64
+#ifdef WIN32
 		if (*p  == '\r') {
 			p--;
 		}
@@ -1391,7 +1391,7 @@ starts_with_triple_quotes(char *str)
  * The buffer has to be freed by the caller.
  *
  */
-#ifndef WIN64
+#ifndef WIN32
 #ifdef HAVE_MALLOC_INFO
 char *
 get_mem_info(void) {
@@ -1412,4 +1412,4 @@ get_mem_info(void) {
 	return buf;
 }
 #endif /* malloc_info */
-#endif /* WIN64 */
+#endif /* WIN32 */

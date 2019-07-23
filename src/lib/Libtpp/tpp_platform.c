@@ -56,7 +56,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#ifndef WIN64
+#ifndef WIN32
 #include <netinet/tcp.h>
 #include <sys/resource.h>
 #include <signal.h>
@@ -66,7 +66,7 @@
 #include "tpp_common.h"
 #include "tpp_platform.h"
 
-#ifdef WIN64
+#ifdef WIN32
 
 /**
  * @brief
@@ -859,7 +859,7 @@ tpp_sock_attempt_connection(int fd, char *host, int port)
 void
 tpp_invalidate_thrd_handle(pthread_t *thrd)
 {
-#ifdef WIN64
+#ifdef WIN32
 	thrd->thHandle = INVALID_HANDLE_VALUE;
 	thrd->thId = -1;
 #else
@@ -886,7 +886,7 @@ tpp_invalidate_thrd_handle(pthread_t *thrd)
 int
 tpp_is_valid_thrd(pthread_t thrd)
 {
-#ifndef WIN64
+#ifndef WIN32
 	if (thrd != -1)
 		return 1;
 #else

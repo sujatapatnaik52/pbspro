@@ -72,7 +72,7 @@
 #include <sys/stat.h>
 #include <libutil.h>
 
-#ifdef WIN64
+#ifdef WIN32
 #include  <io.h>
 #include "win.h"
 #include <sys/timeb.h>
@@ -118,7 +118,7 @@
 #include "mom_hook_func.h"
 #include "placementsets.h"
 
-#ifdef WIN64
+#ifdef WIN32
 #include <direct.h>
 #include "mom_func.h"
 #else
@@ -131,7 +131,7 @@
 extern volatile pbs_mutex       *pbs_commit_ptr;
 #endif /* IRIX6_CPUSET */
 
-#endif /* WIN64 */
+#endif /* WIN32 */
 
 extern	char mom_host[PBS_MAXHOSTNAME+1];
 #endif	/* PBS_MOM */
@@ -1381,7 +1381,7 @@ req_jobscript(struct batch_request *preq)
 		if ((pj->ji_wattr[(int)JOB_ATR_euser].at_flags & \
 							ATR_VFLAG_SET) &&
 			(pj->ji_wattr[(int)JOB_ATR_euser].at_val.at_str != NULL)) {
-#ifdef WIN64
+#ifdef WIN32
 
 			/* equivalent of root */
 			if (!isAdminPrivilege(pj->ji_wattr[(int)JOB_ATR_euser].\
@@ -1423,10 +1423,10 @@ req_jobscript(struct batch_request *preq)
 		return;
 	}
 
-#ifdef WIN64
+#ifdef WIN32
 	secure_file2(namebuf, "Administrators", READS_MASK|WRITES_MASK|STANDARD_RIGHTS_REQUIRED, "Everyone", READS_MASK|READ_CONTROL);
 	setmode(fds, O_BINARY);
-#endif /* WIN64 */
+#endif /* WIN32 */
 
 	if (write(fds, preq->rq_ind.rq_jobfile.rq_data,
 		(unsigned)preq->rq_ind.rq_jobfile.rq_size) !=
@@ -1488,7 +1488,7 @@ req_mvjobfile(struct batch_request *preq)
 	int	 fds;
 	char	 namebuf[MAXPATHLEN+1];
 	job	*pj;
-#ifndef WIN64
+#ifndef WIN32
 	mode_t	 cur_mask;
 	struct stat sb;
 #endif
@@ -1526,7 +1526,7 @@ req_mvjobfile(struct batch_request *preq)
 			return;
 	}
 
-#ifndef WIN64
+#ifndef WIN32
 	/* Windows does not do symlinks, we only need to check on Unix/Linux */
 	if (lstat(namebuf, &sb) == 0) {
 		/* if it exists, the file must be a prior copy which means */
@@ -1589,21 +1589,21 @@ req_mvjobfile(struct batch_request *preq)
 		}
 	}
 
-#else	/* is WIN64  */
+#else	/* is WIN32  */
 
 	if (preq->rq_ind.rq_jobfile.rq_sequence == 0)
 		fds = open(namebuf, O_WRONLY|O_CREAT|O_EXCL|O_Sync, 0600);
 	else
 		fds = open(namebuf, O_WRONLY|O_APPEND|O_Sync, 0600);
 
-#endif	/* WIN64 */
+#endif	/* WIN32 */
 
 	if (fds < 0) {
 		log_err(errno, "req_mvjobfile", msg_script_open);
 		req_reject(PBSE_SYSTEM, 0, preq);
 		return;
 	}
-#ifdef WIN64
+#ifdef WIN32
 	secure_file(namebuf, "Administrators", READS_MASK|WRITES_MASK|STANDARD_RIGHTS_REQUIRED);
 	setmode(fds, O_BINARY);
 #endif
@@ -1672,7 +1672,7 @@ req_mvjobfile(struct batch_request *preq)
 		/* environment and mkjobdir() will be called again in    */
 		/* start_exec where the permissions are reset to match   */
 		/* the user's umask and the environment is built.	 */
-#ifdef WIN64
+#ifdef WIN32
 
 		if (mkjobdir(pj->ji_qs.ji_jobid,
 			pbs_jobdir,
@@ -1693,7 +1693,7 @@ req_mvjobfile(struct batch_request *preq)
 			req_reject(PBSE_MOMREJECT, 0, preq);
 			return;
 		}
-#endif /* WIN64 */
+#endif /* WIN32 */
 	}
 
 	if ((fds =open_std_file(pj, jft, oflag,
@@ -1739,7 +1739,7 @@ req_commit(struct batch_request *preq)
 	pbs_db_jobscr_info_t	jobscr;
 	pbs_db_obj_info_t	obj;
 	long			time_msec;
-#ifdef	WIN64
+#ifdef	WIN32
 	struct	_timeb		tval;
 #else
 	struct timeval		tval;
@@ -1845,7 +1845,7 @@ req_commit(struct batch_request *preq)
 	pj->ji_modified = 0; /* don't save from svr_setjobstate, we will save soon after */
 	(void)svr_setjobstate(pj, newstate, newsub);
 
-#ifdef WIN64
+#ifdef WIN32
 	_ftime_s(&tval);
 	time_msec = (tval.time * 1000L) + tval.millitm;
 #else
@@ -2484,7 +2484,7 @@ req_resvSub(struct batch_request *preq)
 		server.sv_attr[(int)SRV_ATR_acl_ResvGroup_enable].at_val.at_long) {
 
 		if (acl_check(&server.sv_attr[(int)SRV_ATR_acl_ResvGroups],
-#ifdef WIN64
+#ifdef WIN32
 			presv->ri_wattr[RESV_ATR_egroup].at_val.at_str,
 #else
 			presv->ri_wattr[RESV_ATR_euser].at_val.at_str,

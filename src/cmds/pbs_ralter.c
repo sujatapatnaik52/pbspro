@@ -217,7 +217,7 @@ main(int argc, char *argv[], char *envp[])		/* pbs_ralter */
 
 	execution_mode(argc, argv);
 
-#ifdef WIN64
+#ifdef WIN32
 	winsock_init();
 #endif
 

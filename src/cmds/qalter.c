@@ -184,7 +184,7 @@ main(int argc, char **argv, char **envp) /* qalter */
 	char server_out[MAXSERVERNAME];
 	char rmt_server[MAXSERVERNAME];
 	struct ecl_attribute_errors *err_list;
-#ifdef WIN64
+#ifdef WIN32
 	struct attrl *ap = NULL;
 	short int nSizeofHostName = 0;
 	char* orig_apvalue = NULL;
@@ -197,7 +197,7 @@ main(int argc, char **argv, char **envp) /* qalter */
 
 	execution_mode(argc, argv);
 
-#ifdef WIN64
+#ifdef WIN32
 	winsock_init();
 #endif
 
@@ -298,7 +298,7 @@ main(int argc, char **argv, char **envp) /* qalter */
 					errflg++;
 					break;
 				}
-#ifdef WIN64
+#ifdef WIN32
 				back2forward_slash2(optarg);
 #endif
 				i = parse_equal_string(optarg, &keyword, &valuewd);

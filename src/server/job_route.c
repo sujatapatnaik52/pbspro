@@ -54,7 +54,7 @@
 #include <stdio.h>
 #include <sys/types.h>
 
-#ifndef WIN64
+#ifndef WIN32
 #include <sys/param.h>
 #endif
 
@@ -75,7 +75,7 @@
 #include "resv_node.h"
 #include "queue.h"
 
-#ifdef WIN64
+#ifdef WIN32
 #include <windows.h>
 #include "win.h"
 #endif

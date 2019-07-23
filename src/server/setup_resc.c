@@ -214,7 +214,7 @@ update_resource_def_file(char *name, resdef_op_t op, int type, int perms)
 		return -1;
 	}
 	tmp_fd = mkstemp(template);
-#ifdef WIN64
+#ifdef WIN32
 	if (fopen_s(&tmpfile, template, "w") != 0)
 		return -1;
 
@@ -291,7 +291,7 @@ update_resource_def_file(char *name, resdef_op_t op, int type, int perms)
 	free(flags);
 
 	rc = 0;
-#ifdef WIN64
+#ifdef WIN32
 	if (MoveFileEx(template, path_rescdef, MOVEFILE_REPLACE_EXISTING|MOVEFILE_WRITE_THROUGH) == 0) {
 		errno = GetLastError();
 		rc = 1;

@@ -61,7 +61,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#ifndef WIN64
+#ifndef WIN32
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
 #endif
@@ -198,7 +198,7 @@ tpp_set_non_blocking(int fd)
 	if (-1 == (flags = fcntl(fd, F_GETFL, 0)))
 		flags = 0;
 	return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
-#elif defined( WIN64)
+#elif defined( WIN32)
 	flags=1;
 	if (ioctlsocket(fd, FIONBIO, &flags) == SOCKET_ERROR)
 		return -1;
@@ -229,7 +229,7 @@ tpp_set_non_blocking(int fd)
 int
 tpp_set_close_on_exec(int fd)
 {
-#ifndef WIN64
+#ifndef WIN32
 	int flags;
 	if ((flags = fcntl(fd, F_GETFD)) != -1)
 		fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
@@ -326,7 +326,7 @@ tpp_cr_thrd(void *(*start_routine)(void*), pthread_t *id, void *data)
 {
 	pthread_attr_t *attr = NULL;
 	int rc = -1;
-#ifndef WIN64
+#ifndef WIN32
 	pthread_attr_t setattr;
 	size_t stack_size;
 
@@ -355,7 +355,7 @@ tpp_cr_thrd(void *(*start_routine)(void*), pthread_t *id, void *data)
 	if (pthread_create(id, attr, start_routine, data) == 0)
 		rc = 0;
 
-#ifndef WIN64
+#ifndef WIN32
 	if (pthread_attr_destroy(attr) != 0) {
 		tpp_log_func(LOG_CRIT, __func__, "Failed to destroy attribute");
 		return -1;
@@ -1591,7 +1591,7 @@ char *
 tpp_netaddr(tpp_addr_t *ap)
 {
 	tpp_tls_t *ptr;
-#ifdef WIN64
+#ifdef WIN32
 	struct sockaddr_in in;
 	struct sockaddr_in6 in6;
 	int len;
@@ -1612,7 +1612,7 @@ tpp_netaddr(tpp_addr_t *ap)
 	if (ap->family == TPP_ADDR_FAMILY_UNSPEC)
 		return "unknown";
 
-#ifdef WIN64
+#ifdef WIN32
 	if (ap->family == TPP_ADDR_FAMILY_IPV4) {
 		memcpy(&in.sin_addr, ap->ip, sizeof(in.sin_addr));
 		in.sin_family = AF_INET;
@@ -1678,7 +1678,7 @@ tpp_netaddr_sa(struct sockaddr *sa)
 	}
 	ptr->tppstaticbuf[0] = '\0';
 
-#ifdef WIN64
+#ifdef WIN32
 	WSAAddressToString((LPSOCKADDR)&sa, sizeof(struct sockaddr), NULL, (LPSTR)&ptr->tppstaticbuf, &len);
 #else
 	if (sa->sa_family == AF_INET)

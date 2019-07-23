@@ -1568,7 +1568,7 @@ work(void *v)
 	int timeout, timeout2;
 	time_t now;
 	tpp_tls_t *ptr;
-#ifndef WIN64
+#ifndef WIN32
 	int rc;
 	sigset_t	blksigs;
 #endif
@@ -1586,7 +1586,7 @@ work(void *v)
 	ptr->td = (void *) td;
 	td->tpp_tls = ptr; /* store allocated area for tls into td to free at shutdown/terminate */
 
-#ifndef WIN64
+#ifndef WIN32
 	/* block a certain set of signals that we do not care about in this IO thread
 	 * A signal directed to a multi-threaded program can be delivered to any thread
 	 * which has a unblocked signal mask for that signal. This could cause havoc for

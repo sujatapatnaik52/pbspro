@@ -117,7 +117,7 @@ extern int  chk_file_sec(char *path, int isdir, int sticky,
 	int disallow, int fullpath);
 extern int  tmp_file_sec(char *path, int isdir, int sticky,
 	int disallow, int fullpath);
-#ifdef WIN64
+#ifdef WIN32
 extern int  chk_file_sec2(char *path, int isdir, int sticky,
 	int disallow, int fullpath, char *owner);
 #endif

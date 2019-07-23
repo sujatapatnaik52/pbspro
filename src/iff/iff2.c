@@ -156,7 +156,7 @@ main(int argc, char *argv[], char *envp[])
 		return (1);
 	}
 
-#ifdef WIN64
+#ifdef WIN32
 	winsock_init();
 #endif
 

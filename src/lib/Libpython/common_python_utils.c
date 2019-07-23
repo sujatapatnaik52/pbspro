@@ -270,7 +270,7 @@ pbs_python_write_error_to_log(const char *emsg)
 	Py_XDECREF(exc_type);
 	Py_XDECREF(exc_value);
 
-#if !defined( WIN64)
+#if !defined( WIN32)
 	Py_XDECREF(exc_traceback);
 #elif !defined(_DEBUG)
 	/* for some reason this crashes on Windows Debug version */

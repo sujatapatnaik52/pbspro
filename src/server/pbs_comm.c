@@ -75,7 +75,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <signal.h>
-#ifndef WIN64
+#ifndef WIN32
 #include <grp.h>
 #include <sys/resource.h>
 #endif
@@ -165,7 +165,7 @@ enum failover_state are_we_primary(void)
  *
  * @return	void
  */
-#ifndef WIN64
+#ifndef WIN32
 void
 usage(char *prog)
 {
@@ -489,12 +489,12 @@ lock_out(int fds, int op)
 {
 	int i;
 	int j;
-#ifndef WIN64
+#ifndef WIN32
 	struct flock flock;
 #endif
 	char buf[100];
-#ifdef WIN64
-	/* seek to start in case of WIN64 as _locking locks/unlock
+#ifdef WIN32
+	/* seek to start in case of WIN32 as _locking locks/unlock
 	 * from current file pointer position
 	 */
 	(void) lseek(fds, (off_t) 0, SEEK_SET);
@@ -502,7 +502,7 @@ lock_out(int fds, int op)
 
 	j = 1; /* not fail over, try lock one time */
 
-#ifdef WIN64
+#ifdef WIN32
 	for (i = 0; i < j; i++) {
 		/*
 		 * just lock/unlock the first 10 bytes of the file
@@ -572,7 +572,7 @@ set_limits()
 #endif	/* RLIMIT_CORE */
 
 #if defined(RLIM64_INFINITY)
-#ifndef WIN64
+#ifndef WIN32
 	{
 		struct rlimit64 rlimit;
 
@@ -612,11 +612,11 @@ set_limits()
 		}
 #endif	/* RLIMIT_CORE */
 	}
-#endif	/* WIN64 */
+#endif	/* WIN32 */
 
 #else	/* setrlimit 32 bit */
 
-#ifndef WIN64
+#ifndef WIN32
 	{
 		struct rlimit rlimit;
 
@@ -675,7 +675,7 @@ set_limits()
 		}
 #endif  /* not linux */
 	}
-#endif	/* WIN64 */
+#endif	/* WIN32 */
 #endif	/* !RLIM64_INFINITY */
 }
 
@@ -718,7 +718,7 @@ void
 pbs_close_stdfiles(void)
 {
 	static int already_done = 0;
-#ifdef WIN64
+#ifdef WIN32
 #define NULL_DEVICE "nul"
 #else
 #define NULL_DEVICE "/dev/null"
@@ -737,7 +737,7 @@ pbs_close_stdfiles(void)
 	}
 }
 
-#ifndef WIN64
+#ifndef WIN32
 /**
  * @brief
  *		Forks a background process and continues on that, while
@@ -770,7 +770,7 @@ go_to_background()
 	already_forked = 1;
 	return sid;
 }
-#endif	/* end the ifndef WIN64 */
+#endif	/* end the ifndef WIN32 */
 #endif	/* DEBUG is defined */
 
 /**
@@ -784,20 +784,20 @@ go_to_background()
  * @retval	0	- success
  * @retval	>0	- error
  */
-#ifdef WIN64
+#ifdef WIN32
 DWORD WINAPI
 main_thread(void *pv)
 #else
 int
 main(int argc, char **argv)
-#endif	/* WIN64 */
+#endif	/* WIN32 */
 {
-#ifdef	WIN64
+#ifdef	WIN32
 	struct arg_param *p = (struct arg_param *)pv;
 	int      		argc;
 	char			**argv;
 	SERVICE_STATUS          ss;
-#endif	/* WIN64 */
+#endif	/* WIN32 */
 	char *name = NULL;
 	struct tpp_config conf;
 	int rpp_fd;
@@ -814,12 +814,12 @@ main(int argc, char **argv)
 	extern char *optarg;
 	int	are_primary;
 	int	num_var_env;
-#ifndef WIN64
+#ifndef WIN32
 	struct sigaction act;
 	struct sigaction oact;
 #endif
 
-#ifndef WIN64
+#ifndef WIN32
 	/*the real deal or just pbs_version and exit*/
 
 	execution_mode(argc, argv);
@@ -827,7 +827,7 @@ main(int argc, char **argv)
 
 	/* As a security measure and to make sure all file descriptors	*/
 	/* are available to us,  close all above stderr			*/
-#ifdef WIN64
+#ifdef WIN32
 	_fcloseall();
 #else
 	i = sysconf(_SC_OPEN_MAX);
@@ -836,7 +836,7 @@ main(int argc, char **argv)
 #endif
 
 	/* If we are not run with real and effective uid of 0, forget it */
-#ifdef WIN64
+#ifdef WIN32
 	argc = p->argc;
 	argv = p->argv;
 
@@ -860,10 +860,10 @@ main(int argc, char **argv)
 		fprintf(stderr, "%s: Must be run by root\n", argv[0]);
 		return (2);
 	}
-#endif	/* WIN64 */
+#endif	/* WIN32 */
 
 	/* set standard umask */
-#ifndef WIN64
+#ifndef WIN32
 	umask(022);
 #endif
 
@@ -875,13 +875,13 @@ main(int argc, char **argv)
 
 	umask(022);
 
-#ifdef	WIN64
+#ifdef	WIN32
 	save_env();
 #endif
 	/* The following is code to reduce security risks                */
 	/* start out with standard umask, system resource limit infinite */
 	if ((num_var_env = setup_env(pbs_conf.pbs_environment)) == -1) {
-#ifdef	WIN64
+#ifdef	WIN32
 		g_dwCurrentState = SERVICE_STOPPED;
 		ss.dwCurrentState = g_dwCurrentState;
 		ss.dwWin32ExitCode = ERROR_INVALID_ENVIRONMENT;
@@ -889,10 +889,10 @@ main(int argc, char **argv)
 		return (1);
 #else
 		exit(1);
-#endif	/* WIN64 */
+#endif	/* WIN32 */
 	}
 
-#ifndef WIN64
+#ifndef WIN32
 	i = getgid();
 	(void)setgroups(1, (gid_t *)&i);	/* secure suppl. groups */
 #endif
@@ -900,7 +900,7 @@ main(int argc, char **argv)
 	log_event_mask = &pbs_conf.pbs_comm_log_events;
 	tpp_set_logmask(*log_event_mask);
 
-#ifdef WIN64
+#ifdef WIN32
 	winsock_init();
 #endif
 
@@ -928,7 +928,7 @@ main(int argc, char **argv)
 		name = server_host;
 	} else {
 		if (gethostname(server_host, (sizeof(server_host) - 1)) == -1) {
-#ifndef WIN64
+#ifndef WIN32
 			sprintf(log_buffer, "Could not determine my hostname, errno=%d", errno);
 #else
 			sprintf(log_buffer, "Could not determine my hostname, errno=%d", WSAGetLastError());
@@ -983,7 +983,7 @@ main(int argc, char **argv)
 	}
 
 	(void) snprintf(path_log, sizeof(path_log), "%s/%s", pbs_conf.pbs_home_path, PBS_COMM_LOGDIR);
-#ifdef WIN64
+#ifdef WIN32
 	/*
 	 * let SCM wait 10 seconds for log_open() to complete
 	 * as it does network interface query which can take time
@@ -1014,7 +1014,7 @@ main(int argc, char **argv)
 	} else if (are_primary == FAILOVER_CONFIG_ERROR) {
 		sprintf(log_buffer, "Failover configuration error");
 		log_err(-1, __func__, log_buffer);
-#ifdef WIN64
+#ifdef WIN32
 		g_dwCurrentState = SERVICE_STOPPED;
 		ss.dwCurrentState = g_dwCurrentState;
 		ss.dwWin32ExitCode = ERROR_SERVICE_NOT_ACTIVE;
@@ -1062,14 +1062,14 @@ main(int argc, char **argv)
 	}
 
 #ifndef DEBUG
-#ifndef WIN64
+#ifndef WIN32
 	if (stalone != 1)
 		go_to_background();
 #endif
 #endif
 
 
-#ifdef WIN64
+#ifdef WIN32
 	ss.dwCheckPoint = 0;
 	g_dwCurrentState = SERVICE_RUNNING;
 	ss.dwCurrentState = g_dwCurrentState;
@@ -1091,7 +1091,7 @@ main(int argc, char **argv)
 	pbs_close_stdfiles();
 #endif
 
-#ifdef WIN64
+#ifdef WIN32
 	signal(SIGINT, stop_me);
 	signal(SIGTERM, stop_me);
 #else
@@ -1135,7 +1135,7 @@ main(int argc, char **argv)
 		log_err(errno, __func__, "sigaction for USR2");
 		return (2);
 	}
-#endif 	/* WIN64 */
+#endif 	/* WIN32 */
 
 	conf.node_type = TPP_ROUTER_NODE;
 	conf.numthreads = numthreads;

@@ -66,11 +66,11 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <errno.h>
-#ifndef WIN64
+#ifndef WIN32
 #include "server_limits.h"
 #endif
 #include <pbs_internal.h>
-#ifdef WIN64
+#ifdef WIN32
 #include <win.h>
 #endif
 #include "pbs_db.h"
@@ -81,7 +81,7 @@
 #define TEMP_BUF_SIZE 100
 #define RES_BUF_SIZE 4096
 
-#ifdef WIN64
+#ifdef WIN32
 BOOL checkpid(pid_t pid);
 char pbs_ds_monitor_exe[MAXPATHLEN+1];
 #endif
@@ -100,7 +100,7 @@ void
 clear_stop_db_file(void)
 {
 	char closefile[MAXPATHLEN + 1];
-#ifdef WIN64
+#ifdef WIN32
 	snprintf(closefile, MAXPATHLEN, "%s\\datastore\\pbs_dbclose", pbs_conf.pbs_home_path);
 #else
 	snprintf(closefile, MAXPATHLEN, "%s/datastore/pbs_dbclose", pbs_conf.pbs_home_path);
@@ -125,7 +125,7 @@ check_and_stop_db(int dbpid)
 	char closefile[MAXPATHLEN + 1];
 	char *db_err = NULL;
 
-#ifdef WIN64
+#ifdef WIN32
 	snprintf(closefile, MAXPATHLEN, "%s\\datastore\\pbs_dbclose", pbs_conf.pbs_home_path);
 #else
 	snprintf(closefile, MAXPATHLEN, "%s/datastore/pbs_dbclose", pbs_conf.pbs_home_path);
@@ -159,7 +159,7 @@ get_pid()
 	char buf[TEMP_BUF_SIZE+1];
 	pid_t pid = 0;
 
-#ifdef WIN64
+#ifdef WIN32
 	snprintf(pidfile, MAXPATHLEN, "%s\\datastore\\postmaster.pid", pbs_conf.pbs_home_path);
 #else
 	snprintf(pidfile, MAXPATHLEN, "%s/datastore/postmaster.pid", pbs_conf.pbs_home_path);
@@ -183,7 +183,7 @@ get_pid()
 	if (pid == 0)
 		return 0;
 
-#ifdef WIN64
+#ifdef WIN32
 	if (!checkpid(pid))
 		return 0;
 #else
@@ -214,7 +214,7 @@ get_pid()
  *
  * @par MT-safe:	Yes
  */
-#ifdef WIN64
+#ifdef WIN32
 static int
 lock_out(HANDLE hFile , int op)
 {
@@ -276,7 +276,7 @@ lock_out(int fds, int op)
 }
 #endif
 
-#ifdef WIN64
+#ifdef WIN32
 /**
  * @brief
  * 		This is the Windows couterpart of acquire_lock
@@ -595,7 +595,7 @@ win_db_monitor_child()
 }
 #endif
 
-#ifndef WIN64
+#ifndef WIN32
 /**
  * @brief
  * 		This is the Unix counterpart of acquire_lock
@@ -924,7 +924,7 @@ main(int argc, char *argv[])
 		fprintf(stderr, "Failed to load PBS conf file\n");
 		return 1;
 	}
-#ifdef WIN64
+#ifdef WIN32
 	winsock_init();
 	if (gethostname(thishost, (sizeof(thishost) - 1)) == SOCKET_ERROR)
 #else
@@ -935,7 +935,7 @@ main(int argc, char *argv[])
 		return -1;
 	}
 
-#ifdef WIN64
+#ifdef WIN32
 	if (strcmp(mode, "monitorchild") == 0) {
 		int rc;
 
@@ -944,7 +944,7 @@ main(int argc, char *argv[])
 	}
 #endif
 
-#ifdef WIN64
+#ifdef WIN32
 	strncpy(pbs_ds_monitor_exe, argv[0], MAXPATHLEN);
 	return win_db_monitor(mode);
 #else

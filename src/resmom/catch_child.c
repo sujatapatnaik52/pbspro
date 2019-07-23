@@ -40,7 +40,7 @@
 #include <Python.h>
 #endif
 
-#ifdef WIN64
+#ifdef WIN32
 #include <direct.h>
 #else
 #include <unistd.h>
@@ -97,10 +97,10 @@ extern pbs_list_head	svr_alljobs;
 extern int		exiting_tasks;
 extern char		*msg_daemonname;
 extern int		svr_hook_resend_job_attrs;
-#ifdef	WIN64
+#ifdef	WIN32
 extern char		*mom_home;
 #endif
-#ifndef	WIN64
+#ifndef	WIN32
 extern int		termin_child;
 #endif
 extern int		resc_access_perm;
@@ -116,7 +116,7 @@ extern useconds_t	alps_release_jitter;
 
 extern char		*path_hooks_workdir;
 
-#ifndef WIN64
+#ifndef WIN32
 /**
  * @brief
  *	catch_child() - the signal handler for  SIGCHLD.
@@ -407,7 +407,7 @@ json_loads(char *value, char *msg, size_t msg_len)
 			Py_XDECREF(exc_string);
 			Py_XDECREF(exc_type);
 			Py_XDECREF(exc_value);
-#if !defined( WIN64)
+#if !defined( WIN32)
 			Py_XDECREF(exc_traceback);
 #elif !defined(_DEBUG)
 			/* for some reason this crashes on Windows Debug */
@@ -541,7 +541,7 @@ json_dumps(PyObject *py_val, char *msg, size_t msg_len)
 			Py_XDECREF(exc_string);
 			Py_XDECREF(exc_type);
 			Py_XDECREF(exc_value);
-#if !defined( WIN64)
+#if !defined( WIN32)
 			Py_XDECREF(exc_traceback);
 #elif !defined(_DEBUG)
 			/* for some reason this crashes on Windows Debug */
@@ -1253,7 +1253,7 @@ send_obit(job *pjob, int exval)
 	struct resc_used_update rud;
 	pbs_list_head vnl_changes;
 
-#ifndef WIN64
+#ifndef WIN32
 	/* update pjob with values set from an epilogue hook */
 	/* since these are hooks that are executing in a child process */
 	/* and changes inside the child will not be reflected in main */
@@ -1360,7 +1360,7 @@ send_obit(job *pjob, int exval)
 		}
 		CLEAR_HEAD(rud.ru_attr);
 		encode_used(pjob, &rud.ru_attr);
-#ifdef	WIN64
+#ifdef	WIN32
 		if( pjob->ji_wattr[(int)JOB_ATR_Comment].at_flags & \
 							ATR_VFLAG_SET) {
 			rud.ru_comment = \
@@ -1405,7 +1405,7 @@ void
 scan_for_exiting(void)
 {
 
-#ifndef WIN64
+#ifndef WIN32
 	pid_t			cpid;
 #endif
 	int			i;
@@ -1422,7 +1422,7 @@ scan_for_exiting(void)
 	int	im_compose(int, char *, char *, int, tm_event_t, tm_task_id, int);
 	mom_hook_input_t hook_input;
 
-#ifdef WIN64
+#ifdef WIN32
 	/* update the latest intelligence about the running jobs; */
 	time_now = time(NULL);
 	if (mom_get_sample() == PBSE_NONE) {
@@ -1781,7 +1781,7 @@ end_loop:
 				LOG_DEBUG, pjob->ji_qs.ji_jobid, log_buffer);
 		}
 
-#ifdef WIN64 /* WIN64 --------------------------------------------- */
+#ifdef WIN32 /* WIN32 --------------------------------------------- */
 		/* change to the user's home directory and */
 		/* run the epilogue script */
 		/* if sandbox=PRIVATE, then run the epilogue script */
@@ -1898,7 +1898,7 @@ end_loop:
 		if (extval != 2)
 			extval = 0;
 		exit(extval);
-#endif	/* WIN64/UNIX */
+#endif	/* WIN32/UNIX */
 
 	}
 	if (pjob == NULL)
@@ -2521,7 +2521,7 @@ del_job_resc(job *pjob)
 
 	if (pjob->ji_qs.ji_svrflags & JOB_SVFLG_HERE) {
 		char	file[MAXPATHLEN+1];
-#ifdef WIN64
+#ifdef WIN32
 		(void)sprintf(file, "%s/auxiliary/%s",
 			pbs_conf.pbs_home_path, pjob->ji_qs.ji_jobid);
 #else

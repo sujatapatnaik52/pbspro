@@ -209,8 +209,8 @@ int pbs_asprintf(char **dest, const char *fmt, ...);
  */
 int float_digits(double fl, int digits);
 
-/* munge related routines, no WIN64 */
-#ifndef WIN64
+/* munge related routines, no WIN32 */
+#ifndef WIN32
 int pbs_munge_validate(void *auth_data, int *fromsvr, char *ebuf, int ebufsz);
 char *pbs_get_munge_auth_data(int fromsvr, char *ebuf, int ebufsz);
 #endif

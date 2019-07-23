@@ -1100,7 +1100,7 @@ pbs_python_populate_svrattrl_from_file(char *input_file,
 		}
 
 		ll = strlen(in_data);
-#ifdef WIN64
+#ifdef WIN32
 		/* The file is being read in O_BINARY mode (see _fmode setting) */
 		/* so on Windows, there's a carriage return (\r) line feed (\n), */
 		/* then the linefeed needs to get processed out */
@@ -1632,7 +1632,7 @@ pbs_python_populate_server_svrattrl_from_file(char *input_file,
 	while (fgets(in_data, in_data_sz, fp) != NULL) {
 
 		ll = strlen(in_data);
-#ifdef WIN64
+#ifdef WIN32
 		/* The file is being read in O_BINARY mode (see _fmode setting) */
 		/* so on Windows, there's a carriage return (\r) line feed (\n), */
 		/* then the linefeed needs to get processed out */
@@ -2206,13 +2206,13 @@ main(int argc, char *argv[], char *envp[])
 {
 	char python_prefix[MAXPATHLEN+1];
 	char python_path[MAXPATHLEN+1] = {'\0'};
-#ifndef WIN64
+#ifndef WIN32
 	char dirname[MAXPATHLEN+1];
 	int  env_len = 0;
 	int  found_pyhome;
 #endif
 	char python_envbuf[MAXBUF+1];
-#ifdef WIN64
+#ifdef WIN32
 	char python_cmdline[MAXBUF+1];
 #endif
 	char **lenvp = NULL;
@@ -2229,7 +2229,7 @@ main(int argc, char *argv[], char *envp[])
 		return 1;
 	}
 
-#ifdef WIN64
+#ifdef WIN32
 	/* The following needed so that buffered writes (e.g. fprintf) */
 	/* won't end up getting ^M */
 	_set_fmode(_O_BINARY);
@@ -2268,7 +2268,7 @@ main(int argc, char *argv[], char *envp[])
 	/* last entry is left with null pointer */
 
 	if ((argv[1] == NULL) || (strcmp(argv[1], HOOK_MODE) != 0)) {
-#ifdef WIN64
+#ifdef WIN32
 		/* If this is 64-bit Windows, use 64-bit Python */
 		if (TRUE == is_64bit_Windows()) {
 			snprintf(python_prefix, MAXPATHLEN, "%s/python_x64",
@@ -2759,14 +2759,14 @@ main(int argc, char *argv[], char *envp[])
 		if (req_host[0] == '\0')
 			gethostname(req_host, PBS_MAXHOSTNAME);
 
-#ifdef WIN64
+#ifdef WIN32
 		forward2back_slash(logname);
 #endif
 		if ((logname[0] != '\0') && (!is_full_path(logname))) {
 			char	curdir[MAXPATHLEN + 1];
 			char	full_logname[MAXPATHLEN + 1];
 			char	*slash;
-#ifdef WIN64
+#ifdef WIN32
 			slash = "\\";
 #else
 			slash = "/";

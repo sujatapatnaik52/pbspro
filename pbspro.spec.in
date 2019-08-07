@@ -123,7 +123,7 @@ BuildRequires: timezone
 BuildRequires: python-xml
 BuildRequires: python3-devel >= 3.5
 %else
-BuildRequires: python36-devel >= 3.6
+BuildRequires: python36-devel
 BuildRequires: expat-devel
 BuildRequires: openssl-devel
 BuildRequires: libXext
@@ -162,7 +162,7 @@ Requires: smtp_daemon
 Requires: python3 >= 3.5
 %else
 Requires: smtpdaemon
-Requires: python36 >= 3.6
+Requires: python36
 %endif
 Requires: hostname
 Requires: libical
@@ -196,7 +196,7 @@ Requires: hostname
 %if %{defined suse_version}
 Requires: python3 >= 3.5
 %else
-Requires: python36 >= 3.6
+Requires: python36
 %endif
 Autoreq: 1
 
@@ -225,7 +225,7 @@ Requires: bash
 %if %{defined suse_version}
 Requires: python3 >= 3.5
 %else
-Requires: python36 >= 3.6
+Requires: python36
 %endif
 Autoreq: 1
 

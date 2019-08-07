@@ -288,12 +288,10 @@ def convert_time(value, units='s'):
 
 def decode_list(data):
     """
-    json hook to convert lists from unicode to utf-8
+    json hook to convert lists from non string type to str
     """
     ret = []
     for item in data:
-        if isinstance(item, str):
-            item = item.encode('utf-8')
         if isinstance(item, (bytes, bytearray)):
             item = str(item,'utf-8')    
         elif isinstance(item, list):
@@ -306,16 +304,12 @@ def decode_list(data):
 
 def decode_dict(data):
     """
-    json hook to convert dictionaries from unicode to utf-8
+    json hook to convert dictionaries from non string type to str
     """
     ret = {}
     for key, value in list(data.items()):
-        if isinstance(key, str):
-            key = key.encode('utf-8')
         if isinstance(key, (bytes, bytearray)):
             key = str(key,'utf-8')
-        if isinstance(value, str):
-            value = value.encode('utf-8')
         if isinstance(value, (bytes, bytearray)):
             value = str(value,'utf-8')
         elif isinstance(value, list):
@@ -3376,8 +3370,8 @@ class CgroupUtils(object):
                                  int(regex.search(vnode).group(2))])
         else:
             sockets = list(available.keys())
-            # If placement type is load_balanced, reorder the sockets
-            if self.cfg['placement_type'] == 'load_balanced':
+            # If placement type is job_balanced, reorder the sockets
+            if self.cfg['placement_type'] == 'job_balanced':
                 pbs.logmsg(pbs.EVENT_DEBUG4,
                            'Requested job_balanced placement')
                 # Look at assigned_resources and determine which socket

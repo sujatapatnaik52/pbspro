@@ -1532,9 +1532,6 @@ class pbs_resource():
     _attributes_hook_set = {}
     _attributes_unknown = {}
 
-    #def __new__(cls, value, is_entity=0):
-    #    return super().__new__(cls)
-
     def __init__(self, name, is_entity=0):
         """__init__"""
 

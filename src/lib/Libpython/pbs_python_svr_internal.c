@@ -11714,11 +11714,12 @@ PyObject *
 pbsv1mod_meth_get_server_data_fp(void)
 {
 	PyObject *fp_obj = NULL;
+	int data_fd;
 
 	if (hook_debug.data_fp == NULL)
 		Py_RETURN_NONE;
 
-	int data_fd = fileno(hook_debug.data_fp);
+	data_fd = fileno(hook_debug.data_fp);
 
 	fp_obj = PyFile_FromFd(data_fd, hook_debug.data_file, "w", -1,
 			NULL, NULL, NULL, 1);

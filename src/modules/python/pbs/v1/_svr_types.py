@@ -88,25 +88,25 @@ def get_local_nodename():
 #
 # pbs_statobj: general-purpose function that connects to server named
 #           'connect_server' or if None, use "localhost", and depending
-#            on 'type', then performs pbs_statjob(), ps_statque(),
+#            on 'objtype', then performs pbs_statjob(), ps_statque(),
 #            pbs_statresv(), pbs_statvnode(), or pbs_statserver(), and
 #            returning results in a new object of type _job, _queue,
 #            _resv, _vnode, or _server.
 #            NOTE: 'filter_queue' is used for a "job" type, which means
 #                  the job must be in the queue 'filter_queue' for the
 #                  job object to be instantiated.
-def pbs_statobj(type, name=None, connect_server=None, filter_queue=None):
+def pbs_statobj(objtype, name=None, connect_server=None, filter_queue=None):
     """
     Returns a PBS (e.g. _job, _queue, _resv, _vnode, _server) object
     that is populated with data obtained by calling PBS APIs:
     pbs_statjob(), pbs_statque(), pbs_statresv(), pbs_statvnode(),
     pbs_statserver(), using a connection handle to 'connect_server'.
 
-    If 'type'  is "job", then return the _job object.
-    If 'type'  is "queue", then return the _queue object.
-    If 'type'  is "resv", then return the _resv object.
-    If 'type'  is "vnode", then return the _vnode object.
-    If 'type'  is "server", then return the _server object.
+    If 'objtype'  is "job", then return the _job object.
+    If 'objtype'  is "queue", then return the _queue object.
+    If 'objtype'  is "resv", then return the _resv object.
+    If 'objtype'  is "vnode", then return the _vnode object.
+    If 'objtype'  is "server", then return the _server object.
 
     'filter_queue' is used for a "job" type, which means
     the job must be in the queue 'filter_queue' for the
@@ -128,24 +128,24 @@ def pbs_statobj(type, name=None, connect_server=None, filter_queue=None):
         _pbs_v1.set_python_mode()
         return None
 
-    if(type == "job"):
+    if(objtype == "job"):
         bs = pbs_statjob(con, name, None, None)
         header_str = "pbs.server().job(%s)" % (name,)
-    elif(type == "queue"):
+    elif(objtype == "queue"):
         bs = pbs_statque(con, name, None, None)
         header_str = "pbs.server().queue(%s)" % (name,)
-    elif(type == "vnode"):
+    elif(objtype == "vnode"):
         bs = pbs_statvnode(con, name, None, None)
         header_str = "pbs.server().vnode(%s)" % (name,)
-    elif(type == "resv"):
+    elif(objtype == "resv"):
         bs = pbs_statresv(con, name, None, None)
         header_str = "pbs.server().resv(%s)" % (name,)
-    elif(type == "server"):
+    elif(objtype == "server"):
         bs = pbs_statserver(con, None, None)
         header_str = "pbs.server()"
     else:
         _pbs_v1.logmsg(_pbs_v1.LOG_DEBUG,
-                       "pbs_statobj: Bad object type %s" % (type))
+                       "pbs_statobj: Bad object type %s" % (objtype))
         pbs_disconnect(con)
         _pbs_v1.set_python_mode()
         return None
@@ -153,19 +153,19 @@ def pbs_statobj(type, name=None, connect_server=None, filter_queue=None):
     b = bs
     obj = None
     while(b):
-        if(type == "job"):
+        if(objtype == "job"):
             obj = _job(b.name, connect_server)
-        elif(type == "queue"):
+        elif(objtype == "queue"):
             obj = _queue(b.name, connect_server)
-        elif(type == "vnode"):
+        elif(objtype == "vnode"):
             obj = _vnode(b.name, connect_server)
-        elif(type == "resv"):
+        elif(objtype == "resv"):
             obj = _resv(b.name, connect_server)
-        elif(type == "server"):
+        elif(objtype == "server"):
             obj = _server(b.name, connect_server)
         else:
             _pbs_v1.logmsg(_pbs_v1.LOG_DEBUG,
-                           "pbs_statobj: Bad object type %s" % (type))
+                           "pbs_statobj: Bad object type %s" % (objtype))
             pbs_disconnect(con)
             _pbs_v1.set_python_mode()
             return None
@@ -177,7 +177,7 @@ def pbs_statobj(type, name=None, connect_server=None, filter_queue=None):
             r = a.resource
             v = a.value
 
-            if(type == "vnode"):
+            if(objtype == "vnode"):
                 if(n == ATTR_NODE_state):
                     v = _pbs_v1.str_to_vnode_state(v)
                 elif(n == ATTR_NODE_ntype):
@@ -185,7 +185,7 @@ def pbs_statobj(type, name=None, connect_server=None, filter_queue=None):
                 elif(n == ATTR_NODE_Sharing):
                     v = _pbs_v1.str_to_vnode_sharing(v)
 
-            elif(type == "job"):
+            elif(objtype == "job"):
                 if((filter_queue != None) and (n == ATTR_queue) and
                         (filter_queue != v)):
                     pbs_disconnect(con)

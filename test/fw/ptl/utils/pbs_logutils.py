@@ -338,8 +338,7 @@ class PBSLogUtils(object):
             num_rec += 1
             if num is not None and num_rec > num:
                 break
-            record = str(record)
-            m = tm_tag.match(record)
+            m = tm_tag.match(str(record))
             if m:
                 rec_times.append(
                     self.convert_date_time(m.group('datetime')))
@@ -1880,8 +1879,7 @@ class PBSAccountingLog(PBSLogAnalyzer):
         """
         Parsing accounting log
         """
-        rec = rec.decode("utf-8")
-        r = self.record_tag.match(rec)
+        r = self.record_tag.match(rec.decode("utf-8"))
         if not r:
             return PARSER_ERROR_CONTINUE
 

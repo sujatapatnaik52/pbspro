@@ -1244,31 +1244,31 @@ class BatchUtils(object):
 
     legal = r"\d\w:\+=\[\]~"
     chunks_tag = re.compile(r"(?P<chunk>\([\d\w:\+=\[\]~]\)[\+]?)")
-    chunk_tag = re.compile("(?P<vnode>[\w\d\[\]]+):" +
-                           "(?P<resources>[\d\w:\+=\[\]~])+\)")
+    chunk_tag = re.compile(r"(?P<vnode>[\w\d\[\]]+):" +
+                           r"(?P<resources>[\d\w:\+=\[\]~])+\)")
 
-    array_tag = re.compile("(?P<jobid>[\d]+)\[(?P<subjobid>[0-9]*)\]*" +
-                           "[.]*[(?P<server>.*)]*")
-    subjob_tag = re.compile("(?P<jobid>[\d]+)\[(?P<subjobid>[0-9]+)\]*" +
-                            "[.]*[(?P<server>.*)]*")
+    array_tag = re.compile(r"(?P<jobid>[\d]+)\[(?P<subjobid>[0-9]*)\]*" +
+                           r"[.]*[(?P<server>.*)]*")
+    subjob_tag = re.compile(r"(?P<jobid>[\d]+)\[(?P<subjobid>[0-9]+)\]*" +
+                            r"[.]*[(?P<server>.*)]*")
 
-    pbsobjname_re = re.compile("^([\w\d][\d\w\s]*:?[\s]+)" +
-                               "*(?P<name>[\w@\.\d\[\]-]+)$")
+    pbsobjname_re = re.compile(r"^([\w\d][\d\w\s]*:?[\s]+)" +
+                               r"*(?P<name>[\w@\.\d\[\]-]+)$")
     pbsobjattrval_re = re.compile(r"""
                             [\s]*(?P<attribute>[\w\d\.-]+)
                             [\s]*=[\s]*
                             (?P<value>.*)
                             [\s]*""",
                                   re.VERBOSE)
-    dt_re = '(?P<dt_from>\d\d/\d\d/\d\d\d\d \d\d:\d\d)' + \
-            '[\s]+' + \
+    dt_re = r'(?P<dt_from>\d\d/\d\d/\d\d\d\d \d\d:\d\d)' + \
+            r'[\s]+' + \
             r'(?P<dt_to>\d\d/\d\d/\d\d\d\d \d\d:\d\d)'
     dt_tag = re.compile(dt_re)
     hms_tag = re.compile(r'(?P<hr>\d\d):(?P<mn>\d\d):(?P<sc>\d\d)')
-    lim_tag = re.compile("(?P<limtype>[a-z_]+)[\.]*(?P<resource>[\w\d-]*)"
+    lim_tag = re.compile(r"(?P<limtype>[a-z_]+)[\.]*(?P<resource>[\w\d-]*)"
                          r"=[\s]*\[(?P<entity_type>[ugpo]):"
                          r"(?P<entity_name>[\w\d-]+)"
-                         "=(?P<entity_value>[\d\w]+)\][\s]*")
+                         r"=(?P<entity_value>[\d\w]+)\][\s]*")
 
     def __init__(self):
         self.logger = logging.getLogger(__name__)
@@ -1646,7 +1646,7 @@ class BatchUtils(object):
         :type name: str
         :param fmt: Optional formatting string, uses %n for
                     object name, %a for attributes, for example
-                    a format of r'%nE{\}nE{\}t%aE{\}n' will display
+                    a format of '%nE{\}nE{\}t%aE{\}n' will display
                     objects with their name starting on the first
                     column, a new line, and attributes indented by
                     a tab followed by a new line at the end.
@@ -2825,8 +2825,8 @@ class PbsTypeFGCLimit(object):
     """
 
     fgc_attr_pat = re.compile(r"(?P<ltype>[a-z_]+)[\.]*(?P<resource>[\w\d-]*)")
-    fgc_val_pat = re.compile("[\s]*\[(?P<etype>[ugpo]):(?P<ename>[\w\d-]+)"
-                             "=(?P<eval>[\d]+)\][\s]*")
+    fgc_val_pat = re.compile(r"[\s]*\[(?P<etype>[ugpo]):(?P<ename>[\w\d-]+)"
+                             r"=(?P<eval>[\d]+)\][\s]*")
     utils = BatchUtils()
 
     def __init__(self, attr, val):
@@ -10640,9 +10640,9 @@ class Scheduler(PBSService):
                             "strict_fifo"
                             ]
 
-    fs_re = '(?P<name>[\S]+)[\s]*:[\s]*Grp:[\s]*(?P<Grp>[-]*[0-9]*)' + \
-            '[\s]*cgrp:[\s]*(?P<cgrp>[-]*[0-9]*)[\s]*' + \
-            'Shares:[\s]*(?P<Shares>[-]*[0-9]*)[\s]*Usage:[\s]*' + \
+    fs_re = r'(?P<name>[\S]+)[\s]*:[\s]*Grp:[\s]*(?P<Grp>[-]*[0-9]*)' + \
+            r'[\s]*cgrp:[\s]*(?P<cgrp>[-]*[0-9]*)[\s]*' + \
+            r'Shares:[\s]*(?P<Shares>[-]*[0-9]*)[\s]*Usage:[\s]*' + \
             r'(?P<Usage>[0-9]+)[\s]*Perc:[\s]*(?P<Perc>.*)%'
     fs_tag = re.compile(fs_re)
 
@@ -11001,7 +11001,7 @@ class Scheduler(PBSService):
 
         _comment = []
         conf_re = re.compile(
-            '[#]?[\s]*(?P<conf_id>[\w]+):[\s]*(?P<conf_val>.*)')
+            r'[#]?[\s]*(?P<conf_id>[\w]+):[\s]*(?P<conf_val>.*)')
         for line in conf_opts:
             m = conf_re.match(line)
             if m:

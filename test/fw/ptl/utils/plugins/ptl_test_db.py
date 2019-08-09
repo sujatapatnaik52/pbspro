@@ -1864,12 +1864,12 @@ class PTLTestDb(Plugin):
             for ((l, m), n) in freq_info:
                 b = time.strftime("%m/%d/%y %H:%M:%S", time.localtime(l))
                 e = time.strftime("%m/%d/%y %H:%M:%S", time.localtime(m))
-                print((b + ' -'), end=' ')
+                print(b + ' -', end=' ')
                 if b[:8] != e[:8]:
-                    print((e), end=' ')
+                    print(e, end=' ')
                 else:
-                    print((e[9:]), end=' ')
-                print((': ' + str(n)))
+                    print(e[9:], end=' ')
+                print(': ' + str(n))
             return
 
         if lu.EST in info:
@@ -1907,7 +1907,7 @@ class PTLTestDb(Plugin):
             print("\n".join(m))
             return
 
-        # sorted_info = sorted(info.items())
+        sorted_info = sorted(info.items())
         for (k, v) in sorted_info:
             if summary and k != 'summary':
                 continue

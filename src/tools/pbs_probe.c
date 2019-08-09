@@ -2252,13 +2252,12 @@ get_realpath_values(struct infrastruct *pinf)
 						pmpug[j].realpath = strdup(real);
 						free(real);
 					} else if ((pycptr = strstr(path, ".pyc")) != NULL){
-                                                glob_t pycbuf;
+						glob_t pycbuf;
 						glob(path, 0, NULL, &pycbuf);
-						if (pycbuf.gl_pathc == 1)
-						    {
-						    pmpug[j].realpath = strdup(pycbuf.gl_pathv[0]);
-						    pmpug[j].path = strdup((pycbuf.gl_pathv[0] + strlen(pinf->pri.pbs_mpug[PBS_exec].path) + strlen(demarc)));
-						    }
+						if (pycbuf.gl_pathc == 1){
+							pmpug[j].realpath = strdup(pycbuf.gl_pathv[0]);
+							pmpug[j].path = strdup((pycbuf.gl_pathv[0] + strlen(pinf->pri.pbs_mpug[PBS_exec].path) + strlen(demarc)));
+						}
 						globfree(&pycbuf);
 					} else if ((pmpug[j].notReq & notbits) == 0) {
                         			if (errno == ENOENT)

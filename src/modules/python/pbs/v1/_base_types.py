@@ -96,7 +96,6 @@ __all__ = ['_generic_attr',
 import _pbs_v1
 import sys
 import math
-from math import *
 _size = _pbs_v1.svr_types._size
 _LOG = _pbs_v1.logmsg
 _IS_SETTABLE = _pbs_v1.is_attrib_val_settable

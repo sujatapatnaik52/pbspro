@@ -304,8 +304,8 @@ class PBSServiceInstanceWrapper(dict):
     """
 
     def __init__(self, *args, **kwargs):
-        super(self.__class__, self).__init__(self, *args, **kwargs)
-        self.orderedlist = list(super(self.__class__, self).keys())
+        super().__init__(*args, **kwargs)
+        self.orderedlist = list(super().keys())
 
     def __setitem__(self, key, value):
         super(self.__class__, self).__setitem__(key, value)
@@ -357,11 +357,11 @@ class PBSServiceInstanceWrapper(dict):
     def host_keys(self):
         return [h.split('@')[0] for h in list(self.keys())]
 
-    '''def keys(self):
-        return self.orderedlist'''
+    def keys(self):
+        return list(self.orderedlist)
 
     def values(self):
-        return (self[key] for key in self.orderedlist)
+        return list(self[key] for key in self.orderedlist)
 
 
 class setUpClassError(Exception):

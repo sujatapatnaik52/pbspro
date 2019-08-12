@@ -86,24 +86,24 @@ class TestOfflineVnode(TestFunctional):
         if self.is_cray is True:
             if num_moms == 1 and len(self.moms) != 1:
                 self.server.manager(MGR_CMD_CREATE, NODE,
-                                    id=list(self.moms.values())[0].shortname)
+                                    id=self.moms.values()[0].shortname)
                 # adding a sleep of two seconds because it takes some time
                 # before node resources start showing up
                 time.sleep(2)
             return
         # No need to create vnodes on a cpuset mom
-        if list(self.moms.values())[0].is_cpuset_mom() is True:
+        if self.moms.values()[0].is_cpuset_mom() is True:
             return
         vn_attrs = {ATTR_rescavail + '.ncpus': 1,
                     ATTR_rescavail + '.mem': '1024mb'}
         for i in range(num_moms):
             self.server.create_vnodes('vnode', vn_attrs, num_vnode,
-                                      list(self.moms.values())[i],
+                                      self.moms.values()[i],
                                       usenatvnode=True, delall=False,
                                       expect=False)
             # Calling an explicit expect on newly created nodes.
             self.server.expect(NODE, {ATTR_NODE_state: 'free'},
-                               id=list(self.moms.values())[i].shortname)
+                               id=self.moms.values()[i].shortname)
 
     def verify_vnodes_state(self, expected_state):
         """
@@ -114,10 +114,10 @@ class TestOfflineVnode(TestFunctional):
             vnl = self.server.filter(
                 VNODE, {'resources_available.vntype': 'cray_compute'})
             vlist = vnl["resources_available.vntype=cray_compute"]
-        elif list(self.moms.values())[0].is_cpuset_mom() is True:
+        elif self.moms.values()[0].is_cpuset_mom() is True:
             vnl = self.server.status(NODE)
             vlist = [x['id'] for x in vnl if x['id'] !=
-                     list(self.moms.values())[0].shortname]
+                     self.moms.values()[0].shortname]
         else:
             vlist = ["vnode[0]", "vnode[1]"]
         for v1 in vlist:
@@ -132,7 +132,7 @@ class TestOfflineVnode(TestFunctional):
         # Restore original node setup for future test cases.
         self.server.cleanup_jobs(extend='force')
         self.server.manager(MGR_CMD_DELETE, NODE, id="@default")
-        for m in list(self.moms.values()):
+        for m in self.moms.values():
             self.server.manager(MGR_CMD_CREATE, NODE,
                                 id=m.shortname)
 
@@ -147,7 +147,7 @@ class TestOfflineVnode(TestFunctional):
         Once offlined, reset the mom by issueing pbsnodes -r
         and check if the job runs on one of the vnodes.
         """
-        single_mom = list(self.moms.values())[0]
+        single_mom = self.moms.values()[0]
         start_time = int(time.time())
         self.create_multi_vnodes(1)
         self.create_mom_hook()
@@ -213,15 +213,15 @@ class TestOfflineVnode(TestFunctional):
         if len(self.moms) != 2:
             self.skipTest("Provide 2 moms while invoking test")
 
-        for m in list(self.moms.values()):
+        for m in self.moms.values():
             if m.is_cpuset_mom():
                 self.skipTest("Skipping test on cpuset moms")
 
         # The moms provided to the test may have unwanted vnodedef files.
-        if list(self.moms.values())[0].has_vnode_defs():
-            list(self.moms.values())[0].delete_vnode_defs()
-        if list(self.moms.values())[1].has_vnode_defs():
-            list(self.moms.values())[1].delete_vnode_defs()
+        if self.moms.values()[0].has_vnode_defs():
+            self.moms.values()[0].delete_vnode_defs()
+        if self.moms.values()[1].has_vnode_defs():
+            self.moms.values()[1].delete_vnode_defs()
 
         start_time = int(time.time())
         self.create_multi_vnodes(2)
@@ -240,10 +240,10 @@ class TestOfflineVnode(TestFunctional):
         # that the job only goes to this natural node.
         self.server.manager(MGR_CMD_SET, NODE, {
                             ATTR_rescavail + '.ncpus': '256'},
-                            id=list(self.moms.values())[0].shortname)
+                            id=self.moms.values()[0].shortname)
         self.server.manager(MGR_CMD_SET, NODE, {
                             ATTR_rescavail + '.ncpus': '1'},
-                            id=list(self.moms.values())[1].shortname)
+                            id=self.moms.values()[1].shortname)
 
         j1 = Job(TEST_USER)
 
@@ -259,10 +259,10 @@ class TestOfflineVnode(TestFunctional):
         self.server.expect(JOB, {ATTR_state: 'Q'}, id=jid)
 
         self.server.expect(NODE, {ATTR_NODE_state: 'offline'},
-                           id=list(self.moms.values())[0].shortname,
+                           id=self.moms.values()[0].shortname,
                            interval=2)
         self.server.expect(NODE, {ATTR_NODE_state: 'free'},
-                           id=list(self.moms.values())[1].shortname,
+                           id=self.moms.values()[1].shortname,
                            interval=2)
 
         self.verify_vnodes_state('free')
@@ -285,10 +285,10 @@ class TestOfflineVnode(TestFunctional):
             self.skipTest("Skipping test on Crays")
 
         # The moms provided to the test may have unwanted vnodedef files.
-        if list(self.moms.values())[0].has_vnode_defs():
-            list(self.moms.values())[0].delete_vnode_defs()
-        if list(self.moms.values())[1].has_vnode_defs():
-            list(self.moms.values())[1].delete_vnode_defs()
+        if self.moms.values()[0].has_vnode_defs():
+            self.moms.values()[0].delete_vnode_defs()
+        if self.moms.values()[1].has_vnode_defs():
+            self.moms.values()[1].delete_vnode_defs()
 
         start_time = int(time.time())
         self.create_multi_vnodes(num_moms=2, num_vnode=1)
@@ -313,14 +313,14 @@ class TestOfflineVnode(TestFunctional):
         jid = self.server.submit(j1)
 
         self.server.expect(NODE, {ATTR_NODE_state: 'free'},
-                           id=list(self.moms.values())[0].shortname,
+                           id=self.moms.values()[0].shortname,
                            interval=2)
         # sister mom's vnode gets offlined due to hook exception
         self.server.expect(NODE,
                            {ATTR_NODE_state: 'offline',
                             ATTR_comment:
                             "offlined by hook 'h2' due to hook error"},
-                           id=list(self.moms.values())[1].shortname,
+                           id=self.moms.values()[1].shortname,
                            interval=2, attrop=PTL_AND)
         self.server.expect(JOB, {ATTR_state: 'Q'}, id=jid)
 
@@ -330,7 +330,7 @@ class TestOfflineVnode(TestFunctional):
         exception when local mom is restarted. Vnode representing
         local mom would be marked offline.
         """
-        mom = list(self.moms.values())[0]
+        mom = self.moms.values()[0]
         if mom.is_cpuset_mom():
             self.skipTest("Skipping test on cpuset moms")
 
@@ -370,7 +370,7 @@ class TestOfflineVnode(TestFunctional):
         Since it is the only mom, all vnodes reported by her
         should also be offline.
         """
-        single_mom = list(self.moms.values())[0]
+        single_mom = self.moms.values()[0]
         self.create_multi_vnodes(1)
         self.server.expect(NODE, {ATTR_NODE_state: 'free'},
                            id=single_mom.shortname, interval=2)
@@ -399,12 +399,12 @@ class TestOfflineVnode(TestFunctional):
         if len(self.moms) != 2:
             self.skipTest("Provide 2 moms while invoking test")
 
-        for m in list(self.moms.values()):
+        for m in self.moms.values():
             if m.is_cpuset_mom():
                 self.skipTest("Skipping test on cpuset moms")
 
-        momA = list(self.moms.values())[0]
-        momB = list(self.moms.values())[1]
+        momA = self.moms.values()[0]
+        momB = self.moms.values()[1]
 
         # The moms provided to the test may have unwanted vnodedef files.
         if momA.has_vnode_defs():
@@ -444,12 +444,12 @@ class TestOfflineVnode(TestFunctional):
         if len(self.moms) != 2:
             self.skipTest("Provide 2 moms while invoking test")
 
-        for m in list(self.moms.values()):
+        for m in self.moms.values():
             if m.is_cpuset_mom():
                 self.skipTest("Skipping test on cpuset moms")
 
-        momA = list(self.moms.values())[0]
-        momB = list(self.moms.values())[1]
+        momA = self.moms.values()[0]
+        momB = self.moms.values()[1]
 
         # The moms provided to the test may have unwanted vnodedef files.
         if momA.has_vnode_defs():

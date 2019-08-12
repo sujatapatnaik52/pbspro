@@ -86,7 +86,7 @@ class TestBasilQuery(TestFunctional):
                             {'enabled': 'true', 'freq': 10},
                             id='PBS_alps_inventory_check')
 
-        momA = list(self.moms.values())[0]
+        momA = self.moms.values()[0]
         if not momA.is_cray():
             self.skipTest("%s: not a cray mom." % (momA.shortname))
         mom_config = momA.parse_config()
@@ -226,8 +226,8 @@ class TestBasilQuery(TestFunctional):
         Set provisioning enabled and aoe resource on Xeon Phi nodes.
         """
         # Check for provisioning setup
-        momA = list(self.moms.values())[0].shortname
-        serverA = list(self.servers.values())[0].shortname
+        momA = self.moms.values()[0].shortname
+        serverA = self.servers.values()[0].shortname
         msg = ("Provide a mom not present on server host while invoking"
                " the test: -p moms=<m1>")
         if momA == serverA:

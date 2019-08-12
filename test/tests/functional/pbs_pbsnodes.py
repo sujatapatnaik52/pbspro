@@ -53,7 +53,7 @@ class TestPbsnodes(TestFunctional):
         self.pbs_exec = self.server.pbs_conf['PBS_EXEC']
         self.pbsnodes = [os.path.join(self.pbs_exec, 'bin', 'pbsnodes')]
         self.svrname = self.server.pbs_server_name
-        self.hostA = list(self.moms.values())[0].shortname
+        self.hostA = self.moms.values()[0].shortname
 
     def common_setUp(self):
         """

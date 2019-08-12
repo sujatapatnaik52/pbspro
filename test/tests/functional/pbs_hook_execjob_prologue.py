@@ -51,9 +51,9 @@ class TestPbsExecutePrologue(TestFunctional):
 
         TestFunctional.setUp(self)
 
-        self.momA = list(self.moms.values())[0]
-        self.momB = list(self.moms.values())[1]
-        self.momC = list(self.moms.values())[2]
+        self.momA = self.moms.values()[0]
+        self.momB = self.moms.values()[1]
+        self.momC = self.moms.values()[2]
 
         self.hostA = self.momA.shortname
         self.hostB = self.momB.shortname

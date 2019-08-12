@@ -108,7 +108,7 @@ class PTLTestLoader(Plugin):
                 if case in tl[self._only_tc]:
                     tl[self._only_tc].remove(case)
                     tlc[self._only_tc].remove(case)
-                if suite in list(tl.keys()):
+                if suite in tl.keys():
                     if case not in tl[suite]:
                         tl[suite].append(case)
                         tlc[suite].append(case)
@@ -130,7 +130,7 @@ class PTLTestLoader(Plugin):
                 tl[self._only_ts].append(k)
                 tlc[self._only_ts].append(k)
         for name in tl[self._only_ts]:
-            if name in list(tl.keys()):
+            if name in tl.keys():
                 del tl[name]
                 del tlc[name]
         extl = self._excludes_list
@@ -139,7 +139,7 @@ class PTLTestLoader(Plugin):
                 suite, case = _is.split('.')
                 if case in extl[self._only_tc]:
                     extl[self._only_tc].remove(case)
-                if suite in list(extl.keys()):
+                if suite in extl.keys():
                     if case not in extl[suite]:
                         extl[suite].append(case)
                 else:
@@ -156,7 +156,7 @@ class PTLTestLoader(Plugin):
             if len(v) == 0:
                 extl[self._only_ts].append(k)
         for name in extl[self._only_ts]:
-            if name in list(extl.keys()):
+            if name in extl.keys():
                 del extl[name]
         log.debug('included_tests:%s' % (str(self._tests_list)))
         log.debug('included_tests(copy):%s' % (str(self.__tests_list_copy)))
@@ -225,7 +225,7 @@ class PTLTestLoader(Plugin):
             if cname in self.__tests_list_copy[self._only_ts]:
                 self.__tests_list_copy[self._only_ts].remove(cname)
             return True
-        if ((cname in list(self._tests_list.keys())) and (method is None)):
+        if ((cname in self._tests_list.keys()) and (method is None)):
             return True
         if method is not None:
             mname = method.__name__
@@ -233,12 +233,12 @@ class PTLTestLoader(Plugin):
                 return False
             if mname in self._excludes_list[self._only_tc]:
                 return False
-            if ((cname in list(self._excludes_list.keys())) and
+            if ((cname in self._excludes_list.keys()) and
                     (mname in self._excludes_list[cname])):
                 return False
-            if ((cname in list(self._tests_list.keys())) and
+            if ((cname in self._tests_list.keys()) and
                     (mname in self._tests_list[cname])):
-                if cname in list(self.__tests_list_copy.keys()):
+                if cname in self.__tests_list_copy.keys():
                     if mname in self.__tests_list_copy[cname]:
                         self.__tests_list_copy[cname].remove(mname)
                     if len(self.__tests_list_copy[cname]) == 0:

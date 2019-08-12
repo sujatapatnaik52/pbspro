@@ -333,7 +333,7 @@ class _PtlTestResult(unittest.TestResult):
         """
         if self.errors or self.failures or self.timedout:
             return False
-        for cls in list(self.errorClasses.keys()):
+        for cls in self.errorClasses.keys():
             storage, _, isfail = self.errorClasses[cls]
             if not isfail:
                 continue

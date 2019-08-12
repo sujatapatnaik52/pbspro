@@ -48,8 +48,8 @@ class Test_create_vnodes(TestSelf):
         if len(self.moms) != 2:
             self.skipTest("test requires atleast two MoMs as input, "
                           "use -p moms=<mom1:mom2>")
-        mom1 = list(self.moms.values())[0]
-        mom2 = list(self.moms.values())[1]
+        mom1 = self.moms.values()[0]
+        mom2 = self.moms.values()[1]
         a = {'resources_available.ncpus': 4}
         self.server.create_vnodes(mom1.shortname, a, 4, mom1)
         self.server.create_vnodes(mom2.shortname, a, 5, mom2,

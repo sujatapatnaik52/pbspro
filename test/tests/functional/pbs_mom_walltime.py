@@ -176,7 +176,7 @@ class TestMomWalltime(TestFunctional):
                            'Error fetching resources_used.walltime value')
         self.logger.info("Walltime at job completion: %d secs"
                          % walltime_final)
-        self.assertIn(walltime_final, list(range(25, 41)),
+        self.assertIn(walltime_final, range(25, 41),
                       'Walltime is not in expected range')
 
     def test_mom_restart(self):

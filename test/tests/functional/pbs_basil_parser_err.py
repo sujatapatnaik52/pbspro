@@ -46,7 +46,7 @@ class TestBasilParserErrors(TestFunctional):
 
     def setUp(self):
         TestFunctional.setUp(self)
-        momA = list(self.moms.values())[0]
+        momA = self.moms.values()[0]
         if not momA.is_cray():
             self.skipTest("%s: not a cray mom." % (momA.shortname))
 

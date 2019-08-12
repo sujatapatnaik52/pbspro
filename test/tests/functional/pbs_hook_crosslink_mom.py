@@ -52,8 +52,8 @@ class TestPbsHookCrossLinkMom(TestFunctional):
             self.skipTest('test requires two MoMs as input, ' +
                           'use -p moms=<mom1>:<mom2>')
 
-        self.momA = list(self.moms.values())[0]
-        self.momB = list(self.moms.values())[1]
+        self.momA = self.moms.values()[0]
+        self.momB = self.moms.values()[1]
 
         self.hostA = self.momA.shortname
         self.hostB = self.momB.shortname

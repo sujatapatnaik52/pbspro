@@ -45,7 +45,7 @@ class TestJobRouting(TestFunctional):
 
     def setUp(self):
         TestFunctional.setUp(self)
-        self.momA = list(self.moms.values())[0]
+        self.momA = self.moms.values()[0]
         self.momA.delete_vnode_defs()
 
         self.hostA = self.momA.shortname
@@ -152,7 +152,7 @@ class TestJobRouting(TestFunctional):
         self.server.deljob(subjobs[2]['id'])
 
         # Mark node offline, and  rerun the third job.
-        self.momA = list(self.moms.values())[0]
+        self.momA = self.moms.values()[0]
         self.hostA = self.momA.shortname
         a = {'state': 'offline'}
         self.server.manager(MGR_CMD_SET, NODE, a, id=self.hostA)

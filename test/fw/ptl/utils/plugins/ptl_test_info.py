@@ -227,19 +227,17 @@ class PTLTestInfo(Plugin):
                 tcs[k] = deepcopy(tcd)
                 if len(tctags) > 0:
                     for tag in tctags:
-                        if tag not in list(self.__tags_tree.keys()):
+                        if tag not in self.__tags_tree.keys():
                             self.__tags_tree[tag] = {}
-                        if n not in list(self.__tags_tree[tag].keys()):
+                        if n not in self.__tags_tree[tag].keys():
                             self.__tags_tree[tag][n] = deepcopy(tsd)
-                        if 'tclist' not in list(
-                                self.__tags_tree[tag][n].keys()):
+                        if 'tclist' not in self.__tags_tree[tag][n].keys():
                             self.__tags_tree[tag][n]['tclist'] = {}
                         self.__tags_tree[tag][n]['tclist'][k] = deepcopy(tcd)
                 else:
-                    if n not in list(self.__tags_tree['NoTags'].keys()):
+                    if n not in self.__tags_tree['NoTags'].keys():
                         self.__tags_tree['NoTags'][n] = deepcopy(tsd)
-                    if 'tclist' not in list(
-                            self.__tags_tree['NoTags'][n].keys()):
+                    if 'tclist' not in self.__tags_tree['NoTags'][n].keys():
                         self.__tags_tree['NoTags'][n]['tclist'] = {}
                     self.__tags_tree['NoTags'][n]['tclist'][k] = deepcopy(tcd)
         if len(tcs.keys()) > 0:

@@ -84,8 +84,8 @@ class TestProvisioningJob(TestFunctional):
 
     def setUp(self):
         TestFunctional.setUp(self)
-        self.momA = list(self.moms.values())[0]
-        serverA = (list(self.servers.values())[0]).shortname
+        self.momA = self.moms.values()[0]
+        serverA = (self.servers.values()[0]).shortname
         self.hostA = self.momA.shortname
         msg = ("Server and Mom can't be on the same host. "
                "Provide a mom not present on server host "

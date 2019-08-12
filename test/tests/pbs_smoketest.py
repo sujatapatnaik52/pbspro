@@ -390,7 +390,7 @@ class SmokeTest(PBSTestSuite):
         a = {'resources_available.ncpus': '1'}
         self.server.manager(MGR_CMD_SET, NODE, a, self.mom.shortname)
         self.server.status(QUEUE)
-        if 'expressq' in list(self.server.queues.keys()):
+        if 'expressq' in self.server.queues.keys():
             self.server.manager(MGR_CMD_DELETE, QUEUE, None, 'expressq')
         a = {'queue_type': 'execution'}
         self.server.manager(MGR_CMD_CREATE, QUEUE, a, 'expressq')
@@ -451,7 +451,7 @@ class SmokeTest(PBSTestSuite):
         self.server.expect(JOB, a)
         self.logger.info('testinfo: waiting for walltime accumulation')
         running_jobs = self.server.filter(JOB, {'job_state': 'R'})
-        if list(running_jobs.values()):
+        if running_jobs.values():
             for _j in list(running_jobs.values())[0]:
                 a = {'resources_used.walltime': (NE, '00:00:00')}
                 self.server.expect(JOB, a, id=_j, interval=1, max_attempts=30)

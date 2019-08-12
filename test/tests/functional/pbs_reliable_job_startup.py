@@ -242,11 +242,11 @@ class TestPbsReliableJobStartup(TestFunctional):
 
         self.server.cleanup_jobs(extend="force")
 
-        self.momA = list(self.moms.values())[0]
-        self.momB = list(self.moms.values())[1]
-        self.momC = list(self.moms.values())[2]
-        self.momD = list(self.moms.values())[3]
-        self.momE = list(self.moms.values())[4]
+        self.momA = self.moms.values()[0]
+        self.momB = self.moms.values()[1]
+        self.momC = self.moms.values()[2]
+        self.momD = self.moms.values()[3]
+        self.momE = self.moms.values()[4]
 
         # Now start setting up and creating the vnodes
         self.server.manager(MGR_CMD_DELETE, NODE, None, "")

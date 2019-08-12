@@ -117,7 +117,7 @@ def NodesetDelete( nodeset_name ):
         multimom = False
         moms = self.server.filter(NODE, 'Mom')
         if moms is not None:
-            for filt in list(moms.values()):
+            for filt in moms.values():
                 if filt[0] != self.server.shortname:
                     self.logger.info("found different mom %s from local %s" %
                                      (filt, self.server.shortname))

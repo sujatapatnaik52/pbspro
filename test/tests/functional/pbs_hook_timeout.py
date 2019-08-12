@@ -52,9 +52,9 @@ class TestHookTimeout(TestFunctional):
         if len(self.moms) != 3:
             self.skip_test('Test requires 3 moms, use -p <moms>')
 
-        self.momA = list(self.moms.values())[0]
-        self.momB = list(self.moms.values())[1]
-        self.momC = list(self.moms.values())[2]
+        self.momA = self.moms.values()[0]
+        self.momB = self.moms.values()[1]
+        self.momC = self.moms.values()[2]
         self.momA.delete_vnode_defs()
         self.momB.delete_vnode_defs()
         self.momC.delete_vnode_defs()

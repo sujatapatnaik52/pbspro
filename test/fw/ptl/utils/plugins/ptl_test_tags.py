@@ -267,7 +267,7 @@ class PTLTestTags(Plugin):
         rv = self.is_tags_matching(method, cls)
         if rv is None:
             cname = cls.__name__
-            if cname not in list(self.matched.keys()):
+            if cname not in self.matched.keys():
                 self.matched[cname] = []
             self.matched[cname].append(method.__name__)
         return rv

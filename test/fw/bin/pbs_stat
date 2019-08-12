@@ -302,7 +302,7 @@ class SiteReportFormatter:
 
 def utilization_to_str(u):
     msg = []
-    for k, v in list(u.items()):
+    for k, v in u.items():
         if len(v) != 2:
             continue
 

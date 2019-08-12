@@ -55,8 +55,8 @@ class TestJobRequeueTimeoutErrorMsg(TestFunctional):
 
         # PBSTestSuite returns the moms passed in as parameters as dictionary
         # of hostname and MoM object
-        self.momA = list(self.moms.values())[0]
-        self.momB = list(self.moms.values())[1]
+        self.momA = self.moms.values()[0]
+        self.momB = self.moms.values()[1]
         self.momA.delete_vnode_defs()
         self.momB.delete_vnode_defs()
 

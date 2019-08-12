@@ -108,7 +108,7 @@ class TestCgroupsHook(TestFunctional):
         self.hosts_list = []
         self.nodes_list = []
         for cnt in range(0, len(self.moms)):
-            mom = list(self.moms.values())[cnt]
+            mom = self.moms.values()[cnt]
             if mom.is_cray():
                 self.iscray = True
             host = mom.shortname
@@ -149,7 +149,7 @@ class TestCgroupsHook(TestFunctional):
         for host in self.hosts_list:
             self.server.manager(MGR_CMD_CREATE, NODE, id=host)
 
-        self.serverA = list(self.servers.values())[0].name
+        self.serverA = self.servers.values()[0].name
         self.swapctl = is_memsw_enabled(self.paths['memsw'])
         self.server.set_op_mode(PTL_CLI)
         self.server.cleanup_jobs(extend='force')
@@ -1945,7 +1945,7 @@ if %s e.job.in_ms_mom():
         self.server.expect(NODE, {ATTR_NODE_state: 'free'},
                            id=self.nodes_list[0])
         self.server.create_vnodes('vnode', vn_attrs, 2,
-                                  list(self.moms.values())[0])
+                                  self.moms.values()[0])
         self.server.expect(NODE, {ATTR_NODE_state: 'free'},
                            id=self.nodes_list[0])
         a = {'Resource_List.select': '1:ncpus=1:mem=500mb'}

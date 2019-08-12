@@ -63,7 +63,7 @@ class Test_singleNode_Job_ResourceUsed(TestFunctional):
 
         self.server.restart()
 
-        self.momA = list(self.moms.values())[0]
+        self.momA = self.moms.values()[0]
         self.momA.restart()
         self.momA.delete_vnode_defs()
         self.hostA = self.momA.shortname

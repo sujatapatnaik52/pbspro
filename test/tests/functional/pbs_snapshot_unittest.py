@@ -646,8 +646,8 @@ pbs.logmsg(pbs.EVENT_DEBUG,"%s")
             self.skipTest("test requires atleast two moms as input, "
                           "use -p moms=<mom 1>:<mom 2>")
 
-        mom1 = list(self.moms.values())[0]
-        mom2 = list(self.moms.values())[1]
+        mom1 = self.moms.values()[0]
+        mom2 = self.moms.values()[1]
 
         host1 = mom1.shortname
         host2 = mom2.shortname
@@ -750,7 +750,7 @@ pbs.logmsg(pbs.EVENT_DEBUG,"%s")
         """
         # Skip test if there's no remote mom host available
         if len(self.moms) == 0 or \
-                self.du.is_localhost((list(self.moms.values())[0]).shortname):
+                self.du.is_localhost((self.moms.values()[0]).shortname):
             self.skipTest("test requires a remote mom host as input, "
                           "use -p moms=<mom host>")
 
@@ -771,8 +771,8 @@ pbs.logmsg(pbs.EVENT_DEBUG,"%s")
             self.skipTest("test requires atleast two moms as input, "
                           "use -p moms=<mom 1>:<mom 2>")
 
-        mom1 = list(self.moms.values())[0]
-        mom2 = list(self.moms.values())[1]
+        mom1 = self.moms.values()[0]
+        mom2 = self.moms.values()[1]
 
         host1 = mom1.shortname
         host2 = mom2.shortname

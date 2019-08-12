@@ -52,7 +52,7 @@ class TestPbsExecjobAbort(TestFunctional):
             self.skipTest('test requires three MoMs as input, ' +
                           'use -p moms=<mom1>:<mom2>:<mom3>')
         TestFunctional.setUp(self)
-        self.momC = list(self.moms.values())[2]
+        self.momC = self.moms.values()[2]
 
         # execjob_abort hook
         self.abort_hook_body = """import pbs
@@ -224,7 +224,7 @@ time.sleep(2)
             "\n%s: end   hook executed at: %s" %
             (pri_mom.shortname, dt1, pri_mom.shortname, dt2))
         # only abort hook executed on connected sister mom
-        for mom in list(self.moms.values()):
+        for mom in self.moms.values():
             if mom != pri_mom and mom != self.momC:
                 mom.log_match(msg_abort, starttime=stime)
                 mom.log_match(

@@ -273,7 +273,7 @@ class PtlConfig(object):
                 self.options[k] = v
             except BaseException:
                 self.logger.error('Error parsing line ' + line)
-        for k, v in list(self.options.items()):
+        for k, v in self.options.items():
             if k in os.environ:
                 v = os.environ[k]
             else:
@@ -1522,7 +1522,7 @@ class BatchUtils(object):
                 else:
                     d[key] = str(val)
                 attrs = attrs.__next__
-            if len(list(d.keys())) > 0:
+            if len(d.keys()) > 0:
                 ret.append(d)
                 d['id'] = bs.name
             bs = bs.__next__
@@ -2036,7 +2036,7 @@ class BatchUtils(object):
         :param obj: ``PBS/PTL`` object
         :returns: Dictionary of ``PBS/PTL`` objects
         """
-        newobj = dict(list(obj.attributes.items()))
+        newobj = dict(obj.attributes.items())
         newobj[id] = obj.name
         return newobj
 
@@ -2456,7 +2456,7 @@ class BatchUtils(object):
             del tmp_attrs
 
         if isinstance(attrs, (dict, OrderedDict)):
-            attrs = list(attrs.items())
+            attrs = attrs.items()
 
         for a, v in attrs:
             if exclude_attrs is not None and a in exclude_attrs:
@@ -2544,7 +2544,7 @@ class BatchUtils(object):
         """
 
         if isinstance(attrib, dict):
-            keys = list(attrib.keys())
+            keys = attrib.keys()
         elif isinstance(attrib, str):
             keys = attrib.split(',')
         else:
@@ -2611,7 +2611,7 @@ class BatchUtils(object):
         :type attrib: str
         :returns: True or False
         """
-        operators = list(PTL_STR_TO_OP.keys())
+        operators = PTL_STR_TO_OP.keys()
         for a in attrib:
             for op in operators:
                 if op in a:
@@ -3282,7 +3282,7 @@ class ExpectActions(object):
         """
         Enable all actions
         """
-        for a in list(self.actions.values()):
+        for a in self.actions.values():
             a.enabled = True
 
 
@@ -3701,7 +3701,7 @@ class PBSService(PBSObject):
 
         if procname is not None:
             pi = self.pu.get_proc_info(self.hostname, procname)
-            if pi is not None and list(pi.values()) and list(pi.values())[0]:
+            if pi is not None and pi.values() and list(pi.values())[0]:
                 for _p in list(pi.values())[0]:
                     ret = self.du.run_cmd(self.hostname, ['kill', sig, _p.pid],
                                           sudo=True)
@@ -3720,7 +3720,7 @@ class PBSService(PBSObject):
         cmd = self._instance_to_cmd(inst)
         self.pu.get_proc_info(self.hostname, ".*" + cmd + ".*",
                               regexp=True)
-        _procs = list(self.pu.processes.values())
+        _procs = self.pu.processes.values()
         if _procs:
             _pids = []
             for _p in _procs:
@@ -5095,7 +5095,7 @@ class Server(PBSService):
         if server_stat is None:
             server_stat = self.status(SERVER, level=logging.DEBUG)[0]
         for k in server_stat.keys():
-            if (k in ignore_attrs) or (k in list(self.dflt_attributes.keys())):
+            if (k in ignore_attrs) or (k in self.dflt_attributes.keys()):
                 continue
             elif (('.' in k) and (k.split('.')[0] in ignore_attrs)):
                 continue
@@ -5129,7 +5129,7 @@ class Server(PBSService):
                 try:
                     nodes = self.status(VNODE, logerr=False)
                     for node in nodes:
-                        if 'queue' in list(node.keys()):
+                        if 'queue' in node.keys():
                             self.manager(MGR_CMD_UNSET, NODE, 'queue',
                                          node['id'])
                 except BaseException:
@@ -5142,7 +5142,7 @@ class Server(PBSService):
             setdict.update({ATTR_dfltque: 'workq'})
         if delscheds:
             self.manager(MGR_CMD_LIST, SCHED)
-            for name in list(self.schedulers.keys()):
+            for name in self.schedulers.keys():
                 if name != 'default':
                     self.schedulers[name].terminate()
                     sched_log = self.schedulers[
@@ -5422,7 +5422,7 @@ class Server(PBSService):
             extra_stmt = []
             if attrib:
                 if isinstance(attrib, dict):
-                    attrs = list(attrib.keys())
+                    attrs = attrib.keys()
                 elif isinstance(attrib, list):
                     attrs = attrib
                 elif isinstance(attrib, str):
@@ -5644,7 +5644,7 @@ class Server(PBSService):
                             return [o[id].attributes]
                         else:
                             return None
-                    return [h.attributes for h in list(o.values())]
+                    return [h.attributes for h in o.values()]
                 return []
 
             else:
@@ -5768,10 +5768,10 @@ class Server(PBSService):
                                     return None
                             if obj_type == HOOK:
                                 return [h.attributes for h in
-                                        list(self.hooks.values())]
+                                        self.hooks.values()]
                             elif obj_type == PBS_HOOK:
                                 return [h.attributes for h in
-                                        list(self.pbshooks.values())]
+                                        self.pbshooks.values()]
                     except BaseException:
                         pass
                 else:
@@ -8362,7 +8362,7 @@ class Server(PBSService):
         """
         a = ATTR_JobHistoryEnable
         attrs = self.status(SERVER, level=logging.DEBUG)[0]
-        if ((a in list(attrs.keys())) and attrs[a] == 'True'):
+        if ((a in attrs.keys()) and attrs[a] == 'True'):
             return True
         return False
 
@@ -9151,7 +9151,7 @@ class Server(PBSService):
         if len(wa) > 0:
             print(("%24s\t%s" % ("Duration of availability", "Resources")))
             print("-------------------------\t----------")
-        swa = sorted(list(wa.items()), key=lambda x: x[0])
+        swa = sorted(wa.items(), key=lambda x: x[0])
         for (k, eq_classes) in swa:
             for eq_cl in eq_classes:
                 print(("%24s\t%s" % (str(k), str(eq_cl))))
@@ -9963,7 +9963,7 @@ class Server(PBSService):
             return usage
 
         self.parse_all_limits(server, queues, db_access)
-        entities_p = list(self.entities.values())
+        entities_p = self.entities.values()
 
         linfo = []
         cache = {}
@@ -10147,7 +10147,7 @@ class Server(PBSService):
             stmt += ", " + str(svrflags)
             stmt += ", 0, 0, 0"
             if 'stime' in job:
-                print((job['stime']))
+                print(job['stime'])
                 st = time.strptime(job['stime'], "%a %b %d %H:%M:%S %Y")
                 stmt += ", " + str(time.mktime(st))
             else:
@@ -10355,7 +10355,7 @@ class Server(PBSService):
                 # before setting queue on nodes make sure that the vnode
                 # def is all set
                 svr.expect(NODE, {'state=free': (GE, len(dl))}, interval=3)
-                for k, v in list(qtoset.items()):
+                for k, v in qtoset.items():
                     svr.manager(MGR_CMD_SET, NODE, {'queue': k}, id=v)
             else:
                 self.logger.error("nodes information not found in snapshot")
@@ -10377,7 +10377,7 @@ class Server(PBSService):
             if import_jobs:
                 jobs = self.status(JOB)
                 sql_stmt = self.__insert_jobs_in_db(jobs, h)
-                print(("\n".join(sql_stmt)))
+                print("\n".join(sql_stmt))
                 if db_creds_file is not None:
                     pass
 
@@ -11061,7 +11061,7 @@ class Scheduler(PBSService):
         Check the values in argument config against default values
         """
 
-        if len(list(config.keys())) == 0:
+        if len(config.keys()) == 0:
             return
         for k, v in self.sched_dflt_config.items():
             if k in config:
@@ -11524,7 +11524,7 @@ class Scheduler(PBSService):
                 obj.year['valid'] = True
                 if len(entry) > 1:
                     obj.year['value'] = entry[1]
-            elif tag in list(days_map.keys()):   # initialize a day
+            elif tag in days_map.keys():   # initialize a day
                 content.append("\t".join(entry))
                 day = days_map[tag]
                 day['valid'] = True
@@ -11984,7 +11984,7 @@ class Scheduler(PBSService):
                 year['valid'] = True
                 if len(entry) > 1:
                     year['value'] = entry[1]
-            elif tag in list(days_map.keys()):   # initialize self.<day>
+            elif tag in days_map.keys():   # initialize self.<day>
                 day = days_map[tag]
                 day['valid'] = True
                 days_set.append(day)

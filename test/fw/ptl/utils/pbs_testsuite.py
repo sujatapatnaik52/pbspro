@@ -1287,7 +1287,7 @@ class PBSTestSuite(unittest.TestCase):
         """
         Revert the values set for servers
         """
-        for server in list(self.servers.values()):
+        for server in self.servers.values():
             self.revert_server(server, force)
 
     def revert_comms(self, force=False):

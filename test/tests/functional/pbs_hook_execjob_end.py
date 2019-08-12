@@ -186,8 +186,8 @@ class TestPbsExecjobEnd(TestFunctional):
         """
         if len(self.moms) != 2:
             self.skip_test(reason="need 2 mom hosts: -p moms=<m1>:<m2>")
-        self.momA = list(self.moms.values())[0]
-        self.momB = list(self.moms.values())[1]
+        self.momA = self.moms.values()[0]
+        self.momB = self.moms.values()[1]
         hook_name = "execjob_end_logmsg5"
         self.server.create_import_hook(hook_name, self.attr, self.hook_body)
         hook_name = "exechost_periodic_logmsg2"
@@ -236,8 +236,8 @@ class TestPbsExecjobEnd(TestFunctional):
         hook_name = "execjob_end_logmsg6"
         self.server.create_import_hook(hook_name, self.attr, self.hook_body)
         if len(self.moms) == 2:
-            self.momA = list(self.moms.values())[0]
-            self.momB = list(self.moms.values())[1]
+            self.momA = self.moms.values()[0]
+            self.momB = self.moms.values()[1]
             a = {'Resource_List.select':
                  '1:ncpus=1:host=%s+1:ncpus=1:host=%s' %
                  (self.momA.shortname, self.momB.shortname)}
@@ -266,8 +266,8 @@ class TestPbsExecjobEnd(TestFunctional):
 
         if len(self.moms) != 2:
             self.skip_test(reason="need 2 mom hosts: -p moms=<m1>:<m2>")
-        self.momA = list(self.moms.values())[0]
-        self.momB = list(self.moms.values())[1]
+        self.momA = self.moms.values()[0]
+        self.momB = self.moms.values()[1]
 
         # Create hook
         hook_name = "execjob_end_logmsg7"

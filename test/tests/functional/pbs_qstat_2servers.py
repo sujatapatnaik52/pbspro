@@ -50,7 +50,7 @@ class TestQstatTwoServers(TestFunctional):
             self.skipTest("This test needs two servers and one client")
         # Because of a bug in PTL, having moms on respective server hosts
         # don't work, so the server hosts need to be passed as nomom hosts
-        svrnames = list(self.servers.keys())
+        svrnames = self.servers.keys()
         if "nomom" not in self.conf or \
                 svrnames[0] not in self.conf["nomom"] or \
                 svrnames[1] not in self.conf["nomom"]:
@@ -64,8 +64,8 @@ class TestQstatTwoServers(TestFunctional):
         if _m != PTL_CLI:
             self.skipTest("Test only supported for CLI mode")
 
-        self.server1 = list(self.servers.values())[0]
-        self.server2 = list(self.servers.values())[1]
+        self.server1 = self.servers.values()[0]
+        self.server2 = self.servers.values()[1]
         a = {'scheduling': 'false', 'flatuid': 'true'}
         self.server1.manager(MGR_CMD_SET, SERVER, a)
         self.server2.manager(MGR_CMD_SET, SERVER, a)

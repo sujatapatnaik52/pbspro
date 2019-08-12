@@ -462,7 +462,7 @@ class PostgreSQLDb(DBType):
         self.__write_data(_MOMM_TN, data, logfile)
 
     def __write_sched_data(self, data, logfile=None):
-        for k, v in list(data.items()):
+        for k, v in data.items():
             if k == 'summary':
                 self.__write_data(_SCHEDM_TN, data, logfile)
                 continue
@@ -545,19 +545,19 @@ class PostgreSQLDb(DBType):
     def write(self, data, logfile=None):
         if len(data) == 0:
             return
-        if 'testdata' in list(data.keys()):
+        if 'testdata' in data.keys():
             self.__write_test_data(data['testdata'])
-        if 'metrics_data' in list(data.keys()):
+        if 'metrics_data' in data.keys():
             md = data['metrics_data']
-            if 'server' in list(md.keys()):
+            if 'server' in md.keys():
                 self.__write_server_data(md['server'], logfile)
-            if 'mom' in list(md.keys()):
+            if 'mom' in md.keys():
                 self.__write_mom_data(md['mom'], logfile)
-            if 'scheduler' in list(md.keys()):
+            if 'scheduler' in md.keys():
                 self.__write_sched_data(md['scheduler'], logfile)
-            if 'accounting' in list(md.keys()):
+            if 'accounting' in md.keys():
                 self.__write_acct_data(md['accounting'], logfile)
-            if 'procs' in list(md.keys()):
+            if 'procs' in md.keys():
                 self.__write_proc_data(md['procs'], logfile)
         self.__index += 1
 
@@ -941,19 +941,19 @@ class SQLiteDb(DBType):
     def write(self, data, logfile=None):
         if len(data) == 0:
             return
-        if 'testdata' in list(data.keys()):
+        if 'testdata' in data.keys():
             self.__write_test_data(data['testdata'])
-        if 'metrics_data' in list(data.keys()):
+        if 'metrics_data' in data.keys():
             md = data['metrics_data']
-            if 'server' in list(md.keys()):
+            if 'server' in md.keys():
                 self.__write_server_data(md['server'], logfile)
-            if 'mom' in list(md.keys()):
+            if 'mom' in md.keys():
                 self.__write_mom_data(md['mom'], logfile)
-            if 'scheduler' in list(md.keys()):
+            if 'scheduler' in md.keys():
                 self.__write_sched_data(md['scheduler'], logfile)
-            if 'accounting' in list(md.keys()):
+            if 'accounting' in md.keys():
                 self.__write_acct_data(md['accounting'], logfile)
-            if 'procs' in list(md.keys()):
+            if 'procs' in md.keys():
                 self.__write_proc_data(md['procs'], logfile)
         self.__index += 1
 
@@ -986,7 +986,7 @@ class FileDb(DBType):
         self.__index = 1
 
     def __write_data(self, key, data, logfile):
-        if key not in list(self.__dbobj.keys()):
+        if key not in self.__dbobj.keys():
             f = os.path.join(self.dbdir, key + '.db')
             self.__dbobj[key] = open(f, 'w+')
         msg = [self.__separator1]
@@ -1048,7 +1048,7 @@ class FileDb(DBType):
         self.__write_data(_JOBM_TN, data, logfile)
 
     def __write_test_data(self, data):
-        if _TESTRESULT_TN not in list(self.__dbobj.keys()):
+        if _TESTRESULT_TN not in self.__dbobj.keys():
             self.__dbobj[_TESTRESULT_TN] = open(self.dbpath, 'w+')
         msg = [self.__separator1]
         msg += ['id = %s' % (self.__index)]
@@ -1079,19 +1079,19 @@ class FileDb(DBType):
     def write(self, data, logfile=None):
         if len(data) == 0:
             return
-        if 'testdata' in list(data.keys()):
+        if 'testdata' in data.keys():
             self.__write_test_data(data['testdata'])
-        if 'metrics_data' in list(data.keys()):
+        if 'metrics_data' in data.keys():
             md = data['metrics_data']
-            if 'server' in list(md.keys()):
+            if 'server' in md.keys():
                 self.__write_server_data(md['server'], logfile)
-            if 'mom' in list(md.keys()):
+            if 'mom' in md.keys():
                 self.__write_mom_data(md['mom'], logfile)
-            if 'scheduler' in list(md.keys()):
+            if 'scheduler' in md.keys():
                 self.__write_sched_data(md['scheduler'], logfile)
-            if 'accounting' in list(md.keys()):
+            if 'accounting' in md.keys():
                 self.__write_acct_data(md['accounting'], logfile)
-            if 'procs' in list(md.keys()):
+            if 'procs' in md.keys():
                 self.__write_proc_data(md['procs'], logfile)
         self.__index += 1
 
@@ -1552,7 +1552,7 @@ class HTMLDb(DBType):
         self.__dbobj[_TESTRESULT_TN].flush()
 
     def __write_test_data(self, data):
-        if _TESTRESULT_TN not in list(self.__dbobj.keys()):
+        if _TESTRESULT_TN not in self.__dbobj.keys():
             self.__dbobj[_TESTRESULT_TN] = open(self.dbpath, 'w+')
             self.__write_test_html_header(data)
         d = {}
@@ -1581,7 +1581,7 @@ class HTMLDb(DBType):
     def write(self, data, logfile=None):
         if len(data) == 0:
             return
-        if 'testdata' in list(data.keys()):
+        if 'testdata' in data.keys():
             self.__write_test_data(data['testdata'])
 
     def close(self, result=None):
@@ -1615,7 +1615,7 @@ class JSONDb(DBType):
 
     def __write_test_data(self, data):
         jdata = None
-        if _TESTRESULT_TN not in list(self.__dbobj.keys()):
+        if _TESTRESULT_TN not in self.__dbobj.keys():
             self.__dbobj[_TESTRESULT_TN] = open(self.dbpath, 'w+')
         else:
             self.__dbobj[_TESTRESULT_TN].seek(0)
@@ -1785,7 +1785,7 @@ class PTLTestDb(Plugin):
             mlist = None
             if (hasattr(test, name) and
                     (getattr(test, name, None) is not None)):
-                mlist = list(getattr(test, name).values())
+                mlist = getattr(test, name).values()
             if mlist:
                 for mc in mlist:
                     mpinfo[name].append(mc.hostname)

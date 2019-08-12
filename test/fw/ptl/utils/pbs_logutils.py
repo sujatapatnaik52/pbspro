@@ -1990,7 +1990,7 @@ class PBSAccountingLog(PBSLogAnalyzer):
 
         self.jobs_started = list(self.job_start.keys())
         self.jobs_ended = list(self.job_end.keys())
-        self.job_node_size = [len(n) for n in list(self.job_nodes.values())]
+        self.job_node_size = [len(n) for n in self.job_nodes.values()]
         self.job_cpu_size = list(self.job_cpus.values())
         self.start = sorted(self.job_start.values())
         self.end = sorted(self.job_end.values())
@@ -1998,7 +1998,7 @@ class PBSAccountingLog(PBSLogAnalyzer):
         # list of jobs that have not yet ended, those are jobs that
         # have an S record but no E record. We port back the precomputed
         # metrics from the S record into the data to "publish"
-        sjobs = list(set(self.jobs_started).difference(self.jobs_ended))
+        sjobs = set(self.jobs_started).difference(self.jobs_ended)
         for job in sjobs:
             if job in self.tmp_wait_time:
                 self.wait_time.append(self.tmp_wait_time[job])

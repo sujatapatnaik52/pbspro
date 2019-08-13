@@ -59,6 +59,11 @@ if not defined CMAKE_BIN (
 if not defined __BINARIESDIR (
     set __BINARIESDIR=%CD%\binaries
 )
+
+if not defined VS150COMNTOOLS (
+	set "VS150COMNTOOLS=C:\Program Files (x86)\Microsoft Visual Studio\2017\Professional\Common7\Tools\"
+)
+
 if exist "%VS150COMNTOOLS%VsDevCmd.bat" (
 	call "%VS150COMNTOOLS%VsDevCmd.bat"
 ) else (
@@ -89,13 +94,13 @@ if not defined LIBEDIT_VERSION (
     set LIBEDIT_VERSION=2.205
 )
 if not defined LIBICAL_VERSION (
-    set LIBICAL_VERSION=2.0
+    set LIBICAL_VERSION=2.0.0
 )
 if not defined PGSQL_VERSION (
     set PGSQL_VERSION=9.6.3
 )
 if not defined PYTHON_VERSION (
-    set PYTHON_VERSION=3.6
+    set PYTHON_VERSION=3.6.8
 )
 if not defined OPENSSL_VERSION (
     set OPENSSL_VERSION=1_1_0j

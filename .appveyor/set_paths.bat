@@ -59,10 +59,10 @@ if not defined CMAKE_BIN (
 if not defined __BINARIESDIR (
     set __BINARIESDIR=%CD%\binaries
 )
-if exist "%VS90COMNTOOLS%vsvars32.bat" (
-    call "%VS90COMNTOOLS%vsvars32.bat"
+if exist "%VS100COMNTOOLS%vsvars32.bat" (
+    call "%VS100COMNTOOLS%vsvars32.bat"
 ) else (
-    echo "Could not find %VS90COMNTOOLS%vsvars32.bat"
+    echo "Could not find %VS100COMNTOOLS%vsvars32.bat"
     exit 1
 )
 

@@ -121,7 +121,7 @@ exit 0
         self.server.expect(JOB, 'queue', op=UNSET, id=jid, offset=2)
         job_output = ""
         with open(job_outfile, 'r') as f:
-            job_output = f.read().strip(" ")
+            job_output = f.read().strip()
         match = n + \
             '=() {  if [ /bin/true ]; then\n echo hello;\n fi\n}\nhello'
         self.assertEqual(job_output, match,

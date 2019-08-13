@@ -355,7 +355,7 @@ class PBSServiceInstanceWrapper(dict):
         return iter(self.orderedlist)
 
     def host_keys(self):
-        return [h.split('@')[0] for h in list(self.keys())]
+        return [h.split('@')[0] for h in self.keys()]
 
     def keys(self):
         return list(self.orderedlist)
@@ -634,7 +634,7 @@ class PBSTestSuite(unittest.TestCase):
         cls._validate_param('del-vnodes')
         cls._validate_param('revert-queues')
         cls._validate_param('revert-resources')
-        if 'default-testcase-timeout' not in list(cls.conf.keys()):
+        if 'default-testcase-timeout' not in cls.conf.keys():
             cls.conf['default_testcase_timeout'] = MINIMUM_TESTCASE_TIMEOUT
         else:
             cls.conf['default_testcase_timeout'] = int(
@@ -742,7 +742,7 @@ class PBSTestSuite(unittest.TestCase):
                                          multiple='servers', skip=skip,
                                          func=init_server_func)
         if cls.servers:
-            cls.server = list(cls.servers.values())[0]
+            cls.server = cls.servers.values()[0]
 
     @classmethod
     def init_comms(cls, init_comm_func=None, skip=None):
@@ -756,7 +756,7 @@ class PBSTestSuite(unittest.TestCase):
                                        multiple='comms', skip=skip,
                                        func=init_comm_func)
         if cls.comms:
-            cls.comm = list(cls.comms.values())[0]
+            cls.comm = cls.comms.values()[0]
         cls.server.comms = cls.comms
 
     @classmethod
@@ -791,7 +791,7 @@ class PBSTestSuite(unittest.TestCase):
                                       multiple='moms', skip=skip,
                                       func=init_mom_func)
         if cls.moms:
-            cls.mom = list(cls.moms.values())[0]
+            cls.mom = cls.moms.values()[0]
         cls.server.moms = cls.moms
 
     @classmethod
@@ -1249,10 +1249,10 @@ class PBSTestSuite(unittest.TestCase):
             if not server_obj.schedulers['default'].isUp():
                 self.fail("Scheduler is not up")
         elif daemon_name == "mom":
-            if not list(server_obj.moms.values())[0].isUp():
+            if not server_obj.moms.values()[0].isUp():
                 self.fail("Mom is not up")
         elif daemon_name == "comm":
-            if not list(server_obj.comms.values())[0].isUp():
+            if not server_obj.comms.values()[0].isUp():
                 self.fail("Comm is not up")
         else:
             self.fail("Incorrect daemon specified")

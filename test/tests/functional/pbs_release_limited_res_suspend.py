@@ -243,7 +243,7 @@ class TestReleaseLimitedResOnSuspend(TestFunctional):
         job = self.server.status(JOB, id=jid1)
 
         rr = "(vnode1[0]:ncpus=8)+(vnode2[0]:ncpus=6)"
-        print(job[0][ATTR_released])
+        self.logger.info("resources released are " + job[0][ATTR_released])
         self.assertEqual(job[0][ATTR_released], rr,
                          msg="resources_released incorrect")
 

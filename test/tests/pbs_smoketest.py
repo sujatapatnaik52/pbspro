@@ -1247,7 +1247,6 @@ class SmokeTest(PBSTestSuite):
         self.assertTrue('Duplicate entry' in msg[0])
         self.logger.info('Expected error: Duplicate entry in ' + msg[0] +
                          ' ...OK')
-        self.assertNotEqual(rc, 0)
         rc = self.server.manager(MGR_CMD_DELETE, RSC, id=self.resc_name)
         self.assertEqual(rc, 0)
         for t in self.resc_types:

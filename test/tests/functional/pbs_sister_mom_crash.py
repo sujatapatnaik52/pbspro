@@ -52,7 +52,7 @@ class TestSisterMom(TestFunctional):
         if len(self.moms) != 2:
             self.skipTest("test requires atleast two MoMs as input, " +
                           "use -p moms=<mom1:mom2>")
-        sister_mom = list(self.moms.keys())[1]
+        sister_mom = self.moms.keys()[1]
         pbsdsh_path = os.path.join(self.server.pbs_conf['PBS_EXEC'],
                                    "bin", "pbsdsh")
         script = "%s dd if=/dev/zero of=/dev/null" % pbsdsh_path

@@ -6994,7 +6994,7 @@ pbs.logjobmsg(pbs.event().job.id, "epilogue hook executed")
             for key in self.server.pu.processes:
                 if ("fib" in key):
                     process = len(self.server.pu.processes[key])
-                    print("length of the process is %d " % (process,))
+                    self.logger.info("length of the process is %d " % (process,))
         self.assertEqual(process, 2)
 
         # Mom logs only have message for job1 for node3

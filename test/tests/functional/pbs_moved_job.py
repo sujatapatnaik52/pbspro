@@ -55,7 +55,7 @@ class TestMovedJob(TestFunctional):
             self.skipTest("test requires atleast two servers as input, " +
                           "use -p servers=<server1:server2>,moms=<server1>")
 
-        second_server = list(self.servers.keys())[1]
+        second_server = self.servers.keys()[1]
 
         attr = {'job_history_enable': 'True', 'job_history_duration': 5}
         self.servers[second_server].manager(MGR_CMD_SET, SERVER, attr)
@@ -75,9 +75,9 @@ class TestMovedJob(TestFunctional):
 
         attr = {ATTR_queue: "p2p", ATTR_j: "oe",
                 ATTR_W: "Output_Path=%s:/dev/null"
-                % list(self.servers.keys())[0],
+                % self.servers.keys()[0],
                 'Resource_List.select': 'host=%s'
-                % list(self.moms.keys())[0]}
+                % self.moms.keys()[0]}
         j = Job(TEST_USER, attrs=attr)
         j.set_sleep_time(300)
         jid = self.servers[second_server].submit(j)

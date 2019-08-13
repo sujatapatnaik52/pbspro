@@ -706,7 +706,7 @@ class pbs_env(dict):
     def __str__(self):
         """String representation of the object"""
         rv = ""
-        for k in list(self.keys()):
+        for k in self.keys():
             if self[k] != None:
                 rv += "%s=%s," % (k, self[k])
         return rv.rstrip(",")

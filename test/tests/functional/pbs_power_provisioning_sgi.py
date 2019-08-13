@@ -105,7 +105,7 @@ def NodesetDelete( nodeset_name ):
                 for i in range(0, len(self.moms)):
                     a = {'power_provisioning': 'True'}
                     self.server.manager(
-                        MGR_CMD_SET, NODE, a, id=list(self.moms.keys())[i])
+                        MGR_CMD_SET, NODE, a, id=self.moms.keys()[i])
         else:
             self.skip_test("No mom defined on non-server host")
 
@@ -360,8 +360,7 @@ def NodesetDelete( nodeset_name ):
         for i in range(0, self.power_nodes):
             a = {'power_provisioning': 'False'}
             self.server.manager(
-                MGR_CMD_SET, NODE, a, id=list(
-                    self.moms.keys())[i])
+                MGR_CMD_SET, NODE, a, id=self.moms.keys()[i])
         for profile in eoes:
             jid = self.submit_job(10,
                                   {'Resource_List.place': 'scatter',
@@ -379,8 +378,7 @@ def NodesetDelete( nodeset_name ):
         for i in range(0, self.power_nodes):
             a = {'resources_available.ncpus': 1}
             self.server.manager(
-                MGR_CMD_SET, NODE, a, id=list(
-                    self.moms.keys())[i])
+                MGR_CMD_SET, NODE, a, id=self.moms.keys()[i])
         self.server.manager(MGR_CMD_CREATE, QUEUE,
                             {'queue_type': 'execution', 'started': 'True',
                              'enabled': 'True', 'priority': 150}, id='workq2')

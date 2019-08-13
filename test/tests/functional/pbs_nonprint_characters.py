@@ -99,7 +99,7 @@ exit 0
             if m.find(msg) != -1:
                 self.n = m.split('=')[0]
                 continue
-        pbs_conf = self.du.parse_pbs_config(self.server.hostname)
+        pbs_conf = self.server.pbs_conf
         if 'PBS_EXEC' in pbs_conf:
             self.pbs_exec = pbs_conf['PBS_EXEC']
         else:
@@ -1031,7 +1031,6 @@ e.env["LAUNCH_NONPRINT"] = "CD"
         valid json and escaped representation id displayed correctly.
         """
         self.npch_exclude += ['\x1C']
-        pbs_conf = self.du.parse_pbs_config(self.server.hostname)
         for ch in self.npcat:
             self.logger.info('##### non-printable char: %s #####' % repr(ch))
             if ch in self.npch_exclude:

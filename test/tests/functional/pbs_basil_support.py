@@ -387,7 +387,7 @@ type=\"ENGINE\"/>" % (self.basil_version[1])
         self.server.status(JOB, 'exec_vnode', id=job_id)
         evnode = list(job.execvnode()[0].keys())[0]
         nid = evnode.split('_')[1]
-        if nid in list(knl_vnodes.keys()):
+        if nid in knl_vnodes.keys():
             self.logger.info("exec_vnode %s is a KNL vnode." % (evnode))
             rv = 1
         else:

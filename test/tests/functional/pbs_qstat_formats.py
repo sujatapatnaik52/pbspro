@@ -95,10 +95,10 @@ class TestQstatFormats(TestFunctional):
         """
         Common function for parsing all values in json output
         """
-        for key, val in list(dictitems.items()):
+        for key, val in dictitems.items():
             qstat_attr.append(str(key))
             if isinstance(val, dict):
-                for key, val in list(val.items()):
+                for key, val in val.items():
                     qstat_attr.append(str(key))
                     if isinstance(val, dict):
                         self.parse_json(val, qstat_attr)
@@ -305,8 +305,8 @@ class TestQstatFormats(TestFunctional):
             self.server.hostname, cmd=run_script)
         oneline_attr_count = sum(1 for line in open(
             qstat_oneline_out) if not line.isspace())
-        list(map(os.remove, [qstat_dsv_script, qstat_dsv_out,
-                             qstat_oneline_script, qstat_oneline_out]))
+        map(os.remove, [qstat_dsv_script, qstat_dsv_out,
+                             qstat_oneline_script, qstat_oneline_out])
         self.assertEqual(dsv_attr_count, oneline_attr_count)
 
     def test_json(self):
@@ -329,7 +329,7 @@ class TestQstatFormats(TestFunctional):
         json_ret = self.du.run_cmd(
             self.server.hostname, cmd=run_script)
         data = open(qstat_json_out, 'r').read()
-        list(map(os.remove, [qstat_json_script, qstat_json_out]))
+        map(os.remove, [qstat_json_script, qstat_json_out])
         try:
             json_data = json.loads(data)
         except BaseException:
@@ -417,9 +417,8 @@ class TestQstatFormats(TestFunctional):
         attribute with type resource list has to be the last attribute
         in order to hit the bug.
         """
-        self.server.manager(MGR_CMD_SET, NODE,
-                            {'resources_available.ncpus': 3},
-                            id=self.mom.shortname)
+        a = {'resources_available.ncpus': 4}
+        self.server.manager(MGR_CMD_SET, NODE, a, self.mom.shortname)
         j = Job(TEST_USER)
         j.set_sleep_time(100)
         jid = self.server.submit(j)

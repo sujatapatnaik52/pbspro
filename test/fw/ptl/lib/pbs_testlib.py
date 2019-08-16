@@ -1828,8 +1828,8 @@ class BatchUtils(object):
                     _e = len(lines) - 1
                     lines[_e] = lines[_e].strip('\r\n\t') + \
                         l[i].strip('\r\n\t')
-                elif (not l[i].startswith(' ') and i > count
-                        and l[i-count].startswith('\t')):
+                elif (not l[i].startswith(' ') and i > count and
+                        l[i-count].startswith('\t')):
                     _e = len(lines) - count
                     lines[_e] = lines[_e] + l[i]
                     if ((i+1) < len(l) and not l[i+1].startswith(('\t', ' '))):

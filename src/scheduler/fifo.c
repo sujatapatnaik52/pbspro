@@ -154,7 +154,8 @@ schedinit(void)
 	char errMsg[LOG_BUF_SIZE];
 	char buf[MAXPATHLEN];
 	char *errstr;
-	char *py_version;
+	char py_v[4];
+	const char *py_version;
 
 	PyObject *module;
 	PyObject *obj;
@@ -227,12 +228,8 @@ schedinit(void)
 
 	path = PySys_GetObject("path");
 
-        #if PY_MINOR_VERSION == 5
-                py_version = "3.5";
-        #elif PY_MINOR_VERSION == 6
-                py_version = "3.6";
-        #endif
-
+	py_v = Py_GetVersion();
+	strncpy(py_version, py_v, 3);
 	snprintf(buf, sizeof(buf), "%s/python/lib/python%s", pbs_conf.pbs_exec_path, py_version);
 	log_event(PBSEVENT_DEBUG, PBS_EVENTCLASS_SCHED, LOG_INFO,
 						__func__, buf);

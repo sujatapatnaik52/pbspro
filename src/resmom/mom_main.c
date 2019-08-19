@@ -8212,7 +8212,8 @@ main(int argc, char *argv[])
 	char				path_hooks_rescdef[MAXPATHLEN+1];
 	int					sock_bind_rm;
 	int					sock_bind_mom;
-	char				*py_version;
+	char				py_version[4];
+	const char 			*py_v;
 	PyObject 			*retval =  NULL;
 #ifdef	WIN32
 	/* Win32 only */
@@ -9584,56 +9585,42 @@ main(int argc, char *argv[])
 	Py_CLEAR(retval);
 
 #else
-	/* list of possible paths to Python modules (mom imports json) */
-        #if PY_MINOR_VERSION == 5
-		py_version = "3.5";
-	#elif PY_MINOR_VERSION == 6
-		py_version = "3.6";
-	#endif
+	/* Identify the version of the Python interpreter */
+	py_v = Py_GetVersion();
+	strncpy(py_version, py_v, 3);
 
+	/* list of possible paths to Python modules (mom imports json) */
 	snprintf(buf, sizeof(buf), "%s/python/lib/python%s", pbs_conf.pbs_exec_path, py_version);
-	log_event(PBSEVENT_DEBUG, PBS_EVENTCLASS_HOOK, LOG_INFO,
-						__func__, buf);
 	retval = PyUnicode_FromString(buf);
 	if (retval != NULL)
 		PyList_Append(path, retval);
 	Py_CLEAR(retval);
 
 	snprintf(buf, sizeof(buf), "%s/python/lib/python%s/lib-dynload", pbs_conf.pbs_exec_path, py_version);
-	log_event(PBSEVENT_DEBUG, PBS_EVENTCLASS_HOOK, LOG_INFO,
-						__func__, buf);
 	retval = PyUnicode_FromString(buf);
 	if (retval != NULL)
 		PyList_Append(path, retval);
 	Py_CLEAR(retval);
 
 	snprintf(buf, sizeof(buf), "/usr/lib/python/python%s", py_version);
-	log_event(PBSEVENT_DEBUG, PBS_EVENTCLASS_HOOK, LOG_INFO,
-						__func__, buf);
 	retval = PyUnicode_FromString(buf);
 	if (retval != NULL)
 		PyList_Append(path, retval);
 	Py_CLEAR(retval);
 	
 	snprintf(buf, sizeof(buf), "/usr/lib/python/python%s/lib-dynload", py_version);
-	log_event(PBSEVENT_DEBUG, PBS_EVENTCLASS_HOOK, LOG_INFO,
-						__func__, buf);
 	retval = PyUnicode_FromString(buf);
 	if (retval != NULL)
 		PyList_Append(path, retval);
 	Py_CLEAR(retval);
 
 	snprintf(buf, sizeof(buf), "/usr/lib64/python/python%s", py_version);
-	log_event(PBSEVENT_DEBUG, PBS_EVENTCLASS_HOOK, LOG_INFO,
-						__func__, buf);
 	retval = PyUnicode_FromString(buf);
 	if (retval != NULL)
 		PyList_Append(path, retval);
 	Py_CLEAR(retval);
 
 	snprintf(buf, sizeof(buf), "/usr/lib64/python/python%s/lib-dynload", py_version);
-	log_event(PBSEVENT_DEBUG, PBS_EVENTCLASS_HOOK, LOG_INFO,
-						__func__, buf);
 	retval = PyUnicode_FromString(buf);
 	if (retval != NULL)
 		PyList_Append(path, retval);

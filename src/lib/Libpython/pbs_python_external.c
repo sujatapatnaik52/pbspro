@@ -690,6 +690,7 @@ pbs_python_run_code_in_namespace(struct python_interpreter_data *interp_data,
 	PyObject *pvalue;
 	PyObject *ptraceback;
 	PyObject *pobjStr;
+	PyObject *retval;
 	char      *pStr;
 	int rc=0;
 
@@ -760,12 +761,13 @@ pbs_python_run_code_in_namespace(struct python_interpreter_data *interp_data,
 
 	PyErr_Clear(); /* clear any exceptions before starting code */
 	/* precompile strings of code to bytecode objects */
-	(void) PyEval_EvalCode((PyObject *)py_script->py_code_obj,
+	retval = PyEval_EvalCode((PyObject *)py_script->py_code_obj,
 		pdict, pdict);
 	/* check for exception */
 	if (PyErr_Occurred()) {
 		if (PyErr_ExceptionMatches(PyExc_KeyboardInterrupt)) {
 			pbs_python_write_error_to_log("Python script received a KeyboardInterrupt");
+			Py_XDECREF(retval);
 			return -3;
 		}
 
@@ -792,10 +794,12 @@ pbs_python_run_code_in_namespace(struct python_interpreter_data *interp_data,
 
 		} else {
 			pbs_python_write_error_to_log("Error evaluating Python script");
+			Py_XDECREF(retval);
 			return -2;
 		}
 	}
 	PyErr_Clear();
+	Py_XDECREF(retval);
 
 	if (exit_code)
 		*exit_code=rc; /* set exit code if var is not null */

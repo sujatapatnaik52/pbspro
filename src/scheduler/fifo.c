@@ -154,11 +154,13 @@ schedinit(void)
 	char errMsg[LOG_BUF_SIZE];
 	char buf[MAXPATHLEN];
 	char *errstr;
+	char *py_version;
 
 	PyObject *module;
 	PyObject *obj;
 	PyObject *dict;
 	PyObject *path;
+	PyObject *retval;
 #endif
 
 	init_config();
@@ -225,11 +227,27 @@ schedinit(void)
 
 	path = PySys_GetObject("path");
 
-	snprintf(buf, sizeof(buf), "%s/python/lib/python3.6", pbs_conf.pbs_exec_path);
-	PyList_Append(path, PyUnicode_FromString(buf));
+        #if PY_MINOR_VERSION == 5
+                py_version = "3.5";
+        #elif PY_MINOR_VERSION == 6
+                py_version = "3.6";
+        #endif
 
-	snprintf(buf, sizeof(buf), "%s/python/lib/python3.6/lib-dynload", pbs_conf.pbs_exec_path);
-	PyList_Append(path, PyUnicode_FromString(buf));
+	snprintf(buf, sizeof(buf), "%s/python/lib/python%s", pbs_conf.pbs_exec_path, py_version);
+	log_event(PBSEVENT_DEBUG, PBS_EVENTCLASS_SCHED, LOG_INFO,
+						__func__, buf);
+        retval = PyUnicode_FromString(buf);
+        if (retval != NULL)
+                PyList_Append(path, retval);
+        Py_CLEAR(retval);
+
+	snprintf(buf, sizeof(buf), "%s/python/lib/python%s/lib-dynload", pbs_conf.pbs_exec_path, py_version);
+	log_event(PBSEVENT_DEBUG, PBS_EVENTCLASS_SCHED, LOG_INFO,
+						__func__, buf);
+        retval = PyUnicode_FromString(buf);
+        if (retval != NULL)
+                PyList_Append(path, retval);
+        Py_CLEAR(retval);
 
 	PySys_SetObject("path", path);
 

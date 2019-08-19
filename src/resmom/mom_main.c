@@ -8212,6 +8212,8 @@ main(int argc, char *argv[])
 	char				path_hooks_rescdef[MAXPATHLEN+1];
 	int					sock_bind_rm;
 	int					sock_bind_mom;
+	char				*py_version;
+	PyObject 			*retval =  NULL;
 #ifdef	WIN32
 	/* Win32 only */
 	struct arg_param	*p = (struct arg_param *)pv;
@@ -9576,28 +9578,66 @@ main(int argc, char *argv[])
 	path = PySys_GetObject("path");
 #ifdef WIN32
 	snprintf(buf, sizeof(buf), "%s/python/Lib", pbs_conf.pbs_exec_path);
-
-	PyList_Append(path, PyUnicode_FromString(buf));
+	retval = PyUnicode_FromString(buf);
+	if (retval != NULL)
+		PyList_Append(path, retval);
+	Py_CLEAR(retval);
 
 #else
 	/* list of possible paths to Python modules (mom imports json) */
-	snprintf(buf, sizeof(buf), "%s/python/lib/python3.6", pbs_conf.pbs_exec_path);
-	PyList_Append(path, PyUnicode_FromString(buf));
+        #if PY_MINOR_VERSION == 5
+		py_version = "3.5";
+	#elif PY_MINOR_VERSION == 6
+		py_version = "3.6";
+	#endif
 
-	snprintf(buf, sizeof(buf), "%s/python/lib/python3.6/lib-dynload", pbs_conf.pbs_exec_path);
-	PyList_Append(path, PyUnicode_FromString(buf));
+	snprintf(buf, sizeof(buf), "%s/python/lib/python%s", pbs_conf.pbs_exec_path, py_version);
+	log_event(PBSEVENT_DEBUG, PBS_EVENTCLASS_HOOK, LOG_INFO,
+						__func__, buf);
+	retval = PyUnicode_FromString(buf);
+	if (retval != NULL)
+		PyList_Append(path, retval);
+	Py_CLEAR(retval);
 
-	snprintf(buf, sizeof(buf), "/usr/lib/python/python3.6");
-	PyList_Append(path, PyUnicode_FromString(buf));
+	snprintf(buf, sizeof(buf), "%s/python/lib/python%s/lib-dynload", pbs_conf.pbs_exec_path, py_version);
+	log_event(PBSEVENT_DEBUG, PBS_EVENTCLASS_HOOK, LOG_INFO,
+						__func__, buf);
+	retval = PyUnicode_FromString(buf);
+	if (retval != NULL)
+		PyList_Append(path, retval);
+	Py_CLEAR(retval);
 
-	snprintf(buf, sizeof(buf), "/usr/lib/python/python3.6/lib-dynload");
-	PyList_Append(path, PyUnicode_FromString(buf));
+	snprintf(buf, sizeof(buf), "/usr/lib/python/python%s", py_version);
+	log_event(PBSEVENT_DEBUG, PBS_EVENTCLASS_HOOK, LOG_INFO,
+						__func__, buf);
+	retval = PyUnicode_FromString(buf);
+	if (retval != NULL)
+		PyList_Append(path, retval);
+	Py_CLEAR(retval);
+	
+	snprintf(buf, sizeof(buf), "/usr/lib/python/python%s/lib-dynload", py_version);
+	log_event(PBSEVENT_DEBUG, PBS_EVENTCLASS_HOOK, LOG_INFO,
+						__func__, buf);
+	retval = PyUnicode_FromString(buf);
+	if (retval != NULL)
+		PyList_Append(path, retval);
+	Py_CLEAR(retval);
 
-	snprintf(buf, sizeof(buf), "/usr/lib64/python/python3.6");
-	PyList_Append(path, PyUnicode_FromString(buf));
+	snprintf(buf, sizeof(buf), "/usr/lib64/python/python%s", py_version);
+	log_event(PBSEVENT_DEBUG, PBS_EVENTCLASS_HOOK, LOG_INFO,
+						__func__, buf);
+	retval = PyUnicode_FromString(buf);
+	if (retval != NULL)
+		PyList_Append(path, retval);
+	Py_CLEAR(retval);
 
-	snprintf(buf, sizeof(buf), "/usr/lib64/python/python3.6/lib-dynload");
-	PyList_Append(path, PyUnicode_FromString(buf));
+	snprintf(buf, sizeof(buf), "/usr/lib64/python/python%s/lib-dynload", py_version);
+	log_event(PBSEVENT_DEBUG, PBS_EVENTCLASS_HOOK, LOG_INFO,
+						__func__, buf);
+	retval = PyUnicode_FromString(buf);
+	if (retval != NULL)
+		PyList_Append(path, retval);
+	Py_CLEAR(retval);
 #endif
 	PySys_SetObject("path", path);
 #endif

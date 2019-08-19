@@ -8212,9 +8212,6 @@ main(int argc, char *argv[])
 	char				path_hooks_rescdef[MAXPATHLEN+1];
 	int					sock_bind_rm;
 	int					sock_bind_mom;
-	char				py_version[4];
-	const char 			*py_v;
-	PyObject 			*retval =  NULL;
 #ifdef	WIN32
 	/* Win32 only */
 	struct arg_param	*p = (struct arg_param *)pv;
@@ -8251,7 +8248,10 @@ main(int argc, char *argv[])
 
 #ifdef PYTHON
 	PyObject			*path;
+	PyObject 			*retval =  NULL;
 	char				buf[MAXPATHLEN];
+	char				py_version[4];
+	const char 			*py_v;
 #endif
 
 
@@ -9588,6 +9588,7 @@ main(int argc, char *argv[])
 	/* Identify the version of the Python interpreter */
 	py_v = Py_GetVersion();
 	strncpy(py_version, py_v, 3);
+	py_version[3] = '\0';
 
 	/* list of possible paths to Python modules (mom imports json) */
 	snprintf(buf, sizeof(buf), "%s/python/lib/python%s", pbs_conf.pbs_exec_path, py_version);

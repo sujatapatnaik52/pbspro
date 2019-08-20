@@ -61,7 +61,10 @@ setlocal
 )
 
  2>nul rd /S /Q "%BINARIESDIR%\zlib-%ZLIB_VERSION%"
-"%MSYSDIR%\bin\bash" --login -i -c "cd \"$BINARIESDIR_M/\" && tar -xf zlib-%ZLIB_VERSION%.tar.gz"
+echo "The Msys dir is %MSYSDIR%"
+REM "%MSYSDIR%\bin\bash" --login -i -c "cd \"$BINARIESDIR_M/\" && tar -xf zlib-%ZLIB_VERSION%.tar.gz"
+C:\7-Zip\Files\7-Zip\7z x "%BINARIESDIR%\zlib-%ZLIB_VERSION%.tar.gz" -o"%BINARIESDIR%"
+C:\7-Zip\Files\7-Zip\7z x "%BINARIESDIR%\zlib-%ZLIB_VERSION%.tar" -o"%BINARIESDIR%\zlib-%ZLIB_VERSION%"
 if not %ERRORLEVEL% == 0 (
     echo "Failed to extract %BINARIESDIR%\zlib-%ZLIB_VERSION%.tar.gz"
     exit /b 1
@@ -77,7 +80,7 @@ if not %ERRORLEVEL% == 0 (
 
  call "%VS150COMNTOOLS%VsDevCmd.bat"
 
- cd "%BINARIESDIR%\zlib
+ cd "%BINARIESDIR%\zlib\zlib-%ZLIB_VERSION%"
 
  nmake /f win32/Makefile.msc
 if not %ERRORLEVEL% == 0 (

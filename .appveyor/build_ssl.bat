@@ -76,7 +76,18 @@ if not exist "%BINARIESDIR%\openssl-OpenSSL_%OPENSSL_VERSION%" (
 
 cd "%BINARIESDIR%\openssl-OpenSSL_%OPENSSL_VERSION%"
 
-call "%VS90COMNTOOLS%vsvars32.bat
+if not defined VS150COMNTOOLS (
+    set "VS150COMNTOOLS=C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\"
+)
+
+if exist "%VS150COMNTOOLS%VsDevCmd.bat" (
+    call "%VS150COMNTOOLS%VsDevCmd.bat"
+) else (
+    echo "Could not find %VS150COMNTOOLS%VsDevCmd.bat"
+    exit 1
+)
+
+REM call "%VS90COMNTOOLS%vsvars32.bat
 
 if %DO_DEBUG_BUILD% EQU 1 (
     "%PERL_BIN%" "%BINARIESDIR%\openssl-OpenSSL_%OPENSSL_VERSION%\Configure" --prefix="%BINARIESDIR%\%OPENSSL_DIR_NAME%" --debug VC-WIN32 no-asm no-shared

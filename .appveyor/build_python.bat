@@ -42,11 +42,11 @@ if not %ERRORLEVEL% == 0 (
     exit /b 1
 )
 
-call "%~dp0_build_python_64bit.bat" %~1
-if not %ERRORLEVEL% == 0 (
-    echo "Failed to compile Python 64bit"
-    exit /b 1
-)
+REM call "%~dp0_build_python_64bit.bat" %~1
+REM if not %ERRORLEVEL% == 0 (
+REM    echo "Failed to compile Python 64bit"
+REM    exit /b 1
+REM )
 
 call "%~dp0_build_python_debug.bat" %~1
 if not %ERRORLEVEL% == 0 (

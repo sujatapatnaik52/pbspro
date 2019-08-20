@@ -8,11 +8,31 @@ cache:
 configuration:
   - Release
   - Debug
+init:
+  - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 before_build:
+  - ps: Invoke-WebRequest https://www.7-zip.org/a/7z1900.msi -OutFile C:\7z.msi
+  - cmd: msiexec /a c:\7z.msi /qn TARGETDIR=C:\7-Zip
+  - cmd: rm C:\7z.msi
+  - ps: Invoke-WebRequest http://strawberryperl.com/download/5.24.2.1/strawberry-perl-5.24.2.1-64bit.msi -o perl.msi
+  - cmd: msiexec /a perl.msi /qn TARGETDIR=C:\Perl
+  - cmd: C:\Perl\Strawberry\perl\bin\perl -v 
+  #- ps: $client = new-object System.Net.WebClient
+  #- ps: $client.DownloadFile("https://osdn.net/frs/redir.php?m=jaist&f=mingw%2F68260%2Fmingw-get-0.6.3-mingw32-pre-20170905-1-bin.tar.xz","C:\mingw-get-0.6.3-mingw32-pre-20170905-1-bin.tar.xz") 
+  #- ps: mkdir C:\MinGW
+  #- ps: C:\7-Zip\Files\7-Zip\7z x C:\mingw-get-0.6.3-mingw32-pre-20170905-1-bin.tar.xz -oC:\MinGW
+  #- ps: C:\7-Zip\Files\7-Zip\7z x C:\MinGW\mingw-get-0.6.3-mingw32-pre-20170905-1-bin.tar -oC:\MinGW
+  #- cmd: C:\MinGW\bin\mingw-get install mingw-developer-toolkit
+  #- cmd: C:\MinGW\bin\mingw-get install mingw32-base
+  #- cmd: C:\MinGW\bin\mingw-get install msys-unzip
+  #- ps: cp C:\MinGW\msys\1.0\bin\unzip.exe C:\tools\
+  #- ps: cp C:\MinGW\msys\1.0\bin\msys-1.0.dll C:\tools\
+  #- ps: $client.DownloadFile("https://dl.uxnr.de/build/curl/curl_winssl_msys2_mingw64_stc/curl-7.53.1/curl-7.53.1.zip","C:\curl.zip")
+  #- ps: C:\7-Zip\Files\7-Zip\7z x C:\curl.zip -oC:\curl
+  #- ps: cp C:\curl\src\curl.exe C:\tools\
   - cmd: call .appveyor\appveyor_helper.bat %CONFIGURATION%
 build_script:
-  - cmd: call "%VS150COMNTOOLS%VsDevCmd.bat"
-  - cmd: msbuild win_configure\pbs_windows_VS2017.sln "%CONFIGURATION%|Win32"
+  - cmd: msbuild win_configure\pbs_windows_VS2017.sln /p:configuration=Release /p:platform=Win32
 after_build:
   - cmd: call .appveyor\generate_installer.bat %CONFIGURATION%
 before_test:

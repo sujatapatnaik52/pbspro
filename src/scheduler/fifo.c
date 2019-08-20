@@ -154,7 +154,6 @@ schedinit(void)
 	char errMsg[LOG_BUF_SIZE];
 	char buf[MAXPATHLEN];
 	char *errstr;
-	const char *py_v;
 	char py_version[4];
 
 	PyObject *module;
@@ -229,8 +228,7 @@ schedinit(void)
 	path = PySys_GetObject("path");
 
 	/* get the version of Python interpreter */
-	py_v = Py_GetVersion();
-	strncpy(py_version, py_v, 3);
+	strncpy(py_version, Py_GetVersion(), 3);
         py_version[3] = '\0';
 
 	snprintf(buf, sizeof(buf), "%s/python/lib/python%s", pbs_conf.pbs_exec_path, py_version);

@@ -92,6 +92,7 @@
 #include <assert.h>
 #include <dirent.h>
 #include <grp.h>
+#include <Python.h>
 #include "cmds.h"
 #include "pbs_version.h"
 #include "pbs_ifl.h"
@@ -2434,54 +2435,65 @@ which_suffixset(MPUG *pmpug)
 	static char vld_resv[] = ".RB,.RBD";
 	static char vld_tcltk[] = ".h,8.3,8.3.a,.sh";
 	static char vld_python[] = ".py,.pyc,.so";
-
+	char buf[MAXPATHLEN];
+	char py_version[4];
+	/* Get version of the Python interpreter */
+	strncpy(py_version, Py_GetVersion(), 3);
+	py_version[4] = '\0';
 
 	if (pmpug->path == NULL)
 		return NULL;
-	else if (strcmp("server_priv/jobs", pmpug->path) == 0)
+	if (strcmp("server_priv/jobs", pmpug->path) == 0)
 		return (vld_job);
-	else if (strcmp("server_priv/users", pmpug->path) == 0)
+	if (strcmp("server_priv/users", pmpug->path) == 0)
 		return (vld_job);
-	else if (strcmp("server_priv/hooks", pmpug->path) == 0)
+	if (strcmp("server_priv/hooks", pmpug->path) == 0)
 		return (vld_hooks);
-	else if (strcmp("mom_priv/jobs", pmpug->path) == 0)
+	if (strcmp("mom_priv/jobs", pmpug->path) == 0)
 		return (vld_job);
-	else if (strcmp("undelivered", pmpug->path) == 0)
+	if (strcmp("undelivered", pmpug->path) == 0)
 		return (vld_job);
-	else if (strcmp("spool", pmpug->path) == 0)
+	if (strcmp("spool", pmpug->path) == 0)
 		return (vld_job);
-	else if (strcmp("tcltk/bin", pmpug->path) == 0)
+	if (strcmp("tcltk/bin", pmpug->path) == 0)
 		return (vld_tcltk);
-	else if (strcmp("tcltk/include", pmpug->path) == 0)
+	if (strcmp("tcltk/include", pmpug->path) == 0)
 		return (vld_tcltk);
-	else if (strcmp("tcltk/lib", pmpug->path) == 0)
+	if (strcmp("tcltk/lib", pmpug->path) == 0)
 		return (vld_tcltk);
-	else if (strcmp("lib/python", pmpug->path) == 0)
+	if (strcmp("lib/python", pmpug->path) == 0)
 		return (vld_python);
-	else if (strcmp("lib/python/altair", pmpug->path) == 0)
+	if (strcmp("lib/python/altair", pmpug->path) == 0)
 		return (vld_python);
-	else if (strcmp("lib/python/altair/pbs", pmpug->path) == 0)
+	if (strcmp("lib/python/altair/pbs", pmpug->path) == 0)
 		return (vld_python);
-	else if (strcmp("lib/python/altair/pbs/v1", pmpug->path) == 0)
+	if (strcmp("lib/python/altair/pbs/v1", pmpug->path) == 0)
 		return (vld_python);
-	else if (strcmp("lib/python/python3.6", pmpug->path) == 0)
+	snprintf(buf, sizeof(buf), "lib/python/python%s", py_version);
+	if (strcmp(buf, pmpug->path) == 0)
 		return (vld_python);
-	else if (strcmp("lib/python/python3.6/logging", pmpug->path) == 0)
+	snprintf(buf, sizeof(buf), "lib/python/python%s/logging", py_version);
+	if (strcmp(buf, pmpug->path) == 0)
 		return (vld_python);
-	else if (strcmp("lib/python/python3.6/shared", pmpug->path) == 0)
+	snprintf(buf, sizeof(buf), "lib/python/python%s/shared", py_version);
+	if (strcmp(buf, pmpug->path) == 0)
 		return (vld_python);
-	else if (strcmp("lib/python/python3.6/xml", pmpug->path) == 0)
+	snprintf(buf, sizeof(buf), "lib/python/python%s/xml", py_version);
+	if (strcmp(buf, pmpug->path) == 0)
 		return (vld_python);
-	else if (strcmp("lib/python/python3.6/xml/dom", pmpug->path) == 0)
+	snprintf(buf, sizeof(buf), "lib/python/python%s/xml/dom", py_version);
+	if (strcmp(buf, pmpug->path) == 0)
 		return (vld_python);
-	else if (strcmp("lib/python/python3.6/xml/etree", pmpug->path) == 0)
+	snprintf(buf, sizeof(buf), "lib/python/python%s/xml/etree", py_version);
+	if (strcmp(buf, pmpug->path) == 0)
 		return (vld_python);
-	else if (strcmp("lib/python/python3.6/xml/parsers", pmpug->path) == 0)
+	snprintf(buf, sizeof(buf), "lib/python/python%s/xml/parsers", py_version);
+	if (strcmp(buf, pmpug->path) == 0)
 		return (vld_python);
-	else if (strcmp("lib/python/python3.6/xml/sax", pmpug->path) == 0)
+	snprintf(buf, sizeof(buf), "lib/python/python%s/xml/sax", py_version);
+	if (strcmp(buf, pmpug->path) == 0)
 		return (vld_python);
-	else
-		return NULL;
+	return NULL;
 }
 #endif /* 0 */
 

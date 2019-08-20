@@ -75,19 +75,19 @@ for /f "usebackq" %%A in (`dir /b C:\__withoutspace_*dir_* 2^>nul`) do rd /Q C:\
 call "%~dp0set_paths.bat"
 1>nul 2>nul del /Q /F %BINARIESDIR%\*.bat.out %BINARIESDIR%\*.passed
 
-for /f "usebackq" %%A in (`dir /on /b .appveyor ^| findstr /B /R "^build_.*\.bat$"`) do (
-    if !started! lss %NUMBER_OF_PROCESSORS% (
-        set /a "started+=1, next=started"
-    ) else (
-        call :Wait
-    )
-    set out!next!=%%A.out
-    echo !time! - %%A - %BUILD_TYPE% version: started
-    start /b "" "cmd /c 1>%BINARIESDIR%\%%A.out 2>&1 .appveyor\%%A %BUILD_TYPE% && echo > %BINARIESDIR%\%%A.passed"
-    REM Introduce 2 sec delay to get different RANDOM value
-    1>nul 2>nul ping /n 2 ::1
-)
-set hasmore=
+rem for /f "usebackq" %%A in (`dir /on /b .appveyor ^| findstr /B /R "^build_.*\.bat$"`) do (
+rem    if !started! lss %NUMBER_OF_PROCESSORS% (
+rem        set /a "started+=1, next=started"
+rem    ) else (
+rem        call :Wait
+rem    )
+rem    set out!next!=%%A.out
+rem    echo !time! - %%A - %BUILD_TYPE% version: started
+rem    start /b "" "cmd /c 1>%BINARIESDIR%\%%A.out 2>&1 .appveyor\%%A %BUILD_TYPE% && echo > %BINARIESDIR%\%%A.passed"
+rem    REM Introduce 2 sec delay to get different RANDOM value
+rem    1>nul 2>nul ping /n 2 ::1
+rem )
+rem set hasmore=
 
 :Wait
 for /l %%N in (1 1 %started%) do 2>nul (
@@ -105,10 +105,10 @@ for /l %%N in (1 1 %started%) do 2>nul (
         set /a "ended+=1, ended%%N=1"
     )
 )
-if %ended% lss %started% (
-    1>nul 2>nul ping /n 5 ::1
-    goto :Wait
-)
+rem if %ended% lss %started% (
+rem    1>nul 2>nul ping /n 5 ::1
+rem     goto :Wait
+rem )
 
-1>nul 2>nul del /Q /F %BINARIESDIR%\*.bat.out %BINARIESDIR%\*.passed
+rem 1>nul 2>nul del /Q /F %BINARIESDIR%\*.bat.out %BINARIESDIR%\*.passed
 

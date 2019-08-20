@@ -80,7 +80,7 @@ if not exist "%BINARIESDIR%\postgresql-%PGSQL_VERSION%\src\tools\msvc" (
     exit /b 1
 )
 
-call "%VS90COMNTOOLS%vsvars32.bat"
+call "%VS150COMNTOOLS%VsDevCmd.bat"
 
 cd "%BINARIESDIR%\postgresql-%PGSQL_VERSION%\src\tools\msvc"
 

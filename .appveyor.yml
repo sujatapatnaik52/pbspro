@@ -1,4 +1,5 @@
 version: "#{build}"
+image: Windows Server 2019 
 pull_requests:
   do_not_increment_build_number: true
 clone_depth: 5
@@ -10,8 +11,8 @@ configuration:
 before_build:
   - cmd: call .appveyor\appveyor_helper.bat %CONFIGURATION%
 build_script:
-  - cmd: call "%VS90COMNTOOLS%vsvars32.bat"
-  - cmd: vcbuild win_configure\pbs_windows_VS2008.sln "%CONFIGURATION%|Win32"
+  - cmd: call "%VS150COMNTOOLS%VsDevCmd.bat"
+  - cmd: msbuild win_configure\pbs_windows_VS2017.sln "%CONFIGURATION%|Win32"
 after_build:
   - cmd: call .appveyor\generate_installer.bat %CONFIGURATION%
 before_test:

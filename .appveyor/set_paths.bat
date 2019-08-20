@@ -61,11 +61,11 @@ if not defined __BINARIESDIR (
 )
 
 if not defined VS150COMNTOOLS (
-	set "VS150COMNTOOLS=C:\Program Files (x86)\Microsoft Visual Studio\2017\Professional\Common7\Tools\"
+    set "VS150COMNTOOLS=C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\"
 )
 
 if exist "%VS150COMNTOOLS%VsDevCmd.bat" (
-	call "%VS150COMNTOOLS%VsDevCmd.bat"
+    call "%VS150COMNTOOLS%VsDevCmd.bat"
 ) else (
     echo "Could not find %VS150COMNTOOLS%VsDevCmd.bat"
     exit 1

@@ -73,14 +73,12 @@ if exist "%BINARIESDIR%\python_externals.tar.gz" (
     )
 )
 
-REM Patch python source to make it purify compatible
-REM this patch is same as compiling python with '--without-pymalloc' in Linux
-REM but unfortunately in windows we don't have command line option like Linux
-"%MSYSDIR%\bin\bash" --login -i -c "cd \"$BINARIESDIR_M/cpython-$PYTHON_VERSION\" && sed -i 's/#define WITH_PYMALLOC 1//g' PC/pyconfig.h"
+REM "Set MSBUILD to VS2017 before calling env.bat"
+call "%BINARIESDIR%\cpython-%PYTHON_VERSION%\PCbuild\find_msbuild.bat"
 
 call "%BINARIESDIR%\cpython-%PYTHON_VERSION%\PCbuild\env.bat" x86
 
-call "%BINARIESDIR%\cpython-%PYTHON_VERSION%\PC\VS9.0\build.bat" -e -d
+call "%BINARIESDIR%\cpython-%PYTHON_VERSION%\PCbuild\build.bat" -e -d
 if not %ERRORLEVEL% == 0 (
     echo "Failed to compile Python debug version"
     exit /b 1

@@ -70,119 +70,67 @@ if exist "%BINARIESDIR%\python_externals.tar.gz" (
     call "%BINARIESDIR%\cpython-%PYTHON_VERSION%\PCbuild\get_externals.bat"
 )
 
-REM workaround to openssl build fail
-2>nul del /Q /F "%BINARIESDIR%\cpython-%PYTHON_VERSION%\externals\openssl-1.0.2j\ms\nt64.mak"
-
-if exist "%VS90COMNTOOLS%..\..\VC\bin\amd64\vcvarsamd64.bat" (
-    call "%VS90COMNTOOLS%..\..\VC\bin\amd64\vcvarsamd64.bat"
-) else if exist "%VS90COMNTOOLS%..\..\VC\bin\vcvarsx86_amd64.bat" (
-    call "%VS90COMNTOOLS%..\..\VC\bin\vcvarsx86_amd64.bat"
-) else (
-    echo "Could not find x64 build tools for Visual Studio"
-    exit /b 1
-)
-
-call "%BINARIESDIR%\cpython-%PYTHON_VERSION%\PC\VS9.0\build.bat" -e -p x64
+REM "Set MSBUILD to VS2017 before calling env.bat"
+call "%BINARIESDIR%\cpython-%PYTHON_VERSION%\PCbuild\find_msbuild.bat"
+call "%BINARIESDIR%\cpython-%PYTHON_VERSION%\PCbuild\env.bat" x64
 if not %ERRORLEVEL% == 0 (
     echo "Failed to compile Python 64bit"
     exit /b 1
 )
 
-REM Workaround for cabarc.exe, required by msi.py
-if not exist "%BINARIESDIR%\cabarc.exe" (
-    if not exist "%BINARIESDIR%\supporttools.exe" (
-        "%CURL_BIN%" -qkL -o "%BINARIESDIR%\supporttools.exe" http://download.microsoft.com/download/d/3/8/d38066aa-4e37-4ae8-bce3-a4ce662b2024/WindowsXP-KB838079-SupportTools-ENU.exe
-        if not exist "%BINARIESDIR%\supporttools.exe" (
-            echo "Failed to download supporttools.exe"
-            exit /b 1
-        )
-    )
-    2>nul rd /S /Q "%BINARIESDIR%\cpython-%PYTHON_VERSION%\cabarc_temp"
-    mkdir "%BINARIESDIR%\cpython-%PYTHON_VERSION%\cabarc_temp"
-    "%BINARIESDIR%\supporttools.exe" /C /T:"%BINARIESDIR%\cpython-%PYTHON_VERSION%\cabarc_temp"
-    expand "%BINARIESDIR%\cpython-%PYTHON_VERSION%\cabarc_temp\support.cab" -F:cabarc.exe "%BINARIESDIR%"
-)
-set PATH=%BINARIESDIR%;%PATH%
-
-REM Workaround for python2713.chm
+REM Workaround for python368.chm
 mkdir "%BINARIESDIR%\cpython-%PYTHON_VERSION%\Doc\build\htmlhelp"
-echo "dummy chm file to make msi.py happy" > "%BINARIESDIR%\cpython-%PYTHON_VERSION%\Doc\build\htmlhelp\python%PYTHON_VERSION:.=%.chm"
-
-cd PC
-REM we need 32bit compiler as python icons does not compile in 64bit
-call "%VS90COMNTOOLS%vsvars32.bat"
-nmake /f "%BINARIESDIR%\cpython-%PYTHON_VERSION%\PC\icons.mak"
-if not %ERRORLEVEL% == 0 (
-    echo "Failed to build icons for Python 64bit"
-    exit /b 1
-)
-
-REM Restore back 64 bit compiler
-if exist "%VS90COMNTOOLS%..\..\VC\bin\amd64\vcvarsamd64.bat" (
-    call "%VS90COMNTOOLS%..\..\VC\bin\amd64\vcvarsamd64.bat"
-) else if exist "%VS90COMNTOOLS%..\..\VC\bin\vcvarsx86_amd64.bat" (
-    call "%VS90COMNTOOLS%..\..\VC\bin\vcvarsx86_amd64.bat"
-) else (
-    echo "Could not find x64 build tools for Visual Studio"
-    exit /b 1
-)
+echo "dummy chm file to make installer script happy" > "%BINARIESDIR%\cpython-%PYTHON_VERSION%\Doc\build\htmlhelp\python368.chm"
 
 cd "%BINARIESDIR%\cpython-%PYTHON_VERSION%\Tools\msi"
-set PCBUILD=PC\VS9.0\amd64
+set PCBUILD=PCBuild\amd64
 set SNAPSHOT=0
+
+set PYTHON="%BINARIESDIR%\cpython-%PYTHON_VERSION%\%PCBUILD%\python.exe"
+set HTMLHELP="%BINARIESDIR%\cpython-%PYTHON_VERSION%\externals\windows-installer\htmlhelp\hhc.exe "
+set PATH="%BINARIESDIR%\cpython-%PYTHON_VERSION%\Scripts";%PATH%
+set SPHINXBUILD="%BINARIESDIR%\cpython-%PYTHON_VERSION%\Scripts\sphinx-build.exe"
+
+call "%BINARIESDIR%\cpython-%PYTHON_VERSION%\Tools\msi\build.bat" -x64
+
+REM Find the installer generated.
+for /f "usebackq" %%a in (`dir /b %BINARIESDIR%\cpython-%PYTHON_VERSION%\%PCBUILD%\en-us\python-3.6*amd64.exe`) do ( set PY_EXE_NAME=%%a )
+
+if not exist "%BINARIESDIR%\cpython-%PYTHON_VERSION%\%PCBUILD%\en-us\%PY_EXE_NAME%" (
+    echo "Failed to generate  Python 64bit no binary"
+    exit /b 1
+)
+
+start /wait /d "%BINARIESDIR%\cpython-%PYTHON_VERSION%\%PCBUILD%\en-us\" %PY_EXE_NAME% /quiet InstallAllUsers=0 TargetDir="%BINARIESDIR%\python_x64"
+if not %ERRORLEVEL% == 0 (
+    echo "Failed to extract  Python 64bit to %BINARIESDIR%\python"
+    exit /b 1
+)
+
 "%BINARIESDIR%\cpython-%PYTHON_VERSION%\%PCBUILD%\python.exe" -m ensurepip -U --default-pip
 if not %ERRORLEVEL% == 0 (
     echo "Failed to run ensurepip for Python 64bit"
     exit /b 1
 )
 set PIP_EXTRA_ARGS=
-if exist "%BINARIESDIR%\pypiwin32-219-cp27-none-win_amd64.whl" (
+if exist "%BINARIESDIR%\pypiwin32--223-py3-none-win_amd64.whl" (
     set PIP_EXTRA_ARGS=--no-index --find-links="%BINARIESDIR%" --no-cache-dir
 )
-"%BINARIESDIR%\cpython-%PYTHON_VERSION%\%PCBUILD%\python.exe" -m pip install %PIP_EXTRA_ARGS% pypiwin32==219
-if not %ERRORLEVEL% == 0 (
-    echo "Failed to install pypiwin32 for Python 64bit"
-    exit /b 1
-)
-"%BINARIESDIR%\cpython-%PYTHON_VERSION%\%PCBUILD%\python.exe" msi.py
-if not exist "%BINARIESDIR%\cpython-%PYTHON_VERSION%\Tools\msi\python-%PYTHON_VERSION%150.amd64.msi" (
-    echo "Failed to generate msi Python 64bit"
-    exit /b 1
-)
 
-start /wait msiexec /qn /a "%BINARIESDIR%\cpython-%PYTHON_VERSION%\Tools\msi\python-%PYTHON_VERSION%150.amd64.msi" TARGETDIR="%BINARIESDIR%\python_x64"
-if not %ERRORLEVEL% == 0 (
-    echo "Failed to extract msi Python 64bit to %BINARIESDIR%\python_x64"
-    exit /b 1
-)
-"%BINARIESDIR%\python_x64\python.exe" -Wi "%BINARIESDIR%\python_x64\Lib\compileall.py" -q -f -x "bad_coding|badsyntax|site-packages|py3_" "%BINARIESDIR%\python_x64\Lib"
-"%BINARIESDIR%\python_x64\python.exe" -O -Wi "%BINARIESDIR%\python_x64\Lib\compileall.py" -q -f -x "bad_coding|badsyntax|site-packages|py3_" "%BINARIESDIR%\python_x64\Lib"
 "%BINARIESDIR%\python_x64\python.exe" -c "import lib2to3.pygram, lib2to3.patcomp;lib2to3.patcomp.PatternCompiler()"
 "%BINARIESDIR%\python_x64\python.exe" -m ensurepip -U --default-pip
 if not %ERRORLEVEL% == 0 (
     echo "Failed to run ensurepip in %BINARIESDIR%\python_x64 for Python 64bit"
     exit /b 1
 )
-"%BINARIESDIR%\python_x64\python.exe" -m pip install %PIP_EXTRA_ARGS% pypiwin32==219
+"%BINARIESDIR%\python_x64\python.exe" -m pip install %PIP_EXTRA_ARGS% pypiwin32==223
 if not %ERRORLEVEL% == 0 (
     echo "Failed to install pypiwin32 in %BINARIESDIR%\python_x64 for Python 64bit"
     exit /b 1
 )
-copy /B /Y "%VS90COMNTOOLS%..\..\VC\redist\amd64\Microsoft.VC90.CRT\msvcr90.dll" "%BINARIESDIR%\python_x64\"
-if not %ERRORLEVEL% == 0 (
-    echo "Failed to copy msvcr90.dll in %BINARIESDIR%\python_x64 for Python 64bit"
-    exit /b 1
-)
-copy /B /Y "%VS90COMNTOOLS%..\..\VC\redist\amd64\Microsoft.VC90.CRT\Microsoft.VC90.CRT.manifest" "%BINARIESDIR%\python_x64\"
-if not %ERRORLEVEL% == 0 (
-    echo "Failed to copy Microsoft.VC90.CRT.manifest in %BINARIESDIR%\python_x64 for Python 64bit"
-    exit /b 1
-)
-
 
 cd "%BINARIESDIR%"
 2>nul rd /S /Q "%BINARIESDIR%\cpython-%PYTHON_VERSION%"
 2>nul del /Q /F "%BINARIESDIR%\cabarc.exe"
 
 exit /b 0
-

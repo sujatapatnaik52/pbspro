@@ -59,11 +59,16 @@ if not defined CMAKE_BIN (
 if not defined __BINARIESDIR (
     set __BINARIESDIR=%CD%\binaries
 )
-if exist "%VS90COMNTOOLS%vsvars32.bat" (
-    call "%VS90COMNTOOLS%vsvars32.bat"
+
+if not defined VS150COMNTOOLS (
+	set "VS150COMNTOOLS=C:\Program Files (x86)\Microsoft Visual Studio\2017\Professional\Common7\Tools\"
+)
+
+if exist "%VS150COMNTOOLS%VsDevCmd.bat" (
+	call "%VS150COMNTOOLS%VsDevCmd.bat"
 ) else (
-    echo "Could not find %VS90COMNTOOLS%vsvars32.bat"
-    exit 1
+    echo Could not find "%VS150COMNTOOLS%VsDevCmd.bat"
+    exit /b 1
 )
 
 set __RANDOM_VAL=%RANDOM::=_%
@@ -86,16 +91,13 @@ set BINARIESDIR=%CD%
 for /F "usebackq tokens=*" %%i in (`""%MSYSDIR%\bin\bash.exe" -c "pwd""`) do set BINARIESDIR_M=%%i
 
 if not defined LIBEDIT_VERSION (
-    set LIBEDIT_VERSION=2.204
+    set LIBEDIT_VERSION=2.205
 )
 if not defined PYTHON_VERSION (
-    set PYTHON_VERSION=2.7.13
+    set PYTHON_VERSION=3.6.8
 )
 if not defined OPENSSL_VERSION (
-    set OPENSSL_VERSION=1_1_0f
-)
-if not defined SWIG_VERSION (
-    set SWIG_VERSION=3.0.12
+    set OPENSSL_VERSION=1_1_0j
 )
 if not defined ZLIB_VERSION (
     set ZLIB_VERSION=1.2.11

@@ -67,89 +67,84 @@ if exist "%BINARIESDIR%\python_externals.tar.gz" (
         "%MSYSDIR%\bin\bash" --login -i -c "cd \"$BINARIESDIR_M/cpython-$PYTHON_VERSION\" && tar -xf \"$BINARIESDIR_M/python_externals.tar.gz\""
     )
 )
-
+REM "Set MSBUILD to VS2017 before calling env.bat"
+call "%BINARIESDIR%\cpython-%PYTHON_VERSION%\PCbuild\find_msbuild.bat"
 call "%BINARIESDIR%\cpython-%PYTHON_VERSION%\PCbuild\env.bat" x86
 
-call "%BINARIESDIR%\cpython-%PYTHON_VERSION%\PC\VS9.0\build.bat" -e
+REM call "%BINARIESDIR%\cpython-%PYTHON_VERSION%\PCbuild\build.bat" -e 
 if not %ERRORLEVEL% == 0 (
     echo "Failed to compile Python 32bit"
     exit /b 1
 )
 
-REM Workaround for cabarc.exe, required by msi.py
-if not exist "%BINARIESDIR%\cabarc.exe" (
-    if not exist "%BINARIESDIR%\supporttools.exe" (
-        "%CURL_BIN%" -qkL -o "%BINARIESDIR%\supporttools.exe" http://download.microsoft.com/download/d/3/8/d38066aa-4e37-4ae8-bce3-a4ce662b2024/WindowsXP-KB838079-SupportTools-ENU.exe
-        if not exist "%BINARIESDIR%\supporttools.exe" (
-            echo "Failed to download supporttools.exe"
-            exit /b 1
-        )
-    )
-    2>nul rd /S /Q "%BINARIESDIR%\cpython-%PYTHON_VERSION%\cabarc_temp"
-    mkdir "%BINARIESDIR%\cpython-%PYTHON_VERSION%\cabarc_temp"
-    "%BINARIESDIR%\supporttools.exe" /C /T:"%BINARIESDIR%\cpython-%PYTHON_VERSION%\cabarc_temp"
-    expand "%BINARIESDIR%\cpython-%PYTHON_VERSION%\cabarc_temp\support.cab" -F:cabarc.exe "%BINARIESDIR%"
-)
 set PATH=%BINARIESDIR%;%PATH%
 
-REM Workaround for python2713.chm
+REM Workaround for python368.chm
 mkdir "%BINARIESDIR%\cpython-%PYTHON_VERSION%\Doc\build\htmlhelp"
-echo "dummy chm file to make msi.py happy" > "%BINARIESDIR%\cpython-%PYTHON_VERSION%\Doc\build\htmlhelp\python%PYTHON_VERSION:.=%.chm"
+echo "dummy chm file to make msi.py happy" > "%BINARIESDIR%\cpython-%PYTHON_VERSION%\Doc\build\htmlhelp\python368.chm"
 
-cd PC
-nmake /f "%BINARIESDIR%\cpython-%PYTHON_VERSION%\PC\icons.mak"
-if not %ERRORLEVEL% == 0 (
-    echo "Failed to build icons for Python 32bit"
+cd "%BINARIESDIR%\cpython-%PYTHON_VERSION%\Tools\msi"
+set PCBUILD=PCbuild\win32
+set SNAPSHOT=0
+
+REM set PYTHON="%BINARIESDIR%\cpython-%PYTHON_VERSION%\%PCBUILD%\python.exe"
+cd %BINARIESDIR%\cpython-%PYTHON_VERSION%\%PCBUILD%"
+
+call "%BINARIESDIR%\cpython-%PYTHON_VERSION%\Tools\msi\build.bat" -x86
+REM Find the installer generated.
+for /f "usebackq" %%a in (`dir /b %BINARIESDIR%\cpython-%PYTHON_VERSION%\%PCBUILD%\en-us\python-3.6*.exe`) do ( set PY_EXE_NAME=%%a )
+
+if not exist "%BINARIESDIR%\cpython-%PYTHON_VERSION%\%PCBUILD%\en-us\%PY_EXE_NAME%" (
+    echo "Failed to generate Python 32bit no binary"
     exit /b 1
 )
 
-cd "%BINARIESDIR%\cpython-%PYTHON_VERSION%\Tools\msi"
-set PCBUILD=PC\VS9.0
-set SNAPSHOT=0
+start /wait /d "%BINARIESDIR%\cpython-%PYTHON_VERSION%\%PCBUILD%\en-us\" %PY_EXE_NAME% /quiet InstallAllUsers=0 TargetDir="%BINARIESDIR%\python"
+if not %ERRORLEVEL% == 0 (
+    echo "Failed to extract  Python 32bit to %BINARIESDIR%\python"
+    exit /b 1
+)
+
 "%BINARIESDIR%\cpython-%PYTHON_VERSION%\%PCBUILD%\python.exe" -m ensurepip -U --default-pip
 if not %ERRORLEVEL% == 0 (
     echo "Failed to run ensurepip for Python 32bit"
     exit /b 1
 )
 set PIP_EXTRA_ARGS=
-if exist "%BINARIESDIR%\pypiwin32-219-cp27-none-win32.whl" (
+if exist "%BINARIESDIR%\pypiwin32-223-py3-none-any.whl" (
     set PIP_EXTRA_ARGS=--no-index --find-links="%BINARIESDIR%" --no-cache-dir
 )
-"%BINARIESDIR%\cpython-%PYTHON_VERSION%\%PCBUILD%\python.exe" -m pip install %PIP_EXTRA_ARGS% pypiwin32==219
+"%BINARIESDIR%\cpython-%PYTHON_VERSION%\%PCBUILD%\python.exe" -m pip install %PIP_EXTRA_ARGS% pypiwin32==223
 if not %ERRORLEVEL% == 0 (
     echo "Failed to install pypiwin32 for Python 32bit"
     exit /b 1
 )
-"%BINARIESDIR%\cpython-%PYTHON_VERSION%\%PCBUILD%\python.exe" msi.py
-if not exist "%BINARIESDIR%\cpython-%PYTHON_VERSION%\Tools\msi\python-%PYTHON_VERSION%150.msi" (
-    echo "Failed to generate msi Python 32bit"
+
+REM "%BINARIESDIR%\cpython-%PYTHON_VERSION%\%PCBUILD%\python.exe" -m pip install %PIP_EXTRA_ARGS% sphinx
+if not %ERRORLEVEL% == 0 (
+    echo "Failed to install sphinx for Python 32bit"
     exit /b 1
 )
 
-start /wait msiexec /qn /a "%BINARIESDIR%\cpython-%PYTHON_VERSION%\Tools\msi\python-%PYTHON_VERSION%150.msi" TARGETDIR="%BINARIESDIR%\python"
-if not %ERRORLEVEL% == 0 (
-    echo "Failed to extract msi Python 32bit to %BINARIESDIR%\python"
-    exit /b 1
-)
-"%BINARIESDIR%\python\python.exe" -Wi "%BINARIESDIR%\python\Lib\compileall.py" -q -f -x "bad_coding|badsyntax|site-packages|py3_" "%BINARIESDIR%\python\Lib"
-"%BINARIESDIR%\python\python.exe" -O -Wi "%BINARIESDIR%\python\Lib\compileall.py" -q -f -x "bad_coding|badsyntax|site-packages|py3_" "%BINARIESDIR%\python\Lib"
-"%BINARIESDIR%\python\python.exe" -c "import lib2to3.pygram, lib2to3.patcomp;lib2to3.patcomp.PatternCompiler()"
+REM "%BINARIESDIR%\python\python.exe" -Wi "%BINARIESDIR%\python\Lib\compileall.py" -q -f -x "bad_coding|badsyntax|site-packages|py3_" "%BINARIESDIR%\python\Lib"
+REM "%BINARIESDIR%\python\python.exe" -O -Wi "%BINARIESDIR%\python\Lib\compileall.py" -q -f -x "bad_coding|badsyntax|site-packages|py3_" "%BINARIESDIR%\python\Lib"
+REM "%BINARIESDIR%\python\python.exe" -c "import lib2to3.pygram, lib2to3.patcomp;lib2to3.patcomp.PatternCompiler()"
 "%BINARIESDIR%\python\python.exe" -m ensurepip -U --default-pip
 if not %ERRORLEVEL% == 0 (
     echo "Failed to run ensurepip in %BINARIESDIR%\python for Python 32bit"
     exit /b 1
 )
-"%BINARIESDIR%\python\python.exe" -m pip install %PIP_EXTRA_ARGS% pypiwin32==219
+"%BINARIESDIR%\python\python.exe" -m pip install %PIP_EXTRA_ARGS% pypiwin32==223
 if not %ERRORLEVEL% == 0 (
     echo "Failed to install pypiwin32 in %BINARIESDIR%\python for Python 32bit"
     exit /b 1
 )
-copy /B /Y "%VS90COMNTOOLS%..\..\VC\redist\amd64\Microsoft.VC90.CRT\msvcr90.dll" "%BINARIESDIR%\python\"
+copy /B /Y "%VS140COMNTOOLS%..\..\VC\redist\x64\Microsoft.VC140.CRT\msvcp140.dll" "%BINARIESDIR%\python\"
 if not %ERRORLEVEL% == 0 (
     echo "Failed to copy msvcr90.dll in %BINARIESDIR%\python for Python 32bit"
     exit /b 1
 )
-copy /B /Y "%VS90COMNTOOLS%..\..\VC\redist\amd64\Microsoft.VC90.CRT\Microsoft.VC90.CRT.manifest" "%BINARIESDIR%\python\"
+REM copy /B /Y "%VS140COMNTOOLS%..\..\VC\redist\x64\Microsoft.VC140.CRT\Microsoft.VC90.CRT.manifest" "%BINARIESDIR%\python\"
 if not %ERRORLEVEL% == 0 (
     echo "Failed to copy Microsoft.VC90.CRT.manifest in %BINARIESDIR%\python for Python 32bit"
     exit /b 1

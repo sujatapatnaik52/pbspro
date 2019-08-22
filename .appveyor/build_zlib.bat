@@ -75,7 +75,7 @@ if exist "%BINARIESDIR%\zlib-%ZLIB_VERSION%" (
 	)
 )
 
-call "%VS90COMNTOOLS%vsvars32.bat"
+call "%VS150COMNTOOLS%VsDevCmd.bat"
 
 cd "%BINARIESDIR%\zlib
 

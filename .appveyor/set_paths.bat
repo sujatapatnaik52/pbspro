@@ -88,12 +88,6 @@ for /F "usebackq tokens=*" %%i in (`""%MSYSDIR%\bin\bash.exe" -c "pwd""`) do set
 if not defined LIBEDIT_VERSION (
     set LIBEDIT_VERSION=2.204
 )
-if not defined LIBICAL_VERSION (
-    set LIBICAL_VERSION=1.0.1
-)
-if not defined PGSQL_VERSION (
-    set PGSQL_VERSION=9.6.3
-)
 if not defined PYTHON_VERSION (
     set PYTHON_VERSION=2.7.13
 )
@@ -102,12 +96,6 @@ if not defined OPENSSL_VERSION (
 )
 if not defined SWIG_VERSION (
     set SWIG_VERSION=3.0.12
-)
-if not defined TCL_VERSION (
-    set TCL_VERSION=8.6.6
-)
-if not defined TK_VERSION (
-    set TK_VERSION=8.6.6
 )
 if not defined ZLIB_VERSION (
     set ZLIB_VERSION=1.2.11

@@ -41,8 +41,8 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\..\src\include;..\include;..\..\..\binaries\openssl_debug\include;..\..\..\binaries\libical_debug\include"
-				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE; LIBICAL;_USE_32BIT_TIME_T "
+				AdditionalIncludeDirectories="..\..\src\include;..\include;..\..\..\binaries\openssl_debug\include"
+				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;_USE_32BIT_TIME_T "
 				MinimalRebuild="false"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
@@ -68,7 +68,7 @@
 			<Tool
 				Name="VCLibrarianTool"
 				OutputFile="..\..\..\win_build\src\lib\Libutil\Debug\Libutil.lib"
-				AdditionalLibraryDirectories="..\..\..\binaries\libical\lib"
+				AdditionalLibraryDirectories=""
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -111,8 +111,8 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="..\..\src\include;..\include;..\..\..\binaries\openssl\include;..\..\..\binaries\libical\include"
-				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE; LIBICAL;_USE_32BIT_TIME_T "
+				AdditionalIncludeDirectories="..\..\src\include;..\include;..\..\..\binaries\openssl\include"
+				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;_USE_32BIT_TIME_T "
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
 				PrecompiledHeaderFile="..\..\..\win_build\src\lib\Libutil\Release\Libutil.pch"
@@ -132,7 +132,7 @@
 			<Tool
 				Name="VCLibrarianTool"
 				OutputFile="..\..\..\win_build\src\lib\Libutil\Release\Libutil.lib"
-				AdditionalLibraryDirectories="..\..\..\binaries\libical\lib;..\..\..\binaries\openssl\lib"
+				AdditionalLibraryDirectories="..\..\..\binaries\openssl\lib"
 			/>
 			<Tool
 				Name="VCALinkTool"

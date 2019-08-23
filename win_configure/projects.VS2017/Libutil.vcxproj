@@ -60,7 +60,7 @@
       <PrecompiledHeaderOutputFile>..\..\..\win_build\src\lib\Libutil\Debug\Libutil.pch</PrecompiledHeaderOutputFile>
       <AssemblerListingLocation>..\..\..\win_build\src\lib\Libutil\Debug\</AssemblerListingLocation>
       <ObjectFileName>..\..\..\win_build\src\lib\Libutil\Debug\</ObjectFileName>
-      <ProgramDataBaseFileName>..\..\..\win_build\src\lib\Libutils\Debug\</ProgramDataBaseFileName>
+      <ProgramDataBaseFileName>$(IntDir)$(ProjectName).pdb</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <CompileAs>Default</CompileAs>

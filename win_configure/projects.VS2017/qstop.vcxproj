@@ -66,7 +66,7 @@
       <PrecompiledHeaderOutputFile>..\..\..\win_build\src\cmds\Debug\qstop.pch</PrecompiledHeaderOutputFile>
       <AssemblerListingLocation>..\..\..\win_build\src\cmds\Debug\</AssemblerListingLocation>
       <ObjectFileName>..\..\..\win_build\src\cmds\Debug\</ObjectFileName>
-      <ProgramDataBaseFileName>..\..\..\win_build\src\cmds\Debug\</ProgramDataBaseFileName>
+      <ProgramDataBaseFileName>$(IntDir)$(ProjectName).pdb</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
@@ -107,7 +107,7 @@
       <PrecompiledHeaderOutputFile>..\..\..\win_build\src\cmds\Release\qstop.pch</PrecompiledHeaderOutputFile>
       <AssemblerListingLocation>..\..\..\win_build\src\cmds\Release\</AssemblerListingLocation>
       <ObjectFileName>..\..\..\win_build\src\cmds\Release\</ObjectFileName>
-      <ProgramDataBaseFileName>..\..\..\win_build\src\cmds\Release\</ProgramDataBaseFileName>
+      <ProgramDataBaseFileName>$(IntDir)$(ProjectName).pdb</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <CompileAs>Default</CompileAs>

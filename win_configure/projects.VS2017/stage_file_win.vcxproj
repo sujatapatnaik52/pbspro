@@ -68,7 +68,7 @@
       <PrecompiledHeaderOutputFile>..\..\..\win_build\src\stage_file_win\Debug\stage_file_win.pch</PrecompiledHeaderOutputFile>
       <AssemblerListingLocation>..\..\..\win_build\src\stage_file_win\Debug\</AssemblerListingLocation>
       <ObjectFileName>..\..\..\win_build\src\stage_file_win\Debug\</ObjectFileName>
-      <ProgramDataBaseFileName>..\..\..\win_build\src\stage_file_win\Debug\stage_file_win.pdb</ProgramDataBaseFileName>
+      <ProgramDataBaseFileName>$(IntDir)$(ProjectName).pdb</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
@@ -110,7 +110,7 @@
       <PrecompiledHeaderOutputFile>..\..\..\win_build\src\stage_file_win\Release\stage_file_win.pch</PrecompiledHeaderOutputFile>
       <AssemblerListingLocation>..\..\..\win_build\src\stage_file_win\Release\</AssemblerListingLocation>
       <ObjectFileName>..\..\..\win_build\src\stage_file_win\Release\</ObjectFileName>
-      <ProgramDataBaseFileName>..\..\..\win_build\src\stage_file_win\Release\stage_file_win.pdb</ProgramDataBaseFileName>
+      <ProgramDataBaseFileName>$(IntDir)$(ProjectName).pdb</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>

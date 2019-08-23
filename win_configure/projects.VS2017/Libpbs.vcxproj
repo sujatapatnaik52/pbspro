@@ -64,7 +64,7 @@
       <PrecompiledHeaderOutputFile>..\..\..\win_build\src\lib\Libpbs\Debug\Libpbs.pch</PrecompiledHeaderOutputFile>
       <AssemblerListingLocation>..\..\..\win_build\src\lib\Libpbs\Debug\</AssemblerListingLocation>
       <ObjectFileName>..\..\..\win_build\src\lib\Libpbs\Debug\</ObjectFileName>
-      <ProgramDataBaseFileName>..\..\..\win_build\src\lib\Libpbs\Debug\</ProgramDataBaseFileName>
+      <ProgramDataBaseFileName>$(IntDir)$(ProjectName).pdb</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
@@ -97,7 +97,7 @@
       <PrecompiledHeaderOutputFile>..\..\..\win_build\src\lib\Libpbs\Release\Libpbs.pch</PrecompiledHeaderOutputFile>
       <AssemblerListingLocation>..\..\..\win_build\src\lib\Libpbs\Release\</AssemblerListingLocation>
       <ObjectFileName>..\..\..\win_build\src\lib\Libpbs\Release\</ObjectFileName>
-      <ProgramDataBaseFileName>..\..\..\win_build\src\lib\Libpbs\Release\</ProgramDataBaseFileName>
+      <ProgramDataBaseFileName>$(IntDir)$(ProjectName).pdb</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <CompileAs>Default</CompileAs>

@@ -67,7 +67,7 @@
       <PrecompiledHeaderOutputFile>..\..\..\win_build\src\tools\Debug\printjob.pch</PrecompiledHeaderOutputFile>
       <AssemblerListingLocation>..\..\..\win_build\src\tools\Debug\</AssemblerListingLocation>
       <ObjectFileName>..\..\..\win_build\src\tools\Debug\printjob_host.obj</ObjectFileName>
-      <ProgramDataBaseFileName>..\..\..\win_build\src\tools\Debug\printjob_host.pdb</ProgramDataBaseFileName>
+      <ProgramDataBaseFileName>$(IntDir)$(ProjectName).pdb</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
@@ -108,7 +108,7 @@
       <PrecompiledHeaderOutputFile>..\..\..\win_build\src\tools\Release\printjob.pch</PrecompiledHeaderOutputFile>
       <AssemblerListingLocation>..\..\..\win_build\src\tools\Release\</AssemblerListingLocation>
       <ObjectFileName>..\..\..\win_build\src\tools\Release\printjob_host.obj</ObjectFileName>
-      <ProgramDataBaseFileName>..\..\..\win_build\src\tools\Release\printjob_host.pdb</ProgramDataBaseFileName>
+      <ProgramDataBaseFileName>$(IntDir)$(ProjectName).pdb</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <CompileAs>Default</CompileAs>

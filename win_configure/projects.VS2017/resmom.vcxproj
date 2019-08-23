@@ -67,7 +67,7 @@
       <PrecompiledHeaderOutputFile>..\..\..\win_build\src\resmom\Debug\resmom.pch</PrecompiledHeaderOutputFile>
       <AssemblerListingLocation>..\..\..\win_build\src\resmom\Debug\</AssemblerListingLocation>
       <ObjectFileName>..\..\..\win_build\src\resmom\Debug\</ObjectFileName>
-      <ProgramDataBaseFileName>..\..\..\win_build\src\resmom\Debug\</ProgramDataBaseFileName>
+      <ProgramDataBaseFileName>$(IntDir)$(ProjectName).pdb</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -109,7 +109,7 @@
       <PrecompiledHeaderOutputFile>..\..\..\win_build\src\resmom\Release\resmom.pch</PrecompiledHeaderOutputFile>
       <AssemblerListingLocation>..\..\..\win_build\src\resmom\Release\</AssemblerListingLocation>
       <ObjectFileName>..\..\..\win_build\src\resmom\Release\</ObjectFileName>
-      <ProgramDataBaseFileName>..\..\..\win_build\src\resmom\Release\</ProgramDataBaseFileName>
+      <ProgramDataBaseFileName>$(IntDir)$(ProjectName).pdb</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -121,7 +121,7 @@
     </ResourceCompile>
     <Link>
       <AdditionalOptions>/SAFESEH /STACK:0x1000000 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalDependencies>secur32.lib;Userenv.lib;mpr.lib;libcrypto.lib;crypt32.lib;winmm.lib;pdh.lib;ws2_32.lib;netapi32.lib;odbc32.lib;odbccp32.lib;Psapi.lib;python27.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>secur32.lib;Userenv.lib;mpr.lib;libcrypto.lib;crypt32.lib;winmm.lib;pdh.lib;ws2_32.lib;netapi32.lib;odbc32.lib;odbccp32.lib;Psapi.lib;python36.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>..\..\..\win_build\src\resmom\Release\pbs_mom.exe</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <AdditionalLibraryDirectories>..\..\..\win_build\src\server\Release;..\..\..\binaries\openssl\lib;..\..\..\win_build\src\server;..\..\..\binaries\python\libs;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>

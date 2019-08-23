@@ -60,7 +60,7 @@
       <PrecompiledHeaderOutputFile>..\..\..\win_build\src\lib\Libnet\Debug\Libnet.pch</PrecompiledHeaderOutputFile>
       <AssemblerListingLocation>..\..\..\win_build\src\lib\Libnet\Debug\</AssemblerListingLocation>
       <ObjectFileName>..\..\..\win_build\src\lib\Libnet\Debug\</ObjectFileName>
-      <ProgramDataBaseFileName>..\..\..\win_build\src\lib\Libnet\Debug\</ProgramDataBaseFileName>
+      <ProgramDataBaseFileName>$(IntDir)$(ProjectName).pdb</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
@@ -88,7 +88,7 @@
       <PrecompiledHeaderOutputFile>..\..\..\win_build\src\lib\Libnet\Release\Libnet.pch</PrecompiledHeaderOutputFile>
       <AssemblerListingLocation>..\..\..\win_build\src\lib\Libnet\Release\</AssemblerListingLocation>
       <ObjectFileName>..\..\..\win_build\src\lib\Libnet\Release\</ObjectFileName>
-      <ProgramDataBaseFileName>..\..\..\win_build\src\lib\Libnet\Release\</ProgramDataBaseFileName>
+      <ProgramDataBaseFileName>$(IntDir)$(ProjectName).pdb</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <CompileAs>Default</CompileAs>

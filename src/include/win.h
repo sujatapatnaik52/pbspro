@@ -58,6 +58,11 @@
 #include <varargs.h>
 #include <stddef.h>
 
+#ifdef _timezone
+#define _zonetime _timezone
+#undef _timezone
+#endif
+
 #define F_DUPFD         0       /* dup */
 #define _POSIX_PATH_MAX _MAX_PATH
 
@@ -121,6 +126,7 @@
 #define SIGKILL	0
 #define SIGSTOP	17
 #define SIGCONT	18
+#ifdef _CRT_NO_POSIX_ERROR_CODES
 #define EADDRINUSE WSAEADDRINUSE
 #define ETIMEDOUT WSAETIMEDOUT
 #define ECONNREFUSED WSAECONNREFUSED
@@ -129,7 +135,7 @@
 #define ENOTCONN WSAENOTCONN
 #define ENOBUFS WSAENOBUFS
 #define EADDRNOTAVAIL WSAEADDRNOTAVAIL
-
+#endif
 #define PBS_CMDLINE_LENGTH 4096
 enum operation {
 	RESUME=0,	/* Resume Process Operation */

@@ -66,7 +66,7 @@
       <PrecompiledHeaderOutputFile>..\..\..\win_build\src\iff\Debug\iff.pch</PrecompiledHeaderOutputFile>
       <AssemblerListingLocation>..\..\..\win_build\src\iff\Debug\</AssemblerListingLocation>
       <ObjectFileName>..\..\..\win_build\src\iff\Debug\</ObjectFileName>
-      <ProgramDataBaseFileName>..\..\..\win_build\src\iff\Debug\</ProgramDataBaseFileName>
+      <ProgramDataBaseFileName>$(IntDir)$(ProjectName).pdb</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
@@ -107,7 +107,7 @@
       <PrecompiledHeaderOutputFile>..\..\..\win_build\src\iff\Release\iff.pch</PrecompiledHeaderOutputFile>
       <AssemblerListingLocation>..\..\..\win_build\src\iff\Release\</AssemblerListingLocation>
       <ObjectFileName>..\..\..\win_build\src\iff\Release\</ObjectFileName>
-      <ProgramDataBaseFileName>..\..\..\win_build\src\iff\Release\</ProgramDataBaseFileName>
+      <ProgramDataBaseFileName>$(IntDir)$(ProjectName).pdb</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <CompileAs>Default</CompileAs>

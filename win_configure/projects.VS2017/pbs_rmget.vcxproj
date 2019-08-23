@@ -66,7 +66,7 @@
       <PrecompiledHeaderOutputFile>..\..\..\win_build\src\unsupported\Debug\pbs_rmget.pch</PrecompiledHeaderOutputFile>
       <AssemblerListingLocation>..\..\..\win_build\src\unsupported\Debug\</AssemblerListingLocation>
       <ObjectFileName>..\..\..\win_build\src\unsupported\Debug\</ObjectFileName>
-      <ProgramDataBaseFileName>..\..\..\win_build\src\unsupported\Debug\</ProgramDataBaseFileName>
+      <ProgramDataBaseFileName>$(IntDir)$(ProjectName).pdb</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
@@ -107,7 +107,7 @@
       <PrecompiledHeaderOutputFile>..\..\..\win_build\src\unsupported\Release\pbs_rmget.pch</PrecompiledHeaderOutputFile>
       <AssemblerListingLocation>..\..\..\win_build\src\unsupported\Release\</AssemblerListingLocation>
       <ObjectFileName>..\..\..\win_build\src\unsupported\Release\</ObjectFileName>
-      <ProgramDataBaseFileName>..\..\..\win_build\src\unsupported\Release\</ProgramDataBaseFileName>
+      <ProgramDataBaseFileName>$(IntDir)$(ProjectName).pdb</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <CompileAs>Default</CompileAs>

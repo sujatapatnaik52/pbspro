@@ -67,7 +67,7 @@
       <PrecompiledHeaderOutputFile>..\..\..\win_build\src\resmom\Debug\pbs_demux.pch</PrecompiledHeaderOutputFile>
       <AssemblerListingLocation>..\..\..\win_build\src\resmom\Debug\</AssemblerListingLocation>
       <ObjectFileName>..\..\..\win_build\src\resmom\Debug\</ObjectFileName>
-      <ProgramDataBaseFileName>..\..\..\win_build\src\resmom\Debug\</ProgramDataBaseFileName>
+      <ProgramDataBaseFileName>$(IntDir)$(ProjectName).pdb</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
@@ -108,7 +108,7 @@
       <PrecompiledHeaderOutputFile>..\..\..\win_build\src\resmom\Release\pbs_demux.pch</PrecompiledHeaderOutputFile>
       <AssemblerListingLocation>..\..\..\win_build\src\resmom\Release\</AssemblerListingLocation>
       <ObjectFileName>..\..\..\win_build\src\resmom\Release\</ObjectFileName>
-      <ProgramDataBaseFileName>..\..\..\win_build\src\resmom\Release\</ProgramDataBaseFileName>
+      <ProgramDataBaseFileName>$(IntDir)$(ProjectName).pdb</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>

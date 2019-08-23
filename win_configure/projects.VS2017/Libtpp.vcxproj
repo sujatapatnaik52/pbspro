@@ -60,7 +60,7 @@
       <PrecompiledHeaderOutputFile>..\..\..\win_build\src\lib\Libtpp\Debug\Libtpp.pch</PrecompiledHeaderOutputFile>
       <AssemblerListingLocation>..\..\..\win_build\src\lib\Libtpp\Debug\</AssemblerListingLocation>
       <ObjectFileName>..\..\..\win_build\src\lib\Libtpp\Debug\</ObjectFileName>
-      <ProgramDataBaseFileName>..\..\..\win_build\src\lib\Libtpp\Debug\</ProgramDataBaseFileName>
+      <ProgramDataBaseFileName>$(IntDir)$(ProjectName).pdb</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
@@ -90,7 +90,7 @@
       <PrecompiledHeaderOutputFile>..\..\..\win_build\src\lib\Libtpp\Release\Libtpp.pch</PrecompiledHeaderOutputFile>
       <AssemblerListingLocation>..\..\..\win_build\src\lib\Libtpp\Release\</AssemblerListingLocation>
       <ObjectFileName>..\..\..\win_build\src\lib\Libtpp\Release\</ObjectFileName>
-      <ProgramDataBaseFileName>..\..\..\win_build\src\lib\Libtpp\Release\</ProgramDataBaseFileName>
+      <ProgramDataBaseFileName>$(IntDir)$(ProjectName).pdb</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <CompileAs>Default</CompileAs>

@@ -63,7 +63,7 @@ cd "%~dp0"
 echo Copying necessory files for PBS_EXEC\bin
 for %%a in (
     "%WINBUILDDIR%\src\cmds\%BUILD_TYPE%\*.exe"
-    "%WINBUILDDIR%\src\lib\Libpbspthread\%BUILD_TYPE%\Libpbspthread.dll"
+    "%WINBUILDDIR%\src\lib\Libpbspthread\%BUILD_TYPE%\Libpbspthread.lib"
     "%WINBUILDDIR%\src\tools\%BUILD_TYPE%\*.exe"
     "%PBS_SRCDIR%\src\cmds\scripts\*.bat"
 ) do (
@@ -175,7 +175,7 @@ if not %ERRORLEVEL% == 0 (
 if "%BUILD_TYPE%"=="Debug" (
     REM need to check what happens in debug version
     1>nul copy /B /Y "%BINARIESDIR%\python_debug\PCbuild\win32\python36_d.dll" "%PBS_EXECDIR%\python\"
-	1>nul copy /B /Y "%BINARIESDIR%\python_debug\PCbuild\win32\python36_d.pdb" "%PBS_EXECDIR%\python\"
+    1>nul copy /B /Y "%BINARIESDIR%\python_debug\PCbuild\win32\python36_d.pdb" "%PBS_EXECDIR%\python\"
 )
 
 REM echo Copying necessory files for PBS_EXEC\python_x64

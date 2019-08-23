@@ -197,7 +197,7 @@ def usage():
     _msg += ['    -s|--server=<server>\t- ']
     _msg += ['specify PBS Server value\n']
     _msg += ['    -h|--help\t\t\t- print help message\n']
-    print "".join(_msg)
+    print("".join(_msg))
 
 
 def main():
@@ -217,7 +217,7 @@ def main():
         largs = ['help', 'user=', 'passwd=', 'type=', 'server=']
         opts, _ = getopt.getopt(sys.argv[1:], 'hu:p:t:s:', largs)
     except getopt.GetoptError as e:
-        print e
+        print(e)
         usage()
         sys.exit(3)
     for opt, arg in opts:
@@ -278,7 +278,7 @@ def main():
     cmd = ['mklink', '/H']
     cmd += ['"' + os.path.join(pbs_bin, 'pbs-sleep.exe') + '"']
     cmd += ['"' + os.path.join(pbs_bin, 'pbs_sleep.exe') + '"']
-    cmd = string.join(cmd, " ")
+    cmd = " ".join(cmd)
     os.system(cmd)
     register_and_start_services(username, password)
     __log_info('Successfully completed post installation process')

@@ -50,9 +50,9 @@ if not defined UNZIP_BIN (
 if not defined MSYSDIR (
     set MSYSDIR=C:\MinGW\msys\1.0
 )
-if not defined PERL_BIN (
-    set PERL_BIN=perl
-)
+REM if not defined PERL_BIN (
+set PERL_BIN=C:\Perl\Strawberry\perl\bin\perl
+REM )
 if not defined CMAKE_BIN (
     set CMAKE_BIN=cmake
 )
@@ -60,12 +60,16 @@ if not defined __BINARIESDIR (
     set __BINARIESDIR=%CD%\binaries
 )
 
+set "HEAT=C:\Program Files (x86)\WiX Toolset v3.11\bin\heat.exe"
+set "LIGHT=C:\Program Files (x86)\WiX Toolset v3.11\bin\light.exe"
+set "CANDLE=C:\Program Files (x86)\WiX Toolset v3.11\bin\candle.exe"
+
 if not defined VS150COMNTOOLS (
-	set "VS150COMNTOOLS=C:\Program Files (x86)\Microsoft Visual Studio\2017\Professional\Common7\Tools\"
+    set "VS150COMNTOOLS=C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\"
 )
 
 if exist "%VS150COMNTOOLS%VsDevCmd.bat" (
-	call "%VS150COMNTOOLS%VsDevCmd.bat"
+    call "%VS150COMNTOOLS%VsDevCmd.bat"
 ) else (
     echo Could not find "%VS150COMNTOOLS%VsDevCmd.bat"
     exit /b 1

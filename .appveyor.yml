@@ -11,12 +11,37 @@ configuration:
 init:
   - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 before_build:
+  - cmd: net user %USERNAME% pbS@123
+  - ps: Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0
+  - ps: Start-Service sshd
+  - ps: New-NetFirewallRule -Name sshd -DisplayName 'OpenSSH SSH Server' -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort 22
+  - cmd: ssh-keygen -t rsa -N "" -f C:\Users\appveyor\.ssh\id_rsa
+  - ps: docker-switch-linux
+  - ps: docker pull centos:7
+  - ps: docker run -it -p 30000:22 -d -h testdev.pbspro.org --name testdev -w /tmp/pbspro --privileged centos:7 /bin/bash
+  - ps: route add 172.17.0.0 mask 255.255.0.0 10.0.75.2 -p
+  - ps: docker cp C:/projects/pbspro/. testdev:/tmp/pbspro/
+  - ps: docker exec -it --privileged testdev /bin/bash ./.travis/centos_7.sh
+  - ps: docker exec -it --privileged testdev ssh-keygen -A
+  - ps: docker exec -it --privileged testdev useradd appveyor
+  - ps: docker exec -it --user appveyor --privileged testdev /bin/bash -c "mkdir -p ~/.ssh"
+  - ps: docker exec -it --user appveyor --privileged testdev /bin/bash -c "chmod 700 ~/.ssh"
+  - ps: docker exec -it --user appveyor --privileged testdev /bin/bash -c "touch ~/.ssh/authorized_keys"
+  - ps: docker exec -it --user appveyor --privileged testdev /bin/bash -c "chmod 600 ~/.ssh/authorized_keys"
+  - ps: docker exec -it --user appveyor --privileged testdev /bin/bash -c "ssh-keygen -t rsa -N '' -f ~/.ssh/id_rsa"
+  - ps: $client_pubkey = type C:\Users\appveyor\.ssh\id_rsa.pub
+  - ps: docker exec -it --user appveyor --privileged testdev /bin/bash -c "echo $client_pubkey >> ~/.ssh/authorized_keys"
+  - ps: $ServerIP = docker inspect --format '{{ .NetworkSettings.IPAddress }}' testdev 
+  - ps: Add-Content C:\Windows\System32\Drivers\Etc\Hosts "$ServerIP testdev.pbspro.org"
+  - ps: $server_pubkey = docker exec -it --privileged testdev cat /home/appveyor/.ssh/id_rsa.pub
+  - ps: Add-Content C:\Users\appveyor\.ssh\authorized_keys "$server_pubkey"
   - ps: Invoke-WebRequest https://www.7-zip.org/a/7z1900.msi -OutFile C:\7z.msi
   - cmd: msiexec /a c:\7z.msi /qn TARGETDIR=C:\7-Zip
   - cmd: rm C:\7z.msi
   - ps: Invoke-WebRequest http://strawberryperl.com/download/5.24.2.1/strawberry-perl-5.24.2.1-64bit.msi -o perl.msi
   - cmd: msiexec /a perl.msi /qn TARGETDIR=C:\Perl
-  - cmd: C:\Perl\Strawberry\perl\bin\perl -v 
+  - ps: Invoke-WebRequest https://github.com/wixtoolset/wix3/releases/download/wix3111rtm/wix311.exe -o wix311.exe
+  - ps: Invoke-Command -ScriptBlock {Start-Process "wix311.exe" -ArgumentList "/q" -Wait}
   #- ps: $client = new-object System.Net.WebClient
   #- ps: $client.DownloadFile("https://osdn.net/frs/redir.php?m=jaist&f=mingw%2F68260%2Fmingw-get-0.6.3-mingw32-pre-20170905-1-bin.tar.xz","C:\mingw-get-0.6.3-mingw32-pre-20170905-1-bin.tar.xz") 
   #- ps: mkdir C:\MinGW
@@ -40,7 +65,7 @@ before_test:
   - ps: copy c:\projects\win_build\msi\PBSPro_*.msi PBSPro.msi
   - cmd: msiexec /quiet /qn /norestart /i c:\projects\pbspro\PBSPro.msi
   - cmd: refreshenv
-  - cmd: C:\PROGRA~2\PBS\exec\python\python.exe C:\PROGRA~2\PBS\exec\etc\win_postinstall.py -u %USERNAME% -p pbS@123
+  - cmd: C:\PROGRA~2\PBS\exec\python\python.exe C:\PROGRA~2\PBS\exec\etc\win_postinstall.py -u %USERNAME% -p pbS@123 -t execution -s testdev
 test_script:
   - ps: . C:\projects\pbspro\.appveyor\Retry-Command.ps1
   - ps: pbs_password ${Env:USERNAME} pbS@123

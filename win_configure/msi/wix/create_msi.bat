@@ -87,21 +87,21 @@ REM Clean up previouly generated files (if any)
 2>nul del /Q /F Product.wixobj
 
 REM Call Wix harvestor to generate pbsproexec.wxs
-heat dir "%PBS_EXECDIR%" -ag -cg pbsproexec -sfrag -sreg -template fragment -out pbsproexec_%BUILD_TYPE%.wxs -dr "INSTALLFOLDER" -var var.pbs_execdir
+"%HEAT%" dir "%PBS_EXECDIR%" -ag -cg pbsproexec -sfrag -sreg -template fragment -out pbsproexec_%BUILD_TYPE%.wxs -dr "INSTALLFOLDER" -var var.pbs_execdir
 if not %ERRORLEVEL% == 0 (
     echo Failed to generate pbsproexec_%BUILD_TYPE%.wxs
     exit /b 1
 )
 
 REM Call wix compiler to generate pbsproexec.wixobj and Product.wixobj
-candle -ext WixUIExtension -d"pbs_execdir=%PBS_EXECDIR%" -d"pbs_product_name=%PBS_PRODUCT_NAME%" -d"pbs_short_version=%PBS_SHORT_VERSION%" -d"pbs_resources=%PBS_RESOURCES%" "%~dp0Product.wxs" pbsproexec_%BUILD_TYPE%.wxs
+"%CANDLE%" -ext WixUIExtension -d"pbs_execdir=%PBS_EXECDIR%" -d"pbs_product_name=%PBS_PRODUCT_NAME%" -d"pbs_short_version=%PBS_SHORT_VERSION%" -d"pbs_resources=%PBS_RESOURCES%" "%~dp0Product.wxs" pbsproexec_%BUILD_TYPE%.wxs
 if not %ERRORLEVEL% == 0 (
     echo Failed to generate pbsproexec_%BUILD_TYPE%.wixobj and Product.wixobj
     exit /b 1
 )
 
 REM Call Wix linker to generate PBSPro msi
-light -ext WixUIExtension -o %PBS_MSI_NAME%.msi pbsproexec_%BUILD_TYPE%.wixobj Product.wixobj
+"%LIGHT%" -ext WixUIExtension -o %PBS_MSI_NAME%.msi pbsproexec_%BUILD_TYPE%.wixobj Product.wixobj
 if not %ERRORLEVEL% == 0 (
     echo Failed to generate PBSPro msi
     exit /b 1

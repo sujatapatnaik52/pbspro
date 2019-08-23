@@ -63,7 +63,7 @@ cd "%~dp0"
 echo Copying necessory files for PBS_EXEC\bin
 for %%a in (
     "%WINBUILDDIR%\src\cmds\%BUILD_TYPE%\*.exe"
-    "%WINBUILDDIR%\src\lib\Libpbspthread\%BUILD_TYPE%\Libpbspthread.dll"
+    "%WINBUILDDIR%\src\lib\Libpbspthread\%BUILD_TYPE%\Libpbspthread.lib"
     "%WINBUILDDIR%\src\tools\%BUILD_TYPE%\*.exe"
     "%PBS_SRCDIR%\src\cmds\scripts\*.bat"
 ) do (
@@ -124,15 +124,19 @@ if not %ERRORLEVEL% == 0 (
     echo Failed to copy files from "%PBS_SRCDIR%\src\modules\python\pbs" to "%PBS_EXECDIR%\lib\python\altair\pbs\"
     exit /b 1
 )
-1>nul xcopy /Y /V /J "%BINARIESDIR%\python\Lib\*.*" "%PBS_EXECDIR%\lib\python\python2.7\"
+1>nul xcopy /Y /V /J "%BINARIESDIR%\python\Lib\*.*" "%PBS_EXECDIR%\lib\python\python3.6\"
 if not %ERRORLEVEL% == 0 (
-    echo Failed to copy files from "%BINARIESDIR%\python\Lib\" to "%PBS_EXECDIR%\lib\python\python2.7\"
+    echo Failed to copy files from "%BINARIESDIR%\python\Lib\" to "%PBS_EXECDIR%\lib\python\python3.6\"
     exit /b 1
 )
 
-"%BINARIESDIR%\python\python.exe" -Wi "%BINARIESDIR%\python\Lib\compileall.py" -q -f -x "%PBS_EXECDIR%\lib\python"
-"%BINARIESDIR%\python\python.exe" -O -Wi "%BINARIESDIR%\python\Lib\compileall.py" -q -f -x "%PBS_EXECDIR%\lib\python"
+REM "%BINARIESDIR%\python\python.exe" -Wi "%BINARIESDIR%\python\Lib\compileall.py" -q -f -x "%PBS_EXECDIR%\lib\python"
+REM "%BINARIESDIR%\python\python.exe" -O -Wi "%BINARIESDIR%\python\Lib\compileall.py" -q -f -x "%PBS_EXECDIR%\lib\python"
 
+if not %ERRORLEVEL% == 0 (
+    echo Failed to compile all python files in "%PBS_EXECDIR%\lib\python"
+    exit /b 1
+)
 for %%a in (
     "%WINBUILDDIR%\src\lib\Libattr\%BUILD_TYPE%\Libattr.lib"
     "%WINBUILDDIR%\src\lib\Liblog\%BUILD_TYPE%\Liblog.lib"
@@ -173,11 +177,11 @@ if "%BUILD_TYPE%"=="Debug" (
 	1>nul copy /B /Y "%BINARIESDIR%\python_debug\PC\VS9.0\python27_d.pdb" "%PBS_EXECDIR%\python\"
 )
 
-echo Copying necessory files for PBS_EXEC\python_x64
-1>nul xcopy /Y /V /J /S "%BINARIESDIR%\python_x64" "%PBS_EXECDIR%\python_x64\"
-if not %ERRORLEVEL% == 0 (
-    echo Failed to copy files from "%BINARIESDIR%\python_x64" to "%PBS_EXECDIR%\python_x64\"
-    exit /b 1
-)
+REM echo Copying necessory files for PBS_EXEC\python_x64
+REM 1>nul xcopy /Y /V /J /S "%BINARIESDIR%\python_x64" "%PBS_EXECDIR%\python_x64\"
+REM if not %ERRORLEVEL% == 0 (
+REM    echo Failed to copy files from "%BINARIESDIR%\python_x64" to "%PBS_EXECDIR%\python_x64\"
+REM   exit /b 1
+REM )
 
 exit /b 0

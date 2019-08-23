@@ -61,7 +61,9 @@ if not exist "%BINARIESDIR%\zlib-%ZLIB_VERSION%.tar.gz" (
 )
 
 2>nul rd /S /Q "%BINARIESDIR%\zlib-%ZLIB_VERSION%"
-"%MSYSDIR%\bin\bash" --login -i -c "cd \"$BINARIESDIR_M/\" && tar -xf zlib-%ZLIB_VERSION%.tar.gz"
+REM "%MSYSDIR%\bin\bash" --login -i -c "cd \"$BINARIESDIR_M/\" && tar -xf zlib-%ZLIB_VERSION%.tar.gz"
+C:\7-Zip\Files\7-Zip\7z x "%BINARIESDIR%\zlib-%ZLIB_VERSION%.tar.gz" -o"%BINARIESDIR%"
+C:\7-Zip\Files\7-Zip\7z x "%BINARIESDIR%\zlib-%ZLIB_VERSION%.tar" -o"%BINARIESDIR%"
 if not %ERRORLEVEL% == 0 (
     echo "Failed to extract %BINARIESDIR%\zlib-%ZLIB_VERSION%.tar.gz"
     exit /b 1
@@ -69,6 +71,7 @@ if not %ERRORLEVEL% == 0 (
 
 if exist "%BINARIESDIR%\zlib-%ZLIB_VERSION%" (
     move zlib-%ZLIB_VERSION% zlib
+        dir "%BINARIESDIR%\zlib"
 	if not %ERRORLEVEL% == 0 (
 		echo "Failed to rename zlib library"
 		exit /b 1

@@ -75,9 +75,7 @@ if exist "%BINARIESDIR%\python_externals.tar.gz" (
 
 REM "Set MSBUILD to VS2017 before calling env.bat"
 call "%BINARIESDIR%\cpython-%PYTHON_VERSION%\PCbuild\find_msbuild.bat"
-
 call "%BINARIESDIR%\cpython-%PYTHON_VERSION%\PCbuild\env.bat" x86
-
 call "%BINARIESDIR%\cpython-%PYTHON_VERSION%\PCbuild\build.bat" -e -d
 if not %ERRORLEVEL% == 0 (
     echo "Failed to compile Python debug version"

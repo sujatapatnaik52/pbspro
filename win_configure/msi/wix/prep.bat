@@ -63,7 +63,7 @@ cd "%~dp0"
 echo Copying necessory files for PBS_EXEC\bin
 for %%a in (
     "%WINBUILDDIR%\src\cmds\%BUILD_TYPE%\*.exe"
-    "%WINBUILDDIR%\src\lib\Libpbspthread\%BUILD_TYPE%\Libpbspthread.lib"
+    "%WINBUILDDIR%\src\lib\Libpbspthread\%BUILD_TYPE%\Libpbspthread.dll"
     "%WINBUILDDIR%\src\tools\%BUILD_TYPE%\*.exe"
     "%PBS_SRCDIR%\src\cmds\scripts\*.bat"
 ) do (
@@ -131,12 +131,12 @@ if not %ERRORLEVEL% == 0 (
 )
 
 REM "%BINARIESDIR%\python\python.exe" -Wi "%BINARIESDIR%\python\Lib\compileall.py" -q -f -x "%PBS_EXECDIR%\lib\python"
-REM "%BINARIESDIR%\python\python.exe" -O -Wi "%BINARIESDIR%\python\Lib\compileall.py" -q -f -x "%PBS_EXECDIR%\lib\python"
-
+REM "%BINARIESDIR%\python\python.exe" -O -Wi "%BINARIESDIR%\python\Lib\compileall.py" -f -x "%PBS_EXECDIR%\lib\python"
 if not %ERRORLEVEL% == 0 (
     echo Failed to compile all python files in "%PBS_EXECDIR%\lib\python"
     exit /b 1
 )
+
 for %%a in (
     "%WINBUILDDIR%\src\lib\Libattr\%BUILD_TYPE%\Libattr.lib"
     "%WINBUILDDIR%\src\lib\Liblog\%BUILD_TYPE%\Liblog.lib"
@@ -173,15 +173,16 @@ if not %ERRORLEVEL% == 0 (
     exit /b 1
 )
 if "%BUILD_TYPE%"=="Debug" (
-    1>nul copy /B /Y "%BINARIESDIR%\python_debug\PC\VS9.0\python27_d.dll" "%PBS_EXECDIR%\python\"
-	1>nul copy /B /Y "%BINARIESDIR%\python_debug\PC\VS9.0\python27_d.pdb" "%PBS_EXECDIR%\python\"
+    REM need to check what happens in debug version
+    1>nul copy /B /Y "%BINARIESDIR%\python_debug\PCbuild\win32\python36_d.dll" "%PBS_EXECDIR%\python\"
+	1>nul copy /B /Y "%BINARIESDIR%\python_debug\PCbuild\win32\python36_d.pdb" "%PBS_EXECDIR%\python\"
 )
 
 REM echo Copying necessory files for PBS_EXEC\python_x64
 REM 1>nul xcopy /Y /V /J /S "%BINARIESDIR%\python_x64" "%PBS_EXECDIR%\python_x64\"
 REM if not %ERRORLEVEL% == 0 (
 REM    echo Failed to copy files from "%BINARIESDIR%\python_x64" to "%PBS_EXECDIR%\python_x64\"
-REM   exit /b 1
+REM    exit /b 1
 REM )
 
 exit /b 0

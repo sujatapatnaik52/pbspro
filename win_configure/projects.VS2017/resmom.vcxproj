@@ -13,6 +13,7 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{7CA2FEAC-92CC-44F6-BFC0-3FC946BD72EB}</ProjectGuid>
     <RootNamespace>resmom</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
@@ -60,7 +61,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>..\..\src\resmom\mom_hpcp;..\..\src\include;..\include;..\..\src\resmom;..\..\src\resmom_win;..\..\src\resmom_win\win;..\..\..\binaries\openssl_debug\include;..\..\..\binaries\python_debug\PC;..\..\..\binaries\python_debug\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_DEBUG;DEBUG;PBS_MOM=1;_WIN32_WINNT=0x0500;PBS_MOM;WIN32;_CONSOLE;_USE_32BIT_TIME_T;LINKS_PYTHON;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;DEBUG;PBS_MOM=1;_WIN32_WINNT=0x0600;PBS_MOM;WIN32;_CONSOLE;_USE_32BIT_TIME_T;LINKS_PYTHON;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <PrecompiledHeader />
@@ -79,10 +80,10 @@
     </ResourceCompile>
     <Link>
       <AdditionalOptions>/SAFESEH /STACK:0x1000000 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalDependencies>secur32.lib;Userenv.lib;mpr.lib;libcrypto.lib;crypt32.lib;winmm.lib;pdh.lib;ws2_32.lib;netapi32.lib;odbc32.lib;odbccp32.lib;Psapi.lib;python27_d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>secur32.lib;Userenv.lib;mpr.lib;libcrypto.lib;crypt32.lib;winmm.lib;pdh.lib;ws2_32.lib;netapi32.lib;odbc32.lib;odbccp32.lib;Psapi.lib;python36_d.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>..\..\..\win_build\src\resmom\Debug\pbs_mom.exe</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
-      <AdditionalLibraryDirectories>..\..\..\win_build\src\server\Debug;..\..\src\server;..\..\..\binaries\openssl_debug\lib;..\..\..\binaries\python_debug\PC\VS9.0;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\..\win_build\src\server\Debug;..\..\src\server;..\..\..\binaries\openssl_debug\lib;..\..\..\binaries\python_debug\PCbuild\win32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <UACExecutionLevel>AsInvoker</UACExecutionLevel>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ProgramDatabaseFile>..\..\..\win_build\src\resmom\Debug\pbs_mom.pdb</ProgramDatabaseFile>
@@ -101,7 +102,7 @@
       <Optimization>MaxSpeed</Optimization>
       <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
       <AdditionalIncludeDirectories>..\..\src\resmom\mom_hpcp;..\..\src\include;..\include;..\..\src\resmom;..\..\src\resmom_win;..\..\src\resmom_win\win;..\..\..\binaries\openssl\include;..\..\..\binaries\python\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>NDEBUG;_WIN32_WINNT=0x0500;PBS_MOM;WIN32;_CONSOLE;_USE_32BIT_TIME_T;LINKS_PYTHON;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_WIN32_WINNT=0x0600;PBS_MOM;WIN32;_CONSOLE;_USE_32BIT_TIME_T;LINKS_PYTHON;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>

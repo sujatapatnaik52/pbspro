@@ -64,7 +64,8 @@ cd "%BINARIESDIR%\cpython-%PYTHON_VERSION%"
 REM Restore externals directory if python_externals.tar.gz exists
 if exist "%BINARIESDIR%\python_externals.tar.gz" (
     if not exist "%BINARIESDIR%\cpython-%PYTHON_VERSION%\externals" (
-        "%MSYSDIR%\bin\bash" --login -i -c "cd \"$BINARIESDIR_M/cpython-$PYTHON_VERSION\" && tar -xf \"$BINARIESDIR_M/python_externals.tar.gz\""
+        REM "%MSYSDIR%\bin\bash" --login -i -c "cd \"$BINARIESDIR_M/cpython-$PYTHON_VERSION\" && tar -xf \"$BINARIESDIR_M/python_externals.tar.gz\""
+        C:\7-Zip\Files\7-Zip\7z x "%BINARIESDIR%\python_externals.tar.gz" -o"%BINARIESDIR%\cpython-%PYTHON_VERSION%" 
     )
 )
 REM "Set MSBUILD to VS2017 before calling env.bat"

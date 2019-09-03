@@ -282,6 +282,8 @@ tpp_set_keep_alive(int fd, struct tpp_config *cnf)
 	}
 #endif
 
+#if 0
+
 #ifdef TCP_KEEPINTVL
 	optval = cnf->tcp_keep_intvl;
 	if (tpp_sock_setsockopt(fd, IPPROTO_TCP, TCP_KEEPINTVL, &optval, optlen) < 0) {
@@ -298,6 +300,8 @@ tpp_set_keep_alive(int fd, struct tpp_config *cnf)
 		tpp_log_func(LOG_CRIT, __func__, tpp_get_logbuf());
 		return -1;
 	}
+#endif
+
 #endif
 
 	return 0;

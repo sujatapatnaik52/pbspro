@@ -193,7 +193,7 @@ extern char	*optarg;
 extern int 	optind;
 extern int	opterr;
 extern int	optopt;
-extern int getopt(int __argc, char ** __argv, const char * __shortopts);
+extern int getopt(int, char **, const char *);
 
 /* mimic popen stuff */
 typedef struct pio_handles {

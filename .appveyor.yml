@@ -65,7 +65,7 @@ before_test:
   - ps: copy c:\projects\win_build\msi\PBSPro_*.msi PBSPro.msi
   - cmd: msiexec /quiet /qn /norestart /i c:\projects\pbspro\PBSPro.msi
   - cmd: refreshenv
-  - cmd: C:\PROGRA~2\PBS\exec\python\python.exe C:\PROGRA~2\PBS\exec\etc\win_postinstall.py -u %USERNAME% -p pbS@123 -t execution -s testdev
+  - cmd: C:\PROGRA~2\PBS\exec\python\python.exe C:\PROGRA~2\PBS\exec\etc\win_postinstall.py -u %USERNAME% -p pbS@123 -t execution -s testdev.pbspro.org
 test_script:
   - ps: . C:\projects\pbspro\.appveyor\Retry-Command.ps1
   - ps: pbs_password ${Env:USERNAME} pbS@123

@@ -2699,7 +2699,7 @@ do_mom_action_script(int	ae,	/* index into action table */
 		if (pnoq)
 			free(pnoq);
 		return -1;
-	} else if (pnoq && chk_file_sec(pnoq, 0, 0, WRITES_MASK, 0)) {
+	} else if (pnoq && chk_file_sec(pnoq, 0, 0, WRITES_MASK^FILE_WRITE_EA, 0)) {
 		sprintf(log_buffer, "action %s script %s cannot be executed "
 			"due to permissions", ma->ma_name, ma->ma_script);
 		log_event(PBSEVENT_ADMIN, PBS_EVENTCLASS_JOB, LOG_INFO,
@@ -4193,7 +4193,7 @@ set_checkpoint_path(char *value)
 	}
 #if !defined(DEBUG) && !defined(NO_SECURITY_CHECK)
 #ifdef	WIN32
-	rc = chk_file_sec(newpath, 1, 0, WRITES_MASK, 0);
+	rc = chk_file_sec(newpath, 1, 0, WRITES_MASK^FILE_WRITE_EA, 0);
 #else
 	rc = chk_file_sec(newpath, 1, 0, S_IWGRP|S_IWOTH, 0);
 #endif	/* WIN32 */
@@ -5007,7 +5007,7 @@ read_config(char *file)
 	}
 #if !defined(DEBUG) && !defined(NO_SECURITY_CHECK)
 #ifdef	WIN32
-	if (chk_file_sec(file, 0, 0, WRITES_MASK, 0)) {
+	if (chk_file_sec(file, 0, 0, WRITES_MASK^FILE_WRITE_EA, 0)) {
 		sprintf(log_buffer,
 			"warning: %s file has a non-secure file access mask", file);
 		log_err(errno, __func__, log_buffer);
@@ -8785,11 +8785,11 @@ main(int argc, char *argv[])
 #ifdef	WIN32
 	/* For windows, don't check full path. Let system put in default */
 	/* permissions for top-level directories */
-	c |= chk_file_sec(path_jobs,   1, 0, WRITES_MASK, 0);
-	c |= chk_file_sec(path_hooks,   1, 0, WRITES_MASK, 0);
-	c |= chk_file_sec(path_hooks_workdir,   1, 0, WRITES_MASK, 0);
+	c |= chk_file_sec(path_jobs,   1, 0, WRITES_MASK^FILE_WRITE_EA, 0);
+	c |= chk_file_sec(path_hooks,   1, 0, WRITES_MASK^FILE_WRITE_EA, 0);
+	c |= chk_file_sec(path_hooks_workdir,   1, 0, WRITES_MASK^FILE_WRITE_EA, 0);
 	c |= chk_file_sec(path_spool,  1, 1, 0, 0);
-	c |= chk_file_sec(pbs_conf.pbs_environment, 0, 0, WRITES_MASK, 0);
+	c |= chk_file_sec(pbs_conf.pbs_environment, 0, 0, WRITES_MASK^FILE_WRITE_EA, 0);
 #else
 	c |= chk_file_sec(path_jobs,   1, 0, S_IWGRP|S_IWOTH, 1);
 	c |= chk_file_sec(path_hooks,   1, 0, S_IWGRP|S_IWOTH, 1);

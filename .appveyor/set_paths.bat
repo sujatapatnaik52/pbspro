@@ -37,42 +37,35 @@ REM trademark licensing policies.
 set __OLD_DIR="%CD%"
 cd "%~dp0..\.."
 
-REM SVN is used by Python internally, to download it's dependencies
-if not defined SVN_BIN (
-    set SVN_BIN=svn
-)
 if not defined CURL_BIN (
     set CURL_BIN=curl
 )
-if not defined UNZIP_BIN (
-    set UNZIP_BIN=unzip
+if not defined PERL_BIN (
+    set PERL_BIN=perl
 )
-if not defined MSYSDIR (
-    set MSYSDIR=C:\MinGW\msys\1.0
-)
-REM if not defined PERL_BIN (
-set PERL_BIN=C:\Perl\Strawberry\perl\bin\perl
-REM )
 if not defined CMAKE_BIN (
     set CMAKE_BIN=cmake
 )
+
 if not defined __BINARIESDIR (
     set __BINARIESDIR=%CD%\binaries
 )
 
-set "HEAT=C:\Program Files (x86)\WiX Toolset v3.11\bin\heat.exe"
-set "LIGHT=C:\Program Files (x86)\WiX Toolset v3.11\bin\light.exe"
-set "CANDLE=C:\Program Files (x86)\WiX Toolset v3.11\bin\candle.exe"
+if not defined APPVEYOR (
+    set APPVEYOR=False
+)
 
-if not defined VS150COMNTOOLS (
+if exist "C:\Program Files (x86)\Microsoft Visual Studio\2017\Professional" (
+    set "VS150COMNTOOLS=C:\Program Files (x86)\Microsoft Visual Studio\2017\Professional\Common7\Tools\"
+) else if exist "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise" (
+    set "VS150COMNTOOLS=C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\Common7\Tools\"
+) else (
     set "VS150COMNTOOLS=C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\"
 )
 
-if exist "%VS150COMNTOOLS%VsDevCmd.bat" (
-    call "%VS150COMNTOOLS%VsDevCmd.bat"
-) else (
-    echo Could not find "%VS150COMNTOOLS%VsDevCmd.bat"
-    exit /b 1
+if not exist "%VS150COMNTOOLS%" (
+    echo "Could not fine VS2017 common tools"
+    exit 1
 )
 
 set __RANDOM_VAL=%RANDOM::=_%
@@ -92,7 +85,6 @@ if not "%__BINARIESDIR: =%"=="%__BINARIESDIR%" (
     cd %__BINARIESDIR%
 )
 set BINARIESDIR=%CD%
-for /F "usebackq tokens=*" %%i in (`""%MSYSDIR%\bin\bash.exe" -c "pwd""`) do set BINARIESDIR_M=%%i
 
 if not defined LIBEDIT_VERSION (
     set LIBEDIT_VERSION=2.205
@@ -105,6 +97,9 @@ if not defined OPENSSL_VERSION (
 )
 if not defined ZLIB_VERSION (
     set ZLIB_VERSION=1.2.11
+)
+if not defined SWIG_VERSION (
+    set SWIG_VERSION=4.0.1
 )
 
 set DO_DEBUG_BUILD=0

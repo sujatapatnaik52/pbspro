@@ -79,8 +79,8 @@ del /F /Q "%PBS_EXECDIR%\bin\pbs_dataservice.bat"
 
 echo Copying necessory files for PBS_EXEC\sbin
 for %%a in (
-    "%WINBUILDDIR%\src\iff\%BUILD_TYPE%\*.exe"
-    "%WINBUILDDIR%\src\resmom\%BUILD_TYPE%\*.exe"
+    "%WINBUILDDIR%\src\pbs_iff\%BUILD_TYPE%\*.exe"
+    "%WINBUILDDIR%\src\pbs_mom\%BUILD_TYPE%\*.exe"
     "%WINBUILDDIR%\src\mom_rcp\%BUILD_TYPE%\*.exe"
 ) do (
     1>nul xcopy /Y /V /J "%%a" "%PBS_EXECDIR%\sbin\"
@@ -124,16 +124,14 @@ if not %ERRORLEVEL% == 0 (
     echo Failed to copy files from "%PBS_SRCDIR%\src\modules\python\pbs" to "%PBS_EXECDIR%\lib\python\altair\pbs\"
     exit /b 1
 )
-1>nul xcopy /Y /V /J "%BINARIESDIR%\python\Lib\*.*" "%PBS_EXECDIR%\lib\python\python3.6\"
+1>nul xcopy /Y /V /J "%PBS_SRCDIR%\win_configure\projects\pbs_ifl.py" "%PBS_EXECDIR%\lib\python\altair\pbs\v1\"
 if not %ERRORLEVEL% == 0 (
-    echo Failed to copy files from "%BINARIESDIR%\python\Lib\" to "%PBS_EXECDIR%\lib\python\python3.6\"
+    echo Failed to copy files from "%PBS_SRCDIR%\win_configure\projects\pbs_ifl.py" to "%PBS_EXECDIR%\lib\python\altair\altair\v1\"
     exit /b 1
 )
-
-REM "%BINARIESDIR%\python\python.exe" -Wi "%BINARIESDIR%\python\Lib\compileall.py" -q -f -x "%PBS_EXECDIR%\lib\python"
-REM "%BINARIESDIR%\python\python.exe" -O -Wi "%BINARIESDIR%\python\Lib\compileall.py" -f -x "%PBS_EXECDIR%\lib\python"
+1>nul xcopy /Y /V /J /S "%BINARIESDIR%\python\Lib\*.*" "%PBS_EXECDIR%\lib\python\python3.6\"
 if not %ERRORLEVEL% == 0 (
-    echo Failed to compile all python files in "%PBS_EXECDIR%\lib\python"
+    echo Failed to copy files from "%BINARIESDIR%\python\Lib\" to "%PBS_EXECDIR%\lib\python\python3.6\"
     exit /b 1
 )
 
@@ -172,17 +170,18 @@ if not %ERRORLEVEL% == 0 (
     echo Failed to copy files from "%BINARIESDIR%\python" to "%PBS_EXECDIR%\python\"
     exit /b 1
 )
+
 if "%BUILD_TYPE%"=="Debug" (
-    REM need to check what happens in debug version
-    1>nul copy /B /Y "%BINARIESDIR%\python_debug\PCbuild\win32\python36_d.dll" "%PBS_EXECDIR%\python\"
-    1>nul copy /B /Y "%BINARIESDIR%\python_debug\PCbuild\win32\python36_d.pdb" "%PBS_EXECDIR%\python\"
+    1>nul copy /B /Y "%BINARIESDIR%\python_debug\PCbuild\win32\python36_d.*" "%PBS_EXECDIR%\python\"
 )
 
-REM echo Copying necessory files for PBS_EXEC\python_x64
-REM 1>nul xcopy /Y /V /J /S "%BINARIESDIR%\python_x64" "%PBS_EXECDIR%\python_x64\"
-REM if not %ERRORLEVEL% == 0 (
-REM    echo Failed to copy files from "%BINARIESDIR%\python_x64" to "%PBS_EXECDIR%\python_x64\"
-REM    exit /b 1
-REM )
+if exist "%BINARIESDIR%\python_x64" (
+    echo Copying necessory files for PBS_EXEC\python_x64
+    1>nul xcopy /Y /V /J /S "%BINARIESDIR%\python_x64" "%PBS_EXECDIR%\python_x64\"
+    if not %ERRORLEVEL% == 0 (
+        echo Failed to copy files from "%BINARIESDIR%\python_x64" to "%PBS_EXECDIR%\python_x64\"
+        exit /b 1
+    )
+)
 
 exit /b 0

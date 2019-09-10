@@ -48,27 +48,6 @@ if not %ERRORLEVEL% == 0 (
     exit /b 1
 )
 
-if not exist "%BINARIESDIR%\vcredist_x86.exe" (
-    "%CURL_BIN%" -qkL -o "%BINARIESDIR%\vcredist_x86.exe" https://download.microsoft.com/download/1/6/5/165255E7-1014-4D0A-B094-B6A430A6BFFC/vcredist_x86.exe
-    if not exist "%BINARIESDIR%\vcredist_x86.exe" (
-        echo "Failed to download Microsoft Visual C++ 2010 Redistributable Package (x86)"
-        exit /b 1
-    )
-)
-
-if exist "%VS150COMNTOOLS%\..\..\VC\Redist\MSVC\14.16.27012\vcredist_x86.exe" (
-    1>nul copy /B /Y "%VS150COMNTOOLS%\..\..\VC\Redist\MSVC\14.16.27012\vcredist_x86.exe" "%~dp0..\..\PBS\exec\etc\vcredist_x86.exe"
-    if not exist "%~dp0..\..\PBS\exec\etc\vcredist_x86.exe" (
-        echo "Failed to copy Microsoft Visual C++ 2017 Redistributable Package (x86)"
-    )
-)
-
-if not exist "%VS150COMNTOOLS%\..\..\VC\Redist\MSVC\14.16.27012\vcredist_x86.exe" (
-    1>nul copy /B /Y "%BINARIESDIR%\vcredist_x86.exe" "%~dp0..\..\PBS\exec\etc\vcredist_x86.exe"
-    echo "Copying 2010 distributable"
-)
-
-
 call "%~dp0..\..\pbspro\win_configure\msi\wix\create_msi.bat" %~1
 if not %ERRORLEVEL% == 0 (
     echo Failed to generate PBS Pro MSI!
@@ -78,4 +57,3 @@ if not %ERRORLEVEL% == 0 (
 dir "%~dp0..\..\win_build\msi"
 
 exit /b 0
-

@@ -9024,12 +9024,9 @@ main(int argc, char *argv[])
 		(void)fclose(stdin);
 		(void)fclose(stdout);
 		(void)fclose(stderr);
-		dummyfile = fopen("NUL:", "r");
-		assert((dummyfile != 0) && (fileno(dummyfile) == 0));
-		dummyfile = fopen("NUL:", "w");
-		assert((dummyfile != 0) && (fileno(dummyfile) == 1));
-		dummyfile = fopen("NUL:", "w");
-		assert((dummyfile != 0) && (fileno(dummyfile) == 2));
+		freopen("nul", "r", stdin);
+		freopen("nul", "w", stdout);
+		freopen("nul", "w", stderr);
 	}
 
 #else	/* DEBUG */

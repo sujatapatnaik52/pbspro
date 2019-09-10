@@ -18,5 +18,3 @@ ssh-keygen -q -N "" -t rsa -f /etc/ssh/ssh_host_rsa_key
 sed -i "s/UsePAM.*/UsePAM yes/g" /etc/ssh/sshd_config
 sed -i "s/#UsePrivilegeSeparation.*/UsePrivilegeSeparation no/g" /etc/ssh/sshd_config
 nohup /usr/sbin/sshd -E /tmp/sshd.log >/dev/null 2>&1
-
-

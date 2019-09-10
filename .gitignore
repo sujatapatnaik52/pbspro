@@ -56,6 +56,7 @@ cscope.out
 *.ncb
 *.suo
 .vscode/
+win_confiure/.vs/
 
 # Files used by gtags
 GPATH
@@ -253,4 +254,3 @@ pbspro.spec
 *.cpio
 *.rpm
 *.deb
-

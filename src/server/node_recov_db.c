@@ -276,11 +276,11 @@ svr_to_db_node(struct pbsnode *pnode, pbs_db_node_info_t *pdbnd)
 		}
 
 		/* every attribute to this point we write to database */
-		attrs[count].attr_name[sizeof(attrs[count].attr_name) - 1] = '\0';
 		strncpy(attrs[count].attr_name, psvrl->al_name, sizeof(attrs[count].attr_name));
+                attrs[count].attr_name[sizeof(attrs[count].attr_name) - 1] = '\0';
 		if (psvrl->al_resc) {
-			attrs[count].attr_resc[sizeof(attrs[count].attr_resc) - 1] = '\0';
 			strncpy(attrs[count].attr_resc, psvrl->al_resc, sizeof(attrs[count].attr_resc));
+                        attrs[count].attr_resc[sizeof(attrs[count].attr_resc) - 1] = '\0';
 		}
 		else
 			strcpy(attrs[count].attr_resc, "");
@@ -480,8 +480,8 @@ node_delete_db(struct pbsnode *pnode)
 	pbs_db_obj_info_t obj;
 	pbs_db_conn_t *conn = (pbs_db_conn_t *) svr_db_conn;
 
-	dbnode.nd_name[sizeof(dbnode.nd_name) - 1] = '\0';
 	strncpy(dbnode.nd_name, pnode->nd_name, sizeof(dbnode.nd_name));
+        dbnode.nd_name[sizeof(dbnode.nd_name) - 1] = '\0';
 	obj.pbs_db_obj_type = PBS_DB_NODE;
 	obj.pbs_db_un.pbs_db_node = &dbnode;
 

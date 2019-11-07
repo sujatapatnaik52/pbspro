@@ -69,7 +69,7 @@ if not exist "%BINARIESDIR%\zlib-%ZLIB_VERSION%" (
     exit /b 1
 )
 
-call "%VS150COMNTOOLS%VsDevCmd.bat"
+call "%VS160COMNTOOLS%VsDevCmd.bat"
 
 cd "%BINARIESDIR%\zlib-%ZLIB_VERSION%
 

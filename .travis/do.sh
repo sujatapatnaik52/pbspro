@@ -57,11 +57,11 @@ if [ "x${ONLY_REBUILD}" != "x1" ]; then
     fi
     apt-get -y update
     apt-get -y upgrade
-    apt-get install -y build-essential dpkg-dev autoconf libtool rpm alien libssl-dev \
+    time apt-get install -y build-essential dpkg-dev autoconf libtool rpm alien libssl-dev \
                         libxt-dev libpq-dev libexpat1-dev libedit-dev libncurses5-dev \
                         libical-dev libhwloc-dev pkg-config tcl-dev tk-dev python3-dev \
                         swig expat postgresql python3-pip sudo man-db
-    pip3 install -r ${REQ_FILE}
+    time pip3 install -r ${REQ_FILE}
   else
     echo "Unknown platform..."
     exit 1
@@ -79,24 +79,25 @@ fi
 mkdir -p ${_targetdirname}
 if [ "x${ONLY_REBUILD}" != "x1" ]; then
   [[ -f Makefile ]] && make distclean || true
-  ./autogen.sh
+  time ./autogen.sh
   _cflags="-g -O2 -Wall -Werror"
   if [ "x${ID}" == "xubuntu" ]; then
     _cflags="${_cflags} -Wno-unused-result"
   fi
   cd ${_targetdirname}
-  ../configure CFLAGS="${_cflags}" --prefix /opt/pbs --enable-ptl
+  time ../configure CFLAGS="${_cflags}" --prefix /opt/pbs --enable-ptl
   cd -
 fi
 cd ${_targetdirname}
-make -j8
-make -j8 install
+time make -j8
+time make -j8 install
 chmod 4755 /opt/pbs/sbin/pbs_iff /opt/pbs/sbin/pbs_rcp
 if [ "x${DONT_START_PBS}" != "x1" ]; then
   if [ "x${ONLY_REBUILD}" != "x1" ]; then
     /opt/pbs/libexec/pbs_postinstall server
-    sed -i "s@PBS_START_MOM=0@PBS_START_MOM=1@" /etc/pbs.conf
+    sed -i "s@PBS_START_MOM=0@PBS_START_MOM=0@" /etc/pbs.conf
   fi
+  sed -i "s@PBS_START_MOM=0@PBS_START_MOM=0@" /etc/pbs.conf
   /etc/init.d/pbs restart
 fi
 set +e

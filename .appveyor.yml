@@ -9,29 +9,263 @@ configuration:
   - Debug
   #- Release
 #init:
-#  - ps: iex ((net.webclient).DownloadString('w.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+#  - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+install: 
+  #- cmd: FOR /f "usebackq" %%i IN (`PowerShell ^(Get-Date^).ToString^('yyyyMMdd'^)`) DO SET Today=%%i
+  #- cmd: echo "Hello...%Today%"
+  #- ps: Uninstall-Package -Name docker -ProviderName DockerMSFTProvider
+  #- ps: Restart-Computer -Force      # here the server goes restarting
+  #- ps: Start-Sleep -s 10
+  #- ps: Install-Module DockerProvider
+  #- ps: Install-Package Docker -ProviderName DockerProvider -RequiredVersion preview -Force
+  #- ps: Get-VM WinContainerHost | Set-VMProcessor -ExposeVirtualizationExtensions $true
+  #- ps: Restart-Computer -Force      # here the server goes restarting
+  #- ps: Start-Sleep -s 10
+  #- ps: Invoke-Expression "[Environment]::SetEnvironmentVariable('LCOW_SUPPORTED', '1', 'Machine')"
+  #- ps: Start-Service docker
+  #- ps: docker info
 before_build:
-  # - ps: choco install strawberryperl -y --no-progress --ignore-detected-reboot
-  # - ps: choco install wixtoolset -y --no-progress --ignore-detected-reboot
-  - cmd: refreshenv
-  #- cmd: call .appveyor\appveyor_helper.bat %CONFIGURATION%
-#build_script:
-  #- cmd: msbuild win_configure\pbs_windows_VS2017.sln /p:configuration=%CONFIGURATION% /p:platform=Win32 /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
-#after_build:
-  #- cmd: call .appveyor\generate_installer.bat %CONFIGURATION%
-#before_test:
-  #- ps: copy c:\projects\win_build\msi\PBSPro_*.msi PBSPro.msi
-  #- ps: Start-Process msiexec -ArgumentList "/quiet","/qn","/norestart","/i","c:\projects\pbspro\PBSPro.msi" -Wait
-  #- ps: $ip = [System.Net.Dns]::GetHostByName($env:computerName).AddressList[0].IPAddressToString
-  #- ps: Add-Content C:\Windows\System32\Drivers\Etc\Hosts "$ip testdev.pbspro.org testdev"
-  #- ps: net user $env:username pbS@123
+  #- cmd: netsh advfirewall set publicprofile state off
+  - cmd: wsl --user root /bin/bash -c "echo '[network]' >> /etc/wsl.conf; echo generateHosts = false >> /etc/wsl.conf"
+  - cmd: wsl --user root cat /etc/wsl.conf
+  #- cmd: wsl --user root cat /etc/hosts
+  #- ps: . C:\projects\pbspro\.appveyor\Retry-Command.ps1
+  - ps: $momhost = hostname
+  - ps: $ip = [System.Net.Dns]::GetHostByName($env:computerName).AddressList[0].IPAddressToString
+  - ps: Add-Content C:\Windows\System32\Drivers\Etc\Hosts "$ip $momhost"
+  #- ps: type C:\Windows\System32\Drivers\Etc\Hosts
+  #- ps: Retry-Command { grep -Hn 'appveyor-vm' C:\Windows\System32\Drivers\Etc\Hosts }
+  #- ps: $momhost = hostname
+  #- ps: $ip = wsl --user root hostname -I | awk '{print $1}'
+  - ps: wsl --user root /bin/bash -c "sed -i '1i $ip $momhost' /etc/hosts"
+  #- ps: wsl --user root /bin/bash -c "sed -i '1i $ip $momhost' /etc/hosts"
+  #- ps: wsl --user root cat /etc/hosts
+  #- cmd: wsl --user root apt-get -y update
+  #- cmd: wsl --user root DEBIAN_FRONTEND=noninteractive apt-get -y install gcc make libtool libhwloc-dev libx11-dev libxt-dev libedit-dev libical-dev ncurses-dev perl postgresql-server-dev-all postgresql-contrib python3-dev tcl-dev tk-dev swig libexpat-dev libssl-dev libxext-dev libxft-dev autoconf automake
+  #- cmd: wsl --user root apt-get -y install expat libedit2 postgresql python3 postgresql-contrib sendmail-bin sudo tcl tk libical3
+  - cmd: wsl --user root cp -r /mnt/c/projects/pbspro /mnt/c/Users/appveyor/ 
+  - cmd: wsl --user root /bin/bash -c "sudo sed -i 's/archive.ubuntu.com/us.archive.ubuntu.com/' /etc/apt/sources.list"
+  - cmd: wsl --user root /bin/bash -c "cd /mnt/c/Users/appveyor/pbspro; ./.travis/do.sh"
+  #- cmd: wsl --user root /bin/bash -c "cd /mnt/c/Users/appveyor/pbspro; ./configure --prefix=/opt/pbs"
+  #- cmd: wsl --user root /bin/bash -c "cd /mnt/c/Users/appveyor/pbspro; make"
+  #- cmd: wsl --user root /bin/bash -c "cd /mnt/c/Users/appveyor/pbspro; make install"
+  #- cmd: wsl --user root /opt/pbs/libexec/pbs_postinstall
+  #- cmd: wsl --user root chmod 4755 /opt/pbs/sbin/pbs_iff /opt/pbs/sbin/pbs_rcp
+  #- ps: wsl --user root /etc/init.d/pbs start
+  #- ps: Invoke-WebRequest https://github.com/PowerShell/Win32-OpenSSH/releases/download/v8.0.0.0p1-Beta/OpenSSH-Win64.zip -o OpenSSH-Win64.zip
+  #- ps: Expand-Archive C:\projects\pbspro\OpenSSH-Win64.zip -DestinationPath 'C:\Program Files\OpenSSH'
+  #- ps: copy 'C:\Program Files\OpenSSH\OpenSSH-Win64\*' 'C:\Program Files\OpenSSH\'
+  #- ps: Remove-Item -path 'C:\Program Files\OpenSSH\OpenSSH-Win64\' -recurse
+  #- cmd: powershell.exe -ExecutionPolicy Bypass -File "C:\Program Files\OpenSSH\install-sshd.ps1"
+  #- cmd: powershell.exe -ExecutionPolicy Bypass -File "C:\Program Files\OpenSSH\FixHostFilePermissions.ps1"
+  #- cmd: powershell.exe -ExecutionPolicy Bypass -File "C:\Program Files\OpenSSH\FixUserFilePermissions.ps1"
+  #- ps: Start-Service sshd
+  #- ps: New-NetFirewallRule -Name sshd -DisplayName 'OpenSSH SSH Server' -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort 22
+  #- cmd: ssh-keygen -t rsa -N "" -f C:\Users\appveyor\.ssh\id_rsa
   #- cmd: refreshenv
-  #- cmd: C:\PROGRA~2\PBS\exec\python\python.exe C:\PROGRA~2\PBS\exec\etc\win_postinstall.py -u %USERNAME% -p pbS@123 -t execution -s testdev
-#after_test:
+  #- ps: docker network create -d ics test_ics
+  #- ps: docker pull centos:7
+  #- ps: docker run -it -d -h testdev.pbspro.org --name testdev --network test_ics -w /tmp/pbspro centos:7 /bin/bash
+  #- ps: docker stop testdev
+  #- ps: docker cp C:\projects\pbspro testdev:/tmp
+  #- ps: docker start testdev
+  #- ps: docker exec -it testdev yum -y install openssh-server sudo openssh-clients 
+  #- ps: $ServerIP = docker exec -it testdev hostname -I | awk '{print $1}'
+  #- ps: Add-Content C:\Windows\System32\Drivers\Etc\Hosts "$ServerIP testdev.pbspro.org"
+  #- ps: docker exec -it testdev /bin/bash -c "echo $ServerIP testdev.pbspro.org >> /etc/hosts"
+  #- ps: docker exec -it testdev /bin/bash ./.travis/do.sh
+  #- ps: docker exec -it testdev useradd appveyor
+  #- ps: docker exec -it testdev yum -y install openssh-server sudo
+  #- ps: docker exec -it testdev ssh-keygen -A
+  #- ps: docker exec -it testdev /usr/sbin/sshd -4
+  #- ps: docker exec -it testdev /bin/bash -c "sudo -H -u appveyor mkdir -p /home/appveyor/.ssh"
+  #- ps: docker exec -it testdev /bin/bash -c "sudo -H -u appveyor chmod 700 /home/appveyor/.ssh"
+  #- ps: docker exec -it testdev /bin/bash -c "sudo -H -u appveyor touch /home/appveyor/.ssh/authorized_keys"
+  #- ps: docker exec -it testdev /bin/bash -c "sudo -H -u appveyor chmod 600 /home/appveyor/.ssh/authorized_keys"
+  #- ps: docker exec -it testdev /bin/bash -c "sudo -H -u appveyor ssh-keygen -t rsa -N '' -f /home/appveyor/.ssh/id_rsa"
+  #- ps: $client_pubkey = type C:\Users\appveyor\.ssh\id_rsa.pub
+  #- ps: docker exec -it testdev /bin/bash -c "sudo -H -u appveyor echo $client_pubkey >> /home/appveyor/.ssh/authorized_keys"
+  #- cmd: for /F %%a in ('hostname') do set momhost=%%a
+  #- cmd: for /F "delims=[] tokens=2" %%a in ('ping -4 -n 1 %momhost%') do set MomIP=%%a
+  #- cmd: docker exec -it testdev /bin/bash -c "echo %MomIP% %momhost% >> /etc/hosts"
+  #- ps: $server_pubkey = docker exec -it testdev cat /home/appveyor/.ssh/id_rsa.pub
+  #- ps: Add-Content C:\ProgramData\ssh\administrators_authorized_keys "$server_pubkey"
+  #- ps: icacls C:\ProgramData\ssh\administrators_authorized_keys /remove "NT AUTHORITY\Authenticated Users"
+  #- ps: icacls C:\ProgramData\ssh\administrators_authorized_keys /inheritance:r
+  - ps: Invoke-WebRequest http://strawberryperl.com/download/5.24.2.1/strawberry-perl-5.24.2.1-64bit.msi -o perl.msi
+  - cmd: msiexec /a perl.msi /qn TARGETDIR=C:\Perl
+  - ps: Invoke-WebRequest https://go.microsoft.com/fwlink/p/?LinkID=698771 -o sdk_python.exe
+  - ps: Invoke-Command -ScriptBlock {Start-Process "sdk_python.exe" -ArgumentList "/q" -Wait}
+  - cmd: call .appveyor\appveyor_helper.bat %CONFIGURATION%
+build_script:
+  - cmd: msbuild win_configure\pbs_windows_VS2017.sln /p:configuration=%CONFIGURATION% /p:platform=Win32 /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
+after_build:
+  - cmd: call .appveyor\generate_installer.bat %CONFIGURATION%
+before_test:
+  - ps: copy c:\projects\win_build\msi\PBSPro_*.msi PBSPro.msi
+  - ps: Start-Process msiexec -ArgumentList "/quiet","/qn","/norestart","/i","c:\projects\pbspro\PBSPro.msi" -Wait
+  - ps: net user $env:username pbS@123
+  - cmd: refreshenv
+  - cmd: for /F %%a in ('hostname') do set momhost=%%a
+  - cmd: C:\PROGRA~2\PBS\exec\python\python.exe C:\PROGRA~2\PBS\exec\etc\win_postinstall.py -u %USERNAME% -p pbS@123 -t execution -s %momhost%
+  - cmd: wsl --user root /opt/pbs/bin/qmgr -c "c n %momhost%"
+  - cmd: wsl --user root /opt/pbs/bin/qmgr -c "s s single_signon_password_enable=True"
+test_script:
+  - ps: net user $env:username pbS@123
+  - cmd: refreshenv
+  - ps: . C:\projects\pbspro\.appveyor\Retry-Command.ps1
+  - ps: pbs_password ${Env:USERNAME} pbS@123
+  - ps: wsl --user root /opt/pbs/bin/qmgr -c "s s flatuid=True"
+  - ps: wsl --user root /opt/pbs/bin/qstat -Bf
+  - ps: wsl --user root /opt/pbs/bin/qstat -Qf
+  - ps: wsl --user root /opt/pbs/bin/pbsnodes -av
+  #- ps: wsl --user root /opt/pbs/bin/qmgr -c "s s acl_roots = ${Env:USERNAME}"
+  #- ps: wsl --user root /opt/pbs/bin/qmgr -c "c h simple_hook event = 'resvsub,resv_end,queuejob,movejob,modifyjob,runjob,periodic,execjob_begin,execjob_prologue,execjob_launch,execjob_attach,execjob_preterm,execjob_epilogue,execjob_end,exechost_startup,exechost_periodic', freq = 35"
+  #- ps: wsl --user root /opt/pbs/bin/qmgr -c "i h simple_hook application/x-python default /mnt/c/Users/appveyor/pbspro/.appveyor/simple_hook.py"
+  #- ps: wsl --user root /opt/pbs/bin/qmgr -c "l h"
+  #- ps: $TODAY=Get-Date -UFormat "%Y%m%d"
+  #- ps: Retry-Command { grep -Hn 'copy hook-related file request received' C:\PROGRA~2\PBS\home\mom_logs\$TODAY }
+  #- cmd: FOR /f "usebackq" %%i IN (`PowerShell ^(Get-Date^).ToString^('yyyyMMdd'^)`) DO SET Today=%%i
+  #- cmd: wsl --user root /bin/bash -c "grep -r 'successfully sent hook file' /var/spool/pbs/server_logs/%Today%"
+  #- cmd: wsl --user root /opt/pbs/bin/qmgr -c "c r myncpus type=long,flag=nh"
+  #- cmd: wsl --user root /opt/pbs/bin/qmgr -c "s n appveyor-vm resources_available.myncpus = 2"
+  #- cmd: wsl --user root /bin/bash -c "sed -i 's/, eoe/, eoe, myncpus/g' /var/spool/pbs/sched_priv/sched_config"
+  #- cmd: wsl --user root /etc/init.d/pbs restart
+  #- cmd: wsl --user root /opt/pbs/bin/qmgr -c "s q workq started = False"
+  #- ps: pbsnodes -av
+  #- ps: qsub -f -l myncpus=1 -- pbs_attach -c pbsdsh hostname
+  #- ps: qstat -f
+  #- ps: qstat -f | grep -E '^    job_state = Q'
+  #- ps: qstat -f | grep -E '^    queue = workq'
+  #- ps: qstat -f | grep -E '^    Resource_List.ncpus = 1'
+  #- ps: qstat -f | grep -E '^    Resource_List.myncpus = 1'
+  #- ps: qstat -f | grep -E '^    Submit_arguments = -f -l myncpus=1 -- pbs_attach -c pbsdsh hostname'
+  #- ps: qalter -lmyncpus=2 0
+  #- ps: qstat -f | grep -E '^    Resource_List.ncpus = 1'
+  #- ps: qstat -f | grep -E '^    Resource_List.myncpus = 2'
+  #- ps: $current_time = (Get-Date)
+  #- ps: $next_min = $current_time.AddSeconds(60)
+  #- ps: $current_time.ToString();$next_min.ToString()
+  #- ps: echo $next_min.ToString("HHmm")
+  #- ps: pbs_rsub -lselect=myncpus=2 -R $next_min.ToString("HHmm") -D 00:01:00
+  #- ps: pbs_rstat -f 
+  #- ps: pbs_rstat -f | grep -E '^Resource_List.ncpus = 1'
+  #- ps: pbs_rstat -f | grep -E '^Resource_List.myncpus = 2'
+  #- ps: Retry-Command {
+  #        pbs_rstat -f R1 | grep -E '^reserve_state = RESV_RUNNING';
+  #        $err1 = $LastExitCode;
+  #        if ($err1 -ne 0) {
+  #          wsl --user root /opt/pbs/bin/qmgr -c "s s scheduling = True";
+  #          throw
+  #        }
+  #      } -Timeout 2000
+  #- ps: qmove R1 0
+  #- ps: qstat -f | grep -E '^    queue = R1'
+  #- ps: wsl --user root /opt/pbs/bin/qmgr -c "s s scheduling = True"
+  #- ps: qstat -f
+  #- ps: Retry-Command {
+  #       if ((qstat -f | Measure-Object -Character).Characters -gt 0) {
+  #        throw
+  #       }
+  #     } -Timeout 5000
+  #- ps: Retry-Command {
+  #       if ((pbs_rstat -f | Measure-Object -Character).Characters -gt 0) {
+  #        throw
+  #       }
+  #     } -Timeout 5000
+  #- ps: tracejob 0
+  #- cmd: dir STDIN*
+  #- cmd: hostname > my
+  #- cmd: diff my STDIN.o0
+  #- cmd: FOR /f "usebackq" %%i IN (`PowerShell ^(Get-Date^).ToString^('yyyyMMdd'^)`) DO SET Today=%%i
+  #- cmd: wsl --user root /bin/bash -c "grep -r 'hook event type is resvsub' /var/spool/pbs/server_logs/%TODAY%"
+  #- cmd: wsl --user root /bin/bash -c "grep -r 'hook event type is resv_end' /var/spool/pbs/server_logs/%TODAY%"
+  #- cmd: wsl --user root /bin/bash -c "grep -r 'hook event type is queuejob' /var/spool/pbs/server_logs/%TODAY%"
+  #- cmd: wsl --user root /bin/bash -c "grep -r 'hook event type is movejob' /var/spool/pbs/server_logs/%TODAY%"
+  #- cmd: wsl --user root /bin/bash -c "grep -r 'hook event type is modifyjob' /var/spool/pbs/server_logs/%TODAY%"
+  #- ps: Retry-Command { grep -Hn 'hook event type is execjob_begin' C:\PROGRA~2\PBS\home\mom_logs\$TODAY }
+  #- ps: Retry-Command { grep -Hn 'hook event type is execjob_prologue' C:\PROGRA~2\PBS\home\mom_logs\$TODAY }
+  #- ps: Retry-Command { grep -Hn 'hook event type is execjob_launch' C:\PROGRA~2\PBS\home\mom_logs\$TODAY }
+  #- ps: Retry-Command { grep -Hn 'hook event type is execjob_attach' C:\PROGRA~2\PBS\home\mom_logs\$TODAY }
+  #- ps: Retry-Command { grep -Hn 'hook event type is execjob_epilogue' C:\PROGRA~2\PBS\home\mom_logs\$TODAY }
+  #- ps: Retry-Command { grep -Hn 'hook event type is execjob_end' C:\PROGRA~2\PBS\home\mom_logs\$TODAY }
+  #- ps: wsl --user root /opt/pbs/bin/qmgr -c "s q workq started = True"
+  #- ps: wsl --user root /opt/pbs/bin/qmgr -c "c q equeue queue_type = Execution"
+  #- ps: wsl --user root /opt/pbs/bin/qmgr -c "s q equeue priority = 151"
+  #- ps: wsl --user root /opt/pbs/bin/qmgr -c "s q equeue enabled = True"
+  #- ps: wsl --user root /opt/pbs/bin/qmgr -c "s q equeue started = True"
+  #- ps: wsl --user root /opt/pbs/bin/qmgr -c "c q rqueue queue_type = Route"
+  #- ps: $momhost = hostname
+  #- ps: wsl --user root /opt/pbs/bin/qmgr -c "s q rqueue route_destinations= equeue@$momhost"
+  #- ps: wsl --user root /opt/pbs/bin/qmgr -c "s q rqueue enabled = True"
+  #- ps: wsl --user root /opt/pbs/bin/qmgr -c "s q rqueue started = False"
+  #- ps: qsub -f -l myncpus=2 -- pbs_sleep 1000
+  #- ps: qstat -f 2 | grep -E '^    queue = workq'
+  #- ps: qstat -f 2 | grep -E '^    Resource_List.myncpus = 2'
+  #- ps: Retry-Command {
+  #       qstat -f 2 | grep -E '^    job_state = R';
+  #       $err1 = $LastExitCode;
+  #       qstat -f 2 | grep -E '^    substate = 42';
+  #       $err2 = $LastExitCode;
+  #       if ($err1 -ne 0 -or $err2 -ne 0) {
+  #         wsl --user root /opt/pbs/bin/qmgr -c "s s scheduling = True";
+  #         throw
+  #       }
+  #      } -Timeout 5000
+  #- ps: qsub -f -q rqueue -l myncpus=2 -- pbs_sleep 1000
+  #- ps: qstat -f 3 | grep -E '^    queue = rqueue'
+  #- ps: qstat -f 3 | grep -E '^    Resource_List.myncpus = 2'
+  #- ps: wsl --user root /opt/pbs/bin/qmgr -c "s q rqueue started = True"
+  #- ps: Retry-Command {
+  #       qstat -f 3 | grep -E '^    queue = equeue';
+  #       if ($LastExitCode -ne 0) {
+  #         wsl --user root /opt/pbs/bin/qmgr -c "s s scheduling = True";
+  #         throw
+  #       }
+  #      } -Timeout 2000
+  #- ps: Retry-Command {
+  #       qstat -f 3 | grep -E '^    job_state = R';
+  #       $err1 = $LastExitCode;
+  #       qstat -f 3 | grep -E '^    substate = 42';
+  #       $err2 = $LastExitCode;
+  #       qstat -f 2 | grep -E '^    job_state = S';
+  #       $err3 = $LastExitCode;
+  #       if ($err1 -ne 0 -or $err2 -ne 0 -or $err3 -ne 0) {
+  #         wsl --user root /opt/pbs/bin/qmgr -c "s s scheduling = True";
+  #         throw
+  #       }
+  #      } -Timeout 2000
+  #- ps: qstat -f 2
+  #- ps: qdel 3
+  #- ps: Retry-Command {
+  #       qstat -f 2 | grep -E '^    job_state = R';
+  #       $err1 = $LastExitCode;
+  #       qstat -f 2 | grep -E '^    substate = 42';
+  #       $err2 = $LastExitCode;
+  #       if ($err1 -ne 0 -or $err2 -ne 0) {
+  #         wsl --user root /opt/pbs/bin/qmgr -c "s s scheduling = True";
+  #         throw
+  #       }
+  #      } -Timeout 5000
+  #- ps: qsub -J1-2 -f -- pbs_sleep 1000
+  #- ps: Retry-Command {
+  #       if ((Get-Process pbs_sleep).Length -ne 2) {
+  #         wsl --user root /opt/pbs/bin/qmgr -c "s s scheduling = True";
+  #         throw
+  #       }
+  #      } -Timeout 2000
+  #- ps: qdel 2 4[]
+  #- ps: Retry-Command { grep -Hn 'hook event type is execjob_preterm' C:\PROGRA~2\PBS\home\mom_logs\$TODAY }
+  #- ps: Retry-Command {
+  #       if ((qstat -f | Measure-Object -Character).Characters -gt 0) {
+  #         throw
+  #       }
+  #      } -Timeout 5000
+after_test:
   #- ps: rm PBSPro.msi
   #- ps: copy c:\projects\win_build\msi\PBSPro_*.msi .
-#artifacts:
+artifacts:
   #- path: '*.msi'
-#deploy: off
+deploy: off
 on_finish:
   - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))

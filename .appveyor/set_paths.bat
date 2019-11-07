@@ -41,7 +41,7 @@ if not defined CURL_BIN (
     set CURL_BIN=curl
 )
 if not defined PERL_BIN (
-    set PERL_BIN=perl
+    set PERL_BIN=C:\Perl\Strawberry\perl\bin\perl
 )
 if not defined CMAKE_BIN (
     set CMAKE_BIN=cmake
@@ -59,13 +59,10 @@ if exist "C:\Program Files (x86)\Microsoft Visual Studio\2017\Professional" (
     set "VS150COMNTOOLS=C:\Program Files (x86)\Microsoft Visual Studio\2017\Professional\Common7\Tools\"
 ) else if exist "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise" (
     set "VS150COMNTOOLS=C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\Common7\Tools\"
+) else if exist "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community" (
+    set "VS160COMNTOOLS=C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\Tools\"
 ) else (
     set "VS150COMNTOOLS=C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\"
-)
-
-if not exist "%VS150COMNTOOLS%" (
-    echo "Could not fine VS2017 common tools"
-    exit 1
 )
 
 set __RANDOM_VAL=%RANDOM::=_%

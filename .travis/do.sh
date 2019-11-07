@@ -68,38 +68,38 @@ if [ "x${ONLY_REBUILD}" != "x1" ]; then
   fi
 fi
 
-if [ "x${ONLY_INSTALL_DEPS}" == "x1" ]; then
-  exit 0
-fi
+#if [ "x${ONLY_INSTALL_DEPS}" == "x1" ]; then
+#  exit 0
+#fi
 
-_targetdirname=target-${ID}
-if [ "x${ONLY_REBUILD}" != "x1" ]; then
-  rm -rf ${_targetdirname}
-fi
-mkdir -p ${_targetdirname}
-if [ "x${ONLY_REBUILD}" != "x1" ]; then
-  [[ -f Makefile ]] && make distclean || true
-  ./autogen.sh
-  _cflags="-g -O2 -Wall -Werror"
-  if [ "x${ID}" == "xubuntu" ]; then
-    _cflags="${_cflags} -Wno-unused-result"
-  fi
-  cd ${_targetdirname}
-  ../configure CFLAGS="${_cflags}" --prefix /opt/pbs --enable-ptl
-  cd -
-fi
-cd ${_targetdirname}
-make -j8
-make -j8 install
-chmod 4755 /opt/pbs/sbin/pbs_iff /opt/pbs/sbin/pbs_rcp
-if [ "x${DONT_START_PBS}" != "x1" ]; then
-  if [ "x${ONLY_REBUILD}" != "x1" ]; then
-    /opt/pbs/libexec/pbs_postinstall server
-    sed -i "s@PBS_START_MOM=0@PBS_START_MOM=1@" /etc/pbs.conf
-  fi
-  /etc/init.d/pbs restart
-fi
-set +e
-. /etc/profile.d/ptl.sh
-set -e
-pbs_config --make-ug
+#_targetdirname=target-${ID}
+#if [ "x${ONLY_REBUILD}" != "x1" ]; then
+#  rm -rf ${_targetdirname}
+#fi
+#mkdir -p ${_targetdirname}
+#if [ "x${ONLY_REBUILD}" != "x1" ]; then
+#  [[ -f Makefile ]] && make distclean || true
+#  ./autogen.sh
+#  _cflags="-g -O2 -Wall -Werror"
+#  if [ "x${ID}" == "xubuntu" ]; then
+#    _cflags="${_cflags} -Wno-unused-result"
+#  fi
+#  cd ${_targetdirname}
+#  ../configure CFLAGS="${_cflags}" --prefix /opt/pbs --enable-ptl
+#  cd -
+#fi
+#cd ${_targetdirname}
+#make -j8
+#make -j8 install
+#chmod 4755 /opt/pbs/sbin/pbs_iff /opt/pbs/sbin/pbs_rcp
+#if [ "x${DONT_START_PBS}" != "x1" ]; then
+#  if [ "x${ONLY_REBUILD}" != "x1" ]; then
+#    /opt/pbs/libexec/pbs_postinstall server
+#    sed -i "s@PBS_START_MOM=0@PBS_START_MOM=1@" /etc/pbs.conf
+#  fi
+#  /etc/init.d/pbs restart
+#fi
+#set +e
+#. /etc/profile.d/ptl.sh
+#set -e
+#pbs_config --make-ug

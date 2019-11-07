@@ -1,5 +1,5 @@
 version: '#{build}'
-image: Visual Studio 2017
+image: Visual Studio 2019
 pull_requests:
   do_not_increment_build_number: true
 clone_depth: 5
@@ -7,29 +7,36 @@ cache:
   - C:\projects\binaries -> .appveyor.yml, .appveyor
 configuration:
   - Debug
-  - Release
+  #- Release
 before_build:
   # - ps: choco install strawberryperl -y --no-progress --ignore-detected-reboot
   # - ps: choco install wixtoolset -y --no-progress --ignore-detected-reboot
-  - cmd: refreshenv
-  - cmd: call .appveyor\appveyor_helper.bat %CONFIGURATION%
+  - cmd: wsl --user root /bin/bash -c "echo '[network]' >> /etc/wsl.conf; echo generateHosts = false >> /etc/wsl.conf"
+  - cmd: wsl --user root cat /etc/wsl.conf
+  - ps: $momhost = hostname
+  - ps: $ip = [System.Net.Dns]::GetHostByName($env:compu.AddressList[0].IPAddressToString
+  - ps: Add-Content C:\Windows\System3\Etc\Hosts "$ip $momhost"
+  - cmd: wsl --user root cp -r /mnt/c/projects/pbspro /mnt/c/Users/appveyor/ 
+  - cmd: wsl --user root /bin/bash -c "sudo sed -i 's/archive.ubuntu.com/us.archive.ubuntu.com/' /etc/apt/sources.list"
+  #- cmd: refreshenv
+  #- cmd: call .appveyor\appveyor_helper.bat %CONFIGURATION%
 build_script:
-  - cmd: msbuild win_configure\pbs_windows_VS2017.sln /p:configuration=%CONFIGURATION% /p:platform=Win32 /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
+  #- cmd: msbuild win_configure\pbs_windows_VS2017.sln /p:configuration=%CONFIGURATION% /p:platform=Win32 /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
 after_build:
-  - cmd: call .appveyor\generate_installer.bat %CONFIGURATION%
+  #- cmd: call .appveyor\generate_installer.bat %CONFIGURATION%
 before_test:
-  - ps: copy c:\projects\win_build\msi\PBSPro_*.msi PBSPro.msi
-  - ps: Start-Process msiexec -ArgumentList "/quiet","/qn","/norestart","/i","c:\projects\pbspro\PBSPro.msi" -Wait
-  - ps: $ip = [System.Net.Dns]::GetHostByName($env:computerName).AddressList[0].IPAddressToString
-  - ps: Add-Content C:\Windows\System32\Drivers\Etc\Hosts "$ip testdev.pbspro.org testdev"
-  - ps: net user $env:username pbS@123
-  - cmd: refreshenv
-  - cmd: C:\PROGRA~2\PBS\exec\python\python.exe C:\PROGRA~2\PBS\exec\etc\win_postinstall.py -u %USERNAME% -p pbS@123 -t execution -s testdev
+  #- ps: copy c:\projects\win_build\msi\PBSPro_*.msi PBSPro.msi
+  #- ps: Start-Process msiexec -ArgumentList "/quiet","/qn","/norestart","/i","c:\projects\pbspro\PBSPro.msi" -Wait
+  #- ps: $ip = [System.Net.Dns]::GetHostByName($env:computerName).AddressList[0].IPAddressToString
+  #- ps: Add-Content C:\Windows\System32\Drivers\Etc\Hosts "$ip testdev.pbspro.org testdev"
+  #- ps: net user $env:username pbS@123
+  #- cmd: refreshenv
+  #- cmd: C:\PROGRA~2\PBS\exec\python\python.exe C:\PROGRA~2\PBS\exec\etc\win_postinstall.py -u %USERNAME% -p pbS@123 -t execution -s testdev
 after_test:
-  - ps: rm PBSPro.msi
-  - ps: copy c:\projects\win_build\msi\PBSPro_*.msi .
+  #- ps: rm PBSPro.msi
+  #- ps: copy c:\projects\win_build\msi\PBSPro_*.msi .
 artifacts:
-  - path: '*.msi'
-deploy: off
-# on_finish:
-#   - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+  #- path: '*.msi'
+#deploy: off
+on_finish:
+   - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))

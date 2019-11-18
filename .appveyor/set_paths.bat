@@ -43,8 +43,7 @@ if not defined CURL_BIN (
 if not defined PERL_BIN (
     if "%APPVEYOR%"=="True" (
         set PERL_BIN=C:\Perl\Strawberry\perl\bin\perl
-    )
-    else (
+    ) else (
         set PERL_BIN=perl
     )
 )

@@ -17,8 +17,7 @@ before_build:
   - ps: wsl --user root /bin/bash -c "sed -i '1i $ip $momhost' /etc/hosts"
   - cmd: wsl --user root cp -r /mnt/c/projects/pbspro /mnt/c/Users/appveyor/ 
   - cmd: wsl --user root /bin/bash -c "sed -i 's/archive.ubuntu.com/us.archive.ubuntu.com/' /etc/apt/sources.list"
-  - cmd: wsl --user root /bin/bash -c ""
-  - cmd: wsl --user root /bin/bash -c "cd /mnt/c/Users/appveyor/pbspro; ./.travis/do.sh"
+  #- cmd: wsl --user root /bin/bash -c "cd /mnt/c/Users/appveyor/pbspro; ./.appveyor/ubuntu_server.sh"
   - ps: Invoke-WebRequest http://strawberryperl.com/download/5.24.2.1/strawberry-perl-5.24.2.1-64bit.msi -o perl.msi
   - cmd: msiexec /a perl.msi /qn TARGETDIR=C:\Perl
   #- ps: Invoke-WebRequest https://go.microsoft.com/fwlink/p/?LinkID=698771 -o sdk_python.exe
@@ -46,151 +45,151 @@ test_script:
   - ps: wsl --user root /opt/pbs/bin/qstat -Bf
   - ps: wsl --user root /opt/pbs/bin/qstat -Qf
   - ps: wsl --user root /opt/pbs/bin/pbsnodes -av
-  - ps: wsl --user root /opt/pbs/bin/qmgr -c "s s acl_roots = ${Env:USERNAME}"
-  - ps: wsl --user root /opt/pbs/bin/qmgr -c "c h simple_hook event = 'resvsub,resv_end,queuejob,movejob,modifyjob,runjob,periodic,execjob_begin,execjob_prologue,execjob_launch,execjob_attach,execjob_preterm,execjob_epilogue,execjob_end,exechost_startup,exechost_periodic', freq = 35"
-  - ps: wsl --user root /opt/pbs/bin/qmgr -c "i h simple_hook application/x-python default /mnt/c/Users/appveyor/pbspro/.appveyor/simple_hook.py"
-  - ps: wsl --user root /opt/pbs/bin/qmgr -c "l h"
-  - ps: $TODAY=Get-Date -UFormat "%Y%m%d"
-  - ps: Retry-Command { grep -Hn 'copy hook-related file request received' C:\PROGRA~2\PBS\home\mom_logs\$TODAY }
-  - cmd: FOR /f "usebackq" %%i IN (`PowerShell ^(Get-Date^).ToString^('yyyyMMdd'^)`) DO SET Today=%%i
-  - cmd: wsl --user root /bin/bash -c "grep -r 'successfully sent hook file' /var/spool/pbs/server_logs/%Today%"
-  - cmd: wsl --user root /opt/pbs/bin/qmgr -c "c r myncpus type=long,flag=nh"
-  - cmd: wsl --user root /opt/pbs/bin/qmgr -c "s n appveyor-vm resources_available.myncpus = 2"
-  - cmd: wsl --user root /bin/bash -c "sed -i 's/, eoe/, eoe, myncpus/g' /var/spool/pbs/sched_priv/sched_config"
-  - cmd: wsl --user root /etc/init.d/pbs restart
-  - cmd: wsl --user root /opt/pbs/bin/qmgr -c "s q workq started = False"
-  - ps: pbsnodes -av
-  - ps: qsub -f -l myncpus=1 -- pbs_attach -c pbsdsh hostname
-  - ps: qstat -f
-  - ps: qstat -f | grep -E '^    job_state = Q'
-  - ps: qstat -f | grep -E '^    queue = workq'
-  - ps: qstat -f | grep -E '^    Resource_List.ncpus = 1'
-  - ps: qstat -f | grep -E '^    Resource_List.myncpus = 1'
-  - ps: qstat -f | grep -E '^    Submit_arguments = -f -l myncpus=1 -- pbs_attach -c pbsdsh hostname'
-  - ps: qalter -lmyncpus=2 0
-  - ps: qstat -f | grep -E '^    Resource_List.ncpus = 1'
-  - ps: qstat -f | grep -E '^    Resource_List.myncpus = 2'
-  - ps: $current_time = (Get-Date)
-  - ps: $next_min = $current_time.AddSeconds(60)
-  - ps: $current_time.ToString();$next_min.ToString()
-  - ps: echo $next_min.ToString("HHmm")
-  - ps: pbs_rsub -lselect=myncpus=2 -R $next_min.ToString("HHmm") -D 00:01:00
-  - ps: pbs_rstat -f 
-  - ps: pbs_rstat -f | grep -E '^Resource_List.ncpus = 1'
-  - ps: pbs_rstat -f | grep -E '^Resource_List.myncpus = 2'
-  - ps: Retry-Command {
-          pbs_rstat -f R1 | grep -E '^reserve_state = RESV_RUNNING';
-          $err1 = $LastExitCode;
-          if ($err1 -ne 0) {
-            wsl --user root /opt/pbs/bin/qmgr -c "s s scheduling = True";
-            throw
-          }
-        } -Timeout 2000
-  - ps: qmove R1 0
-  - ps: qstat -f | grep -E '^    queue = R1'
-  - ps: wsl --user root /opt/pbs/bin/qmgr -c "s s scheduling = True"
-  - ps: qstat -f
-  - ps: Retry-Command {
-         if ((qstat -f | Measure-Object -Character).Characters -gt 0) {
-          throw
-         }
-       } -Timeout 5000
-  - ps: Retry-Command {
-         if ((pbs_rstat -f | Measure-Object -Character).Characters -gt 0) {
-          throw
-         }
-       } -Timeout 5000
-  - ps: tracejob 0
-  - cmd: dir STDIN*
-  - cmd: hostname > my
-  - cmd: diff my STDIN.o0
-  - cmd: FOR /f "usebackq" %%i IN (`PowerShell ^(Get-Date^).ToString^('yyyyMMdd'^)`) DO SET Today=%%i
-  - cmd: wsl --user root /bin/bash -c "grep -r 'hook event type is resvsub' /var/spool/pbs/server_logs/%TODAY%"
-  - cmd: wsl --user root /bin/bash -c "grep -r 'hook event type is resv_end' /var/spool/pbs/server_logs/%TODAY%"
-  - cmd: wsl --user root /bin/bash -c "grep -r 'hook event type is queuejob' /var/spool/pbs/server_logs/%TODAY%"
-  - cmd: wsl --user root /bin/bash -c "grep -r 'hook event type is movejob' /var/spool/pbs/server_logs/%TODAY%"
-  - cmd: wsl --user root /bin/bash -c "grep -r 'hook event type is modifyjob' /var/spool/pbs/server_logs/%TODAY%"
-  - ps: Retry-Command { grep -Hn 'hook event type is execjob_begin' C:\PROGRA~2\PBS\home\mom_logs\$TODAY }
-  - ps: Retry-Command { grep -Hn 'hook event type is execjob_prologue' C:\PROGRA~2\PBS\home\mom_logs\$TODAY }
-  - ps: Retry-Command { grep -Hn 'hook event type is execjob_launch' C:\PROGRA~2\PBS\home\mom_logs\$TODAY }
-  - ps: Retry-Command { grep -Hn 'hook event type is execjob_attach' C:\PROGRA~2\PBS\home\mom_logs\$TODAY }
-  - ps: Retry-Command { grep -Hn 'hook event type is execjob_epilogue' C:\PROGRA~2\PBS\home\mom_logs\$TODAY }
-  - ps: Retry-Command { grep -Hn 'hook event type is execjob_end' C:\PROGRA~2\PBS\home\mom_logs\$TODAY }
-  - ps: wsl --user root /opt/pbs/bin/qmgr -c "s q workq started = True"
-  - ps: wsl --user root /opt/pbs/bin/qmgr -c "c q equeue queue_type = Execution"
-  - ps: wsl --user root /opt/pbs/bin/qmgr -c "s q equeue priority = 151"
-  - ps: wsl --user root /opt/pbs/bin/qmgr -c "s q equeue enabled = True"
-  - ps: wsl --user root /opt/pbs/bin/qmgr -c "s q equeue started = True"
-  - ps: wsl --user root /opt/pbs/bin/qmgr -c "c q rqueue queue_type = Route"
-  - ps: $momhost = hostname
-  - ps: wsl --user root /opt/pbs/bin/qmgr -c "s q rqueue route_destinations= equeue@$momhost"
-  - ps: wsl --user root /opt/pbs/bin/qmgr -c "s q rqueue enabled = True"
-  - ps: wsl --user root /opt/pbs/bin/qmgr -c "s q rqueue started = False"
-  - ps: qsub -f -l myncpus=2 -- pbs_sleep 1000
-  - ps: qstat -f 2 | grep -E '^    queue = workq'
-  - ps: qstat -f 2 | grep -E '^    Resource_List.myncpus = 2'
-  - ps: Retry-Command {
-         qstat -f 2 | grep -E '^    job_state = R';
-         $err1 = $LastExitCode;
-         qstat -f 2 | grep -E '^    substate = 42';
-         $err2 = $LastExitCode;
-         if ($err1 -ne 0 -or $err2 -ne 0) {
-           wsl --user root /opt/pbs/bin/qmgr -c "s s scheduling = True";
-           throw
-         }
-        } -Timeout 5000
-  - ps: qsub -f -q rqueue -l myncpus=2 -- pbs_sleep 1000
-  - ps: qstat -f 3 | grep -E '^    queue = rqueue'
-  - ps: qstat -f 3 | grep -E '^    Resource_List.myncpus = 2'
-  - ps: wsl --user root /opt/pbs/bin/qmgr -c "s q rqueue started = True"
-  - ps: Retry-Command {
-         qstat -f 3 | grep -E '^    queue = equeue';
-         if ($LastExitCode -ne 0) {
-           wsl --user root /opt/pbs/bin/qmgr -c "s s scheduling = True";
-           throw
-         }
-        } -Timeout 2000
-  - ps: Retry-Command {
-         qstat -f 3 | grep -E '^    job_state = R';
-         $err1 = $LastExitCode;
-         qstat -f 3 | grep -E '^    substate = 42';
-         $err2 = $LastExitCode;
-         qstat -f 2 | grep -E '^    job_state = S';
-         $err3 = $LastExitCode;
-         if ($err1 -ne 0 -or $err2 -ne 0 -or $err3 -ne 0) {
-           wsl --user root /opt/pbs/bin/qmgr -c "s s scheduling = True";
-           throw
-         }
-        } -Timeout 2000
-  - ps: qstat -f 2
-  - ps: qdel 3
-  - ps: Retry-Command {
-         qstat -f 2 | grep -E '^    job_state = R';
-         $err1 = $LastExitCode;
-         qstat -f 2 | grep -E '^    substate = 42';
-         $err2 = $LastExitCode;
-         if ($err1 -ne 0 -or $err2 -ne 0) {
-           wsl --user root /opt/pbs/bin/qmgr -c "s s scheduling = True";
-           throw
-         }
-        } -Timeout 5000
-  - ps: qsub -J1-2 -f -- pbs_sleep 1000
-  - ps: Retry-Command {
-         if ((Get-Process pbs_sleep).Length -ne 2) {
-           wsl --user root /opt/pbs/bin/qmgr -c "s s scheduling = True";
-           throw
-         }
-        } -Timeout 2000
-  - ps: qdel 2 4[]
-  - ps: Retry-Command { grep -Hn 'hook event type is execjob_preterm' C:\PROGRA~2\PBS\home\mom_logs\$TODAY }
-  - ps: Retry-Command {
-         if ((qstat -f | Measure-Object -Character).Characters -gt 0) {
-           throw
-         }
-        } -Timeout 5000
+  #- ps: wsl --user root /opt/pbs/bin/qmgr -c "s s acl_roots = ${Env:USERNAME}"
+  #- ps: wsl --user root /opt/pbs/bin/qmgr -c "c h simple_hook event = 'resvsub,resv_end,queuejob,movejob,modifyjob,runjob,periodic,execjob_begin,execjob_prologue,execjob_launch,execjob_attach,execjob_preterm,execjob_epilogue,execjob_end,exechost_startup,exechost_periodic', freq = 35"
+  #- ps: wsl --user root /opt/pbs/bin/qmgr -c "i h simple_hook application/x-python default /mnt/c/Users/appveyor/pbspro/.appveyor/simple_hook.py"
+  #- ps: wsl --user root /opt/pbs/bin/qmgr -c "l h"
+  #- ps: $TODAY=Get-Date -UFormat "%Y%m%d"
+  #- ps: Retry-Command { grep -Hn 'copy hook-related file request received' C:\PROGRA~2\PBS\home\mom_logs\$TODAY }
+  #- cmd: FOR /f "usebackq" %%i IN (`PowerShell ^(Get-Date^).ToString^('yyyyMMdd'^)`) DO SET Today=%%i
+  #- cmd: wsl --user root /bin/bash -c "grep -r 'successfully sent hook file' /var/spool/pbs/server_logs/%Today%"
+  #- cmd: wsl --user root /opt/pbs/bin/qmgr -c "c r myncpus type=long,flag=nh"
+  #- cmd: wsl --user root /opt/pbs/bin/qmgr -c "s n appveyor-vm resources_available.myncpus = 2"
+  #- cmd: wsl --user root /bin/bash -c "sed -i 's/, eoe/, eoe, myncpus/g' /var/spool/pbs/sched_priv/sched_config"
+  #- cmd: wsl --user root /etc/init.d/pbs restart
+  #- cmd: wsl --user root /opt/pbs/bin/qmgr -c "s q workq started = False"
+  #- ps: pbsnodes -av
+  #- ps: qsub -f -l myncpus=1 -- pbs_attach -c pbsdsh hostname
+  #- ps: qstat -f
+  #- ps: qstat -f | grep -E '^    job_state = Q'
+  #- ps: qstat -f | grep -E '^    queue = workq'
+  #- ps: qstat -f | grep -E '^    Resource_List.ncpus = 1'
+  #- ps: qstat -f | grep -E '^    Resource_List.myncpus = 1'
+  #- ps: qstat -f | grep -E '^    Submit_arguments = -f -l myncpus=1 -- pbs_attach -c pbsdsh hostname'
+  #- ps: qalter -lmyncpus=2 0
+  #- ps: qstat -f | grep -E '^    Resource_List.ncpus = 1'
+  #- ps: qstat -f | grep -E '^    Resource_List.myncpus = 2'
+  #- ps: $current_time = (Get-Date)
+  #- ps: $next_min = $current_time.AddSeconds(60)
+  #- ps: $current_time.ToString();$next_min.ToString()
+  #- ps: echo $next_min.ToString("HHmm")
+  #- ps: pbs_rsub -lselect=myncpus=2 -R $next_min.ToString("HHmm") -D 00:01:00
+  #- ps: pbs_rstat -f 
+  #- ps: pbs_rstat -f | grep -E '^Resource_List.ncpus = 1'
+  #- ps: pbs_rstat -f | grep -E '^Resource_List.myncpus = 2'
+  #- ps: Retry-Command {
+  #        pbs_rstat -f R1 | grep -E '^reserve_state = RESV_RUNNING';
+  #        $err1 = $LastExitCode;
+  #        if ($err1 -ne 0) {
+  #          wsl --user root /opt/pbs/bin/qmgr -c "s s scheduling = True";
+  #          throw
+  #        }
+  #      } -Timeout 2000
+  #- ps: qmove R1 0
+  #- ps: qstat -f | grep -E '^    queue = R1'
+  #- ps: wsl --user root /opt/pbs/bin/qmgr -c "s s scheduling = True"
+  #- ps: qstat -f
+  #- ps: Retry-Command {
+  #       if ((qstat -f | Measure-Object -Character).Characters -gt 0) {
+  #        throw
+  #       }
+  #     } -Timeout 5000
+  #- ps: Retry-Command {
+  #       if ((pbs_rstat -f | Measure-Object -Character).Characters -gt 0) {
+  #        throw
+  #       }
+  #     } -Timeout 5000
+  #- ps: tracejob 0
+  #- cmd: dir STDIN*
+  #- cmd: hostname > my
+  #- cmd: diff my STDIN.o0
+  #- cmd: FOR /f "usebackq" %%i IN (`PowerShell ^(Get-Date^).ToString^('yyyyMMdd'^)`) DO SET Today=%%i
+  #- cmd: wsl --user root /bin/bash -c "grep -r 'hook event type is resvsub' /var/spool/pbs/server_logs/%TODAY%"
+  #- cmd: wsl --user root /bin/bash -c "grep -r 'hook event type is resv_end' /var/spool/pbs/server_logs/%TODAY%"
+  #- cmd: wsl --user root /bin/bash -c "grep -r 'hook event type is queuejob' /var/spool/pbs/server_logs/%TODAY%"
+  #- cmd: wsl --user root /bin/bash -c "grep -r 'hook event type is movejob' /var/spool/pbs/server_logs/%TODAY%"
+  #- cmd: wsl --user root /bin/bash -c "grep -r 'hook event type is modifyjob' /var/spool/pbs/server_logs/%TODAY%"
+  #- ps: Retry-Command { grep -Hn 'hook event type is execjob_begin' C:\PROGRA~2\PBS\home\mom_logs\$TODAY }
+  #- ps: Retry-Command { grep -Hn 'hook event type is execjob_prologue' C:\PROGRA~2\PBS\home\mom_logs\$TODAY }
+  #- ps: Retry-Command { grep -Hn 'hook event type is execjob_launch' C:\PROGRA~2\PBS\home\mom_logs\$TODAY }
+  #- ps: Retry-Command { grep -Hn 'hook event type is execjob_attach' C:\PROGRA~2\PBS\home\mom_logs\$TODAY }
+  #- ps: Retry-Command { grep -Hn 'hook event type is execjob_epilogue' C:\PROGRA~2\PBS\home\mom_logs\$TODAY }
+  #- ps: Retry-Command { grep -Hn 'hook event type is execjob_end' C:\PROGRA~2\PBS\home\mom_logs\$TODAY }
+  #- ps: wsl --user root /opt/pbs/bin/qmgr -c "s q workq started = True"
+  #- ps: wsl --user root /opt/pbs/bin/qmgr -c "c q equeue queue_type = Execution"
+  #- ps: wsl --user root /opt/pbs/bin/qmgr -c "s q equeue priority = 151"
+  #- ps: wsl --user root /opt/pbs/bin/qmgr -c "s q equeue enabled = True"
+  #- ps: wsl --user root /opt/pbs/bin/qmgr -c "s q equeue started = True"
+  #- ps: wsl --user root /opt/pbs/bin/qmgr -c "c q rqueue queue_type = Route"
+  #- ps: $momhost = hostname
+  #- ps: wsl --user root /opt/pbs/bin/qmgr -c "s q rqueue route_destinations= equeue@$momhost"
+  #- ps: wsl --user root /opt/pbs/bin/qmgr -c "s q rqueue enabled = True"
+  #- ps: wsl --user root /opt/pbs/bin/qmgr -c "s q rqueue started = False"
+  #- ps: qsub -f -l myncpus=2 -- pbs_sleep 1000
+  #- ps: qstat -f 2 | grep -E '^    queue = workq'
+  #- ps: qstat -f 2 | grep -E '^    Resource_List.myncpus = 2'
+  #- ps: Retry-Command {
+  #       qstat -f 2 | grep -E '^    job_state = R';
+  #       $err1 = $LastExitCode;
+  #       qstat -f 2 | grep -E '^    substate = 42';
+  #       $err2 = $LastExitCode;
+  #       if ($err1 -ne 0 -or $err2 -ne 0) {
+  #         wsl --user root /opt/pbs/bin/qmgr -c "s s scheduling = True";
+  #         throw
+  #       }
+  #      } -Timeout 5000
+  #- ps: qsub -f -q rqueue -l myncpus=2 -- pbs_sleep 1000
+  #- ps: qstat -f 3 | grep -E '^    queue = rqueue'
+  #- ps: qstat -f 3 | grep -E '^    Resource_List.myncpus = 2'
+  #- ps: wsl --user root /opt/pbs/bin/qmgr -c "s q rqueue started = True"
+  #- ps: Retry-Command {
+  #       qstat -f 3 | grep -E '^    queue = equeue';
+  #       if ($LastExitCode -ne 0) {
+  #         wsl --user root /opt/pbs/bin/qmgr -c "s s scheduling = True";
+  #         throw
+  #       }
+  #      } -Timeout 2000
+  #- ps: Retry-Command {
+  #       qstat -f 3 | grep -E '^    job_state = R';
+  #       $err1 = $LastExitCode;
+  #       qstat -f 3 | grep -E '^    substate = 42';
+  #       $err2 = $LastExitCode;
+  #       qstat -f 2 | grep -E '^    job_state = S';
+  #       $err3 = $LastExitCode;
+  #       if ($err1 -ne 0 -or $err2 -ne 0 -or $err3 -ne 0) {
+  #         wsl --user root /opt/pbs/bin/qmgr -c "s s scheduling = True";
+  #         throw
+  #       }
+  #      } -Timeout 2000
+  #- ps: qstat -f 2
+  #- ps: qdel 3
+  #- ps: Retry-Command {
+  #       qstat -f 2 | grep -E '^    job_state = R';
+  #       $err1 = $LastExitCode;
+  #       qstat -f 2 | grep -E '^    substate = 42';
+  #       $err2 = $LastExitCode;
+  #       if ($err1 -ne 0 -or $err2 -ne 0) {
+  #         wsl --user root /opt/pbs/bin/qmgr -c "s s scheduling = True";
+  #         throw
+  #       }
+  #      } -Timeout 5000
+  #- ps: qsub -J1-2 -f -- pbs_sleep 1000
+  #- ps: Retry-Command {
+  #       if ((Get-Process pbs_sleep).Length -ne 2) {
+  #         wsl --user root /opt/pbs/bin/qmgr -c "s s scheduling = True";
+  #         throw
+  #       }
+  #      } -Timeout 2000
+  #- ps: qdel 2 4[]
+  #- ps: Retry-Command { grep -Hn 'hook event type is execjob_preterm' C:\PROGRA~2\PBS\home\mom_logs\$TODAY }
+  #- ps: Retry-Command {
+  #       if ((qstat -f | Measure-Object -Character).Characters -gt 0) {
+  #         throw
+  #       }
+  #      } -Timeout 5000
 after_test:
-  - ps: rm PBSPro.msi
-  - ps: copy c:\projects\win_build\msi\PBSPro_*.msi .
+  #- ps: rm PBSPro.msi
+  #- ps: copy c:\projects\win_build\msi\PBSPro_*.msi .
 artifacts:
   - path: '*.msi'
 deploy: off

@@ -84,8 +84,7 @@ mkdir "%BINARIESDIR%\wineditline-%LIBEDIT_VERSION%\build"
 
 if "%APPVEYOR%"=="True" (
     call "%VS160COMNTOOLS%VsDevCmd.bat"
-)
-else (
+) else (
     call "%VS150COMNTOOLS%VsDevCmd.bat"
 )
 

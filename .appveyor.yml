@@ -21,8 +21,8 @@ before_build:
   - cmd: wsl --user root /bin/bash -c "cd /mnt/c/Users/appveyor/pbspro; ./.travis/do.sh"
   - ps: Invoke-WebRequest http://strawberryperl.com/download/5.24.2.1/strawberry-perl-5.24.2.1-64bit.msi -o perl.msi
   - cmd: msiexec /a perl.msi /qn TARGETDIR=C:\Perl
-  - ps: Invoke-WebRequest https://go.microsoft.com/fwlink/p/?LinkID=698771 -o sdk_python.exe
-  - ps: Invoke-Command -ScriptBlock {Start-Process "sdk_python.exe" -ArgumentList "/q" -Wait}
+  #- ps: Invoke-WebRequest https://go.microsoft.com/fwlink/p/?LinkID=698771 -o sdk_python.exe
+  #- ps: Invoke-Command -ScriptBlock {Start-Process "sdk_python.exe" -ArgumentList "/q" -Wait}
   - cmd: call .appveyor\appveyor_helper.bat %CONFIGURATION%
 build_script:
   - cmd: msbuild win_configure\pbs_windows_VS2017.sln /p:configuration=%CONFIGURATION% /p:platform=Win32 /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
@@ -194,5 +194,5 @@ after_test:
 artifacts:
   - path: '*.msi'
 deploy: off
-#on_finish:
-  #- ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+on_finish:
+  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))

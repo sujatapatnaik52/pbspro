@@ -78,8 +78,7 @@ cd "%BINARIESDIR%\openssl-OpenSSL_%OPENSSL_VERSION%"
 
 if "%APPVEYOR%"=="True" (
     call "%VS160COMNTOOLS%VsDevCmd.bat"
-)
-else (
+) else (
     call "%VS150COMNTOOLS%VsDevCmd.bat"
 )
 

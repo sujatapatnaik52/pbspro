@@ -68,8 +68,7 @@ if exist "C:\Program Files (x86)\Microsoft Visual Studio\2017\Professional" (
     if exist "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community" (
         set "VS160COMNTOOLS=C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\Tools\"
     )
-)
-else (
+) else (
     set "VS150COMNTOOLS=C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\"
 )
 
@@ -77,8 +76,7 @@ if "%APPVEYOR%"=="True" (
     if not exist "%VS160COMNTOOLS%" (
         echo "Could not find VS2019 common tools"
         exit 1
-)
-else (
+) else (
     if not exist "%VS150COMNTOOLS%" (
         echo "Could not find VS2017 common tools"
         exit 1

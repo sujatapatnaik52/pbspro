@@ -76,7 +76,12 @@ if not exist "%BINARIESDIR%\openssl-OpenSSL_%OPENSSL_VERSION%" (
 
 cd "%BINARIESDIR%\openssl-OpenSSL_%OPENSSL_VERSION%"
 
-call "%VS150COMNTOOLS%VsDevCmd.bat"
+if "%APPVEYOR%"=="True" (
+    call "%VS160COMNTOOLS%VsDevCmd.bat"
+)
+else (
+    call "%VS150COMNTOOLS%VsDevCmd.bat"
+)
 
 if %DO_DEBUG_BUILD% EQU 1 (
     "%PERL_BIN%" "%BINARIESDIR%\openssl-OpenSSL_%OPENSSL_VERSION%\Configure" --prefix="%BINARIESDIR%\%OPENSSL_DIR_NAME%" --debug VC-WIN32 no-asm no-shared

@@ -82,7 +82,12 @@ if not exist "%BINARIESDIR%\wineditline-%LIBEDIT_VERSION%" (
 2>nul rd /S /Q "%BINARIESDIR%\wineditline-%LIBEDIT_VERSION%\include"
 mkdir "%BINARIESDIR%\wineditline-%LIBEDIT_VERSION%\build"
 
-call "%VS150COMNTOOLS%VsDevCmd.bat"
+if "%APPVEYOR%"=="True" (
+    call "%VS160COMNTOOLS%VsDevCmd.bat"
+)
+else (
+    call "%VS150COMNTOOLS%VsDevCmd.bat"
+)
 
 cd "%BINARIESDIR%\wineditline-%LIBEDIT_VERSION%\build" && %CMAKE_BIN% -DLIB_SUFFIX=32 -DMSVC_USE_STATIC_RUNTIME=OFF -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -G "NMake Makefiles" ..
 if not %ERRORLEVEL% == 0 (

@@ -266,6 +266,7 @@ pbs_list_head	svr_deferred_req;
 pbs_list_head	svr_queues;            /* list of queues                   */
 pbs_list_head	svr_alljobs;           /* list of all jobs in server       */
 pbs_list_head	svr_newjobs;           /* list of incomming new jobs       */
+pbs_list_head	svr_blockjobs;		   /*  all block jobs in server  */	
 pbs_list_head	svr_allresvs;          /* all reservations in server */
 pbs_list_head	svr_newresvs;          /* temporary list for new resv jobs */
 pbs_list_head	svr_unlicensedjobs;	/* list of jobs to be licensed */
@@ -1043,6 +1044,7 @@ main(int argc, char **argv)
 	CLEAR_HEAD(svr_queues);
 	CLEAR_HEAD(svr_alljobs);
 	CLEAR_HEAD(svr_newjobs);
+	CLEAR_HEAD(svr_blockjobs);
 	CLEAR_HEAD(svr_allresvs);
 	CLEAR_HEAD(svr_newresvs);
 	CLEAR_HEAD(svr_deferred_req);

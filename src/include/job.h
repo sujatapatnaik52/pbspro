@@ -43,6 +43,8 @@ extern "C" {
 
 #include "list_link.h"
 #include "attribute.h"
+#include <netinet/in.h>
+#include <arpa/inet.h>
 /*
  * job.h - structure definations for job objects
  *
@@ -471,6 +473,24 @@ struct jbdscrd {
 #define JDCD_REPLIED 1	/* this Mom has replied to the discard job */
 #define JDCD_DOWN   -1	/* this Mom is down */
 
+/*
+* Block job reply structure to be used when the job has finished, 
+* and server replies to the client with the job abort message.
+*/
+
+struct block_job_reply {
+	char jobid[PBS_MAXSVRJOBID+1];
+	char *submit_host;
+	int port;
+	int exit_status;
+	int reply_retries;	/* Number of times to retry the polling for maximum retry threshold */
+	char *msg;	/* Abort message to be send to client */
+	int is_replied;
+	int fd;
+	int monitor_poll_flag;
+	struct sockaddr_in remote;
+};
+#define BLOCK_JOB_REPLY_RETRIES 5	/* Retry Polling for sending message to the client */
 
 /* Special array job flags in tkm_flags */
 #define TKMFLG_NO_DELETE           0x01

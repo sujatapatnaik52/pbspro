@@ -921,8 +921,11 @@ pbsd_init(int type)
 				account_record(PBS_ACCT_ABT, pjob, "");
 				svr_mailowner(pjob, MAIL_ABORT, MAIL_NORMAL,
 					msg_init_abt);
-				check_block(pjob, msg_init_abt);
-				job_purge(pjob);
+				pjob->ji_block_fd = -1;
+				pjob->ji_post_blockjob_reply = 3;
+				if (check_block(pjob, msg_init_abt) == 0) {
+					job_purge(pjob);
+				}
 				continue;
 			}
 
@@ -1980,8 +1983,11 @@ init_abt_job(job *pjob)
 		PBS_EVENTCLASS_JOB, LOG_INFO,
 		pjob->ji_qs.ji_jobid, msg_init_abt);
 	svr_mailowner(pjob, MAIL_ABORT, MAIL_NORMAL, msg_init_abt);
-	check_block(pjob, msg_init_abt);
-	job_purge(pjob);
+	pjob->ji_block_fd = -1;
+	pjob->ji_post_blockjob_reply = 3;
+	if (check_block(pjob, msg_init_abt) == 0) {
+		job_purge(pjob);
+	}
 }
 
 

@@ -470,25 +470,37 @@ post_doq(struct work_task *pwt)
 							snprintf(log_msg, sizeof(log_msg), "%s",
 								"Failed to send dependency request to remote server, aborting job");
 							log_event(PBSEVENT_JOB, PBS_EVENTCLASS_JOB, LOG_ERR, jobid, log_msg);
-							check_block(pjob, log_buffer);
-							job_abt(pjob, log_buffer);
+							pjob->ji_block_fd = -1;
+							pjob->ji_post_blockjob_reply = 2;
+							if (check_block(pjob, log_buffer) == 0) {
+								job_abt(pjob, log_buffer);
+							}
 						}
 					}
 					else {
 						/* Ideally if a job is moved, destination can not be empty */
 						/* If we come across an empty destination, abort the job */
-						check_block(pjob, log_buffer);
-						job_abt(pjob, log_buffer);
+						pjob->ji_block_fd = -1;
+						pjob->ji_post_blockjob_reply = 2;
+						if (check_block(pjob, log_buffer) == 0) {
+							job_abt(pjob, log_buffer);
+						}
 					}
 				}
 				else {
-					check_block(pjob, log_buffer);
-					job_abt(pjob, log_buffer);
+					pjob->ji_block_fd = -1;
+					pjob->ji_post_blockjob_reply = 2;
+					if (check_block(pjob, log_buffer) == 0) {
+						job_abt(pjob, log_buffer);
+					}
 				}
 			}
 			else {
-				check_block(pjob, log_buffer);
-				job_abt(pjob, log_buffer);
+				pjob->ji_block_fd = -1;
+				pjob->ji_post_blockjob_reply = 2;
+				if (check_block(pjob, log_buffer) == 0) {
+					job_abt(pjob, log_buffer);
+				}
 			}
 		}
 	}

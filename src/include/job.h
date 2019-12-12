@@ -43,6 +43,8 @@ extern "C" {
 
 #include "list_link.h"
 #include "attribute.h"
+#include <netinet/in.h>
+#include <arpa/inet.h>
 /*
  * job.h - structure definations for job objects
  *
@@ -502,6 +504,7 @@ struct jbdscrd {
 #define	JSVERSION	1900	/* 1900 denotes the 19.x.x version */
 #define	ji_taskid	ji_extended.ji_ext.ji_taskidx
 #define	ji_nodeid	ji_extended.ji_ext.ji_nodeidx
+#define MAX_BLOCK_JOB_RETRIES 5
 
 struct job {
 
@@ -519,6 +522,14 @@ struct job {
 	int		ji_momhandle;	/* open connection handle to MOM */
 	int		ji_mom_prot;	/* rpp or tcp */
 	struct batch_request *ji_rerun_preq;	/* outstanding rerun request */
+	int		ji_block_fd;	/* keep the block job socket descriptor */
+	int 	ji_block_reply_retries;	/* Retry count for block job reply */
+	int 	ji_is_replied;
+	struct sockaddr_in remote;
+	int		ji_block_port;
+	int 	ji_is_poll;
+	char 	*ji_client_msg;
+	int		ji_post_blockjob_reply;
 #ifndef PBS_MOM
 	struct batch_request *ji_pmt_preq;		/* outstanding preempt job request for deleting jobs */
 #endif /* PBS_MOM */
@@ -1100,7 +1111,7 @@ extern int   depend_on_term(job *);
 extern job  *find_job(char *);
 extern char *get_egroup(job *);
 extern char *get_variable(job *, char *);
-extern void  check_block(job *, char *);
+extern int check_block(job *, char *);
 extern char *lookup_variable(void *, int, char *);
 extern int   init_chkmom(job *);
 extern void  issue_track(job *);

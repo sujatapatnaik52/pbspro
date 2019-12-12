@@ -433,6 +433,7 @@ chk_array_doneness(job *parent)
 	int e;
 	int i;
 	struct ajtrkhd	*ptbl = parent->ji_ajtrk;
+	int is_check_block;
 
 	if (ptbl == NULL)
 		return;
@@ -458,7 +459,9 @@ chk_array_doneness(job *parent)
 		parent->ji_qs.ji_un.ji_exect.ji_momport = 0;
 		parent->ji_qs.ji_un.ji_exect.ji_exitstat = e;
 
-		check_block(parent, "");
+		parent->ji_block_fd = -1;
+		parent->ji_post_blockjob_reply = 4;
+		is_check_block = check_block(parent, "");
 		if (parent->ji_qs.ji_state == JOB_STATE_BEGUN) {
 			/* if BEGUN, issue 'E' account record */
 			sprintf(acctbuf, msg_job_end_stat, e);
@@ -474,8 +477,9 @@ chk_array_doneness(job *parent)
 		 * Check if the history of the finished job can be saved or it needs to be purged .
 		 */
 		ptbl->tkm_flags |= TKMFLG_CHK_ARRAY;
-
-		svr_saveorpurge_finjobhist(parent);
+		if (is_check_block == 0) {
+			svr_saveorpurge_finjobhist(parent);
+		}
 	} else {
 		/* Before we do a full save of parent, recalculate "JOB_ATR_array_indices_remaining" here*/
 		update_array_indices_remaining_attr(parent);

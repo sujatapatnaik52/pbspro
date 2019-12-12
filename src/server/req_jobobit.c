@@ -2268,12 +2268,14 @@ RetryJob:
 			return;
 		}
 
-		check_block(pjob, "");		/* if block set, send word */
-
-		ptask = set_task(WORK_Immed, 0, on_job_exit, (void *)pjob);
-		append_link(&pjob->ji_svrtask, &ptask->wt_linkobj, ptask);
-
-		/* "on_job_exit()" will be dispatched out of the main loop */
+		pjob->ji_block_fd = -1;
+		pjob->ji_post_blockjob_reply = 1;
+		/* if block set, send word */
+		if (check_block(pjob, "") == 0) {
+			ptask = set_task(WORK_Immed, 0, on_job_exit, (void *)pjob);
+			append_link(&pjob->ji_svrtask, &ptask->wt_linkobj, ptask);
+			/* "on_job_exit()" will be dispatched out of the main loop */
+		}
 
 	} else {
 

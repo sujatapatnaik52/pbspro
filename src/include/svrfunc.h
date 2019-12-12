@@ -174,7 +174,7 @@ extern int   is_ts_node(char * nodestr);
 extern char *cnv_eh(job *);
 extern char *find_ts_node(void);
 extern void  job_purge(job *);
-extern void  check_block(job *, char *);
+extern int  check_block(job *, char *);
 extern void  free_nodes(job *);
 extern int   job_route(job *);
 extern void  rel_resc(job *);

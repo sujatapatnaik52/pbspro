@@ -98,6 +98,7 @@
 #include <signal.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/poll.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include "pbs_ifl.h"
@@ -156,6 +157,7 @@ static void handle_qmgr_reply_to_startORenable(struct work_task *);
 static void delete_occurrence_jobs(resc_resv *presv);
 static void Time4occurrenceFinish(resc_resv *);
 static void running_jobs_count(struct work_task *);
+void blockjob_worktask(struct work_task *);
 
 
 /** For faster job lookup through AVL tree */
@@ -168,6 +170,7 @@ extern char *msg_mombadmodify;
 extern struct server server;
 extern int  pbs_mom_port;
 extern pbs_list_head svr_alljobs;
+extern pbs_list_head svr_blockjobs;
 extern pbs_list_head svr_unlicensedjobs;
 extern char  *msg_badwait;		/* error message */
 extern char  *msg_daemonname;
@@ -1470,6 +1473,117 @@ svr_chkque(job *pjob, pbs_queue *pque, char *hostname, int mtype)
 	return (0);	/* all ok, job can enter queue */
 }
 
+void post_block_job_reply (struct job *pjob) {
+	switch(pjob->ji_post_blockjob_reply)
+	{
+		struct work_task *ptask;
+		case 1:
+			ptask = set_task(WORK_Immed, 0, on_job_exit, (void *)pjob);
+			append_link(&pjob->ji_svrtask, &ptask->wt_linkobj, ptask);
+			break;
+		case 2:
+			job_abt(pjob, pjob->ji_client_msg);
+			break;
+		case 3:
+			job_purge(pjob);
+			break;
+		case 4:
+			svr_saveorpurge_finjobhist(pjob);
+			break;
+		default:
+			break;
+	}
+}
+
+void blockjob_worktask(struct work_task *ptask) {
+	pbs_list_link *head, *tmp;
+	int max_poll_fds = 1000;
+	int monitor_fds = 0;
+	struct pollfd fds[max_poll_fds];
+	int write_fds;
+	int ncount = 1;
+	head = &svr_blockjobs;
+	struct job *pjob;
+	pjob = (struct job *)GET_NEXT(*head);
+	head = head->ll_next;
+
+	while(pjob){
+		if (pjob->ji_block_reply_retries == MAX_BLOCK_JOB_RETRIES) {
+			sprintf(log_buffer, "Maximum attempts tried for job %s", pjob->ji_qs.ji_jobid);
+			log_event(PBSEVENT_ERROR, PBS_EVENTCLASS_JOB, LOG_NOTICE, pjob->ji_qs.ji_jobid, log_buffer);
+			close(pjob->ji_block_fd);
+			tmp = head;
+			head = head->ll_next;
+			tmp->ll_struct = NULL;
+			delete_link(tmp);
+			free(tmp);
+			post_block_job_reply(pjob);
+		}
+		if (monitor_fds == max_poll_fds){
+			break;
+		}
+		fds[monitor_fds].fd = pjob->ji_block_fd;
+		fds[monitor_fds].events  = POLLOUT;
+		fds[monitor_fds].revents = 0;
+		monitor_fds += 1;
+		pjob->ji_is_poll = 1;
+		pjob = (struct job *)GET_NEXT(*head);
+		head = head->ll_next;
+	}
+	
+	write_fds = poll(fds, (nfds_t)monitor_fds, 0);
+	if (write_fds > 0) {
+		int i;
+		for(i = 0; i < write_fds; i++){
+			int rc = 0;
+			pbs_socklen_t len = sizeof(rc);
+	   		if ((getsockopt(fds[i].fd, SOL_SOCKET, SO_ERROR, &rc, &len) == 0) && (fds[i].revents == POLLOUT)){
+				sprintf(log_buffer, "revents value is %d" , fds[i].revents);
+				log_event(PBSEVENT_ERROR, PBS_EVENTCLASS_SERVER, LOG_NOTICE, "test", log_buffer);
+				head = &svr_blockjobs;
+				pjob = (struct job *)GET_NEXT(*head);
+				head = head->ll_next;
+				while(pjob){
+					if (pjob->ji_block_fd == fds[i].fd){
+						check_block(pjob, "");
+						if (pjob->ji_is_replied = 1){
+							sprintf(log_buffer, "Successfully replied for job %s", pjob->ji_qs.ji_jobid);
+							log_event(PBSEVENT_ERROR, PBS_EVENTCLASS_JOB, LOG_NOTICE, pjob->ji_qs.ji_jobid, log_buffer);
+							tmp = head;
+							head = head->ll_next;
+							tmp->ll_struct = NULL;
+							delete_link(tmp);
+							free(tmp);
+							post_block_job_reply(pjob);
+						}
+						else {
+							pjob->ji_block_reply_retries += 1;
+						}
+						break;
+					}
+				pjob = (struct job *)GET_NEXT(*head);
+				head = head->ll_next;
+				}
+			}
+		}
+	}		
+	head = &svr_blockjobs;
+	pjob = (struct job *)GET_NEXT(*head);
+	head = head->ll_next;
+	while(pjob){
+		if (pjob->ji_is_poll == 1 && pjob->ji_is_replied == 0) {
+			pjob->ji_is_poll = 0;
+			pjob->ji_block_reply_retries += 1;
+		}
+		pjob = (struct job *)GET_NEXT(*head);
+		head = head->ll_next;
+		ncount += 1;
+	}
+	if (ncount >= 2){
+		(void)set_task(WORK_Timed, time_now + 10, blockjob_worktask, 0);
+	}
+}
+
 /**
  * @brief
  *		check_block	-	See if "block" is set and send reply.
@@ -1477,87 +1591,126 @@ svr_chkque(job *pjob, pbs_queue *pque, char *hostname, int mtype)
  * @param[in,out]	pjob	-	job structure
  * @param[in]	message	-	message needs to be send to the port.
  */
-void
-check_block(job *pjob, char *message)
-{
-	int			port;
-	int			ret;
-	char			*phost;
-	char			*jobid = pjob->ji_qs.ji_jobid;
-	struct hostent		*hp;
-#ifdef WIN32
-	struct in_addr		addr;
-#endif
-	int			sock;
-	struct sockaddr_in	remote;
-	short			remote_sin_family;
+int
+check_block(job *pjob, char *message) {
+	int ret;
+	
+	if (pjob->ji_block_fd == -1) {
+		int			port;
+		int			ret;
+		char			*phost;
+		char			*jobid = pjob->ji_qs.ji_jobid;
+		struct hostent		*hp;
+		#ifdef WIN32
+			struct in_addr		addr;
+		#endif
+		struct sockaddr_in	remote;
+		short			remote_sin_family;
+		int 		sock_flags;
+		int 		is_connect;
+		int 		connect_err;
 
-	if ((pjob->ji_wattr[(int)JOB_ATR_block].at_flags & ATR_VFLAG_SET) == 0)
-		return;
-	if ((pjob->ji_wattr[(int) JOB_ATR_block].at_val.at_long) == -1)
-		return;
+		if ((pjob->ji_wattr[(int)JOB_ATR_block].at_flags & ATR_VFLAG_SET) == 0)
+			return;
+		if ((pjob->ji_wattr[(int) JOB_ATR_block].at_val.at_long) == -1)
+			return;
 
-	port = (int)pjob->ji_wattr[(int)JOB_ATR_block].at_val.at_long;
-	/*
-	 * The blocking attribute of the job needs to be unset . This contains the port number on which the job
-	 * submission host is waiting for the exit status of the job . This is done here i.e check_block() as it is the
-	 * final function in processing of a blocking job .
-	 *
-	 * Since for posterity it would be useful to record the fact that a job was a blocking job we set the
-	 * port number to an impossible value instead of clearing it so that the database only contains
-	 * a reference to the fact that a history job was a blocking job . Port number need not be recorded .
-	 */
-	pjob->ji_wattr[(int) JOB_ATR_block].at_val.at_long = -1;
-	pjob->ji_wattr[(int) JOB_ATR_block].at_flags |= ATR_VFLAG_MODCACHE;
-	pjob->ji_modified = 1;
+		pjob->ji_block_port = (int)pjob->ji_wattr[(int)JOB_ATR_block].at_val.at_long;
+		/*
+	 	* The blocking attribute of the job needs to be unset . This contains the port number on which the job
+	 	* submission host is waiting for the exit status of the job . This is done here i.e check_block() as it is the
+	 	* final function in processing of a blocking job .
+	 	*
+	 	* Since for posterity it would be useful to record the fact that a job was a blocking job we set the
+	 	* port number to an impossible value instead of clearing it so that the database only contains
+	 	* a reference to the fact that a history job was a blocking job . Port number need not be recorded .
+	 	*/
+		pjob->ji_wattr[(int) JOB_ATR_block].at_val.at_long = -1;
+		pjob->ji_wattr[(int) JOB_ATR_block].at_flags |= ATR_VFLAG_MODCACHE;
+		pjob->ji_modified = 1;
 
-	phost = pjob->ji_wattr[(int)JOB_ATR_submit_host].at_val.at_str;
-	if (port == 0 || phost == NULL) {
-		sprintf(log_buffer, "%s: cannot reply %s:%d", __func__,
+		phost = pjob->ji_wattr[(int)JOB_ATR_submit_host].at_val.at_str;
+		if (pjob->ji_block_port == 0 || phost == NULL) {
+			sprintf(log_buffer, "%s: cannot reply %s:%d", __func__,
 			phost == NULL ? "<no host>" : phost, port);
-		log_event(PBSEVENT_ERROR, PBS_EVENTCLASS_JOB, LOG_NOTICE,
-			jobid, log_buffer);
-		return;
-	}
-	if ((hp = gethostbyname(phost)) == NULL) {
-		sprintf(log_buffer, "%s: host %s not found", __func__, phost);
-		log_event(PBSEVENT_ERROR, PBS_EVENTCLASS_JOB, LOG_NOTICE,
-			jobid, log_buffer);
-		return;
-	}
-	remote_sin_family = hp->h_addrtype;
-	if ((sock = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-		sprintf(log_buffer, "%s: socket %s", __func__, strerror(errno));
-		log_event(PBSEVENT_ERROR, PBS_EVENTCLASS_JOB, LOG_NOTICE,
-			jobid, log_buffer);
-		return;
-	}
-	memset(&remote, 0, sizeof(remote));
-	memcpy(&remote.sin_addr, hp->h_addr, hp->h_length);
+			log_event(PBSEVENT_ERROR, PBS_EVENTCLASS_JOB, LOG_NOTICE, jobid, log_buffer);
+			return;
+		}
 
-	remote.sin_port = htons((unsigned short)port);
-	remote.sin_family = remote_sin_family;
-	if (connect(sock, (struct sockaddr *)&remote, sizeof(remote)) == -1) {
-		sprintf(log_buffer, "%s: connect %s(%s:%d) %s", __func__, phost,
-			inet_ntoa(remote.sin_addr), port, strerror(errno));
-		log_event(PBSEVENT_ERROR, PBS_EVENTCLASS_JOB, LOG_NOTICE,
-			jobid, log_buffer);
-#ifdef WIN32
-		closesocket(sock);
-#else
-		close(sock);
-#endif
-		return;
-	}
+		if ((hp = gethostbyname(phost)) == NULL) {
+			sprintf(log_buffer, "%s: host %s not found", __func__, phost);
+			log_event(PBSEVENT_ERROR, PBS_EVENTCLASS_JOB, LOG_NOTICE, jobid, log_buffer);
+			return;
+		}
 
-	ret = CS_server_auth(sock);
+		remote_sin_family = hp->h_addrtype;
+		memset(&pjob->remote, 0, sizeof(pjob->remote));
+		memcpy(&pjob->remote.sin_addr, hp->h_addr, hp->h_length);
+
+		pjob->remote.sin_port = htons((unsigned short)pjob->ji_block_port);
+		pjob->remote.sin_family = remote_sin_family;
+		
+		if ((pjob->ji_block_fd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+			sprintf(log_buffer, "%s: socket %s", __func__, strerror(errno));
+			log_event(PBSEVENT_ERROR, PBS_EVENTCLASS_JOB, LOG_NOTICE, jobid, log_buffer);
+			return 0;															
+		}
+		
+		/* Set Socket to Non-Blocking */				
+		sock_flags = fcntl(pjob->ji_block_fd, F_GETFL, 0);
+		if (fcntl(pjob->ji_block_fd, F_SETFL, sock_flags | O_NONBLOCK) == -1) {
+			sprintf(log_buffer, "Unable to set non blockling flag for job %s", jobid);
+			log_event(PBSEVENT_ERROR, PBS_EVENTCLASS_JOB, LOG_NOTICE, jobid, log_buffer);
+			close(pjob->ji_block_fd);
+			return 0;
+		}
+
+		is_connect = connect(pjob->ji_block_fd, (struct sockaddr *)&pjob->remote, sizeof(pjob->remote));
+		connect_err = errno;
+		sprintf(log_buffer, "The value of test_connect is %d and errno is %d", is_connect, errno);
+		log_event(PBSEVENT_ERROR, PBS_EVENTCLASS_SERVER, LOG_NOTICE, "test", log_buffer);
+
+		if (is_connect == -1) {
+			int ncount = 0;
+			if (connect_err == EINPROGRESS) {
+				pbs_list_link *new_node;
+				pbs_list_head *head;
+				head = &svr_blockjobs;
+				new_node = (struct pbs_list_link *)malloc(sizeof(pbs_list_link));
+				if (new_node == NULL){
+					sprintf(log_buffer, "%s: Unable to allocate memory for the job %s", __func__, jobid);
+					log_event(PBSEVENT_ERROR, PBS_EVENTCLASS_JOB, LOG_NOTICE, jobid, log_buffer);
+					return 0;
+					}
+				new_node->ll_next = new_node;
+				new_node->ll_prior = new_node;
+				append_link(&svr_blockjobs, new_node, pjob);
+				pjob->ji_is_replied = 0;
+				/*while(head->ll_next != &svr_blockjobs) {
+					ncount += 1;
+					if (ncount > 2){
+						break;
+					}
+					head = head->ll_next;
+				}*/
+				//if (ncount == 2)
+				//{
+				sprintf(log_buffer, "Entering work task...");
+				log_event(PBSEVENT_ERROR, PBS_EVENTCLASS_JOB, LOG_NOTICE, jobid, log_buffer);
+				(void)set_task(WORK_Timed, time_now + 10, blockjob_worktask, 0);
+				//}
+			}
+			return 0;
+		}
+	}
+	
+	ret = CS_server_auth(pjob->ji_block_fd);
 	if ((ret != CS_SUCCESS) && (ret != CS_AUTH_CHECK_PORT)) {
-
 		sprintf(log_buffer,
-			"Unable to authenticate with , %s (%s:%d)", phost,
-			inet_ntoa(remote.sin_addr), remote.sin_port);
+			"Unable to authenticate with , %s (%s:%d)", pjob->ji_wattr[(int)JOB_ATR_submit_host].at_val.at_str,
+			inet_ntoa(pjob->remote.sin_addr), pjob->remote.sin_port);
 
-		log_joberr(-1, __func__, log_buffer, jobid);
+		log_joberr(-1, __func__, log_buffer, pjob->ji_qs.ji_jobid);
 		goto done;
 	}
 
@@ -1565,45 +1718,44 @@ check_block(job *pjob, char *message)
 	 **	All ready to talk... now send the info.
 	 */
 
-	DIS_tcp_setup(sock);
-	ret = diswsi(sock, 1);		/* version */
+	DIS_tcp_setup(pjob->ji_block_fd);
+	ret = diswsi(pjob->ji_block_fd, 1);		/* version */
 	if (ret != DIS_SUCCESS)
 		goto err;
-	ret = diswst(sock, jobid);
+	ret = diswst(pjob->ji_block_fd, pjob->ji_qs.ji_jobid);
 	if (ret != DIS_SUCCESS)
 		goto err;
-	ret = diswst(sock, message);
+	ret = diswst(pjob->ji_block_fd, "");
 	if (ret != DIS_SUCCESS)
 		goto err;
-	ret = diswsi(sock, pjob->ji_qs.ji_un.ji_exect.ji_exitstat);
+	ret = diswsi(pjob->ji_block_fd, pjob->ji_qs.ji_un.ji_exect.ji_exitstat);
 	if (ret != DIS_SUCCESS)
 		goto err;
-	(void)DIS_tcp_wflush(sock);
+	(void)DIS_tcp_wflush(pjob->ji_block_fd);
 
 	goto done;
 
 err:
-	sprintf(log_buffer, "%s: write %s(%s:%d) %s", __func__, phost,
-		inet_ntoa(remote.sin_addr), port, dis_emsg[ret]);
+	sprintf(log_buffer, "%s: write %s(%s:%d) %s", __func__,pjob->ji_wattr[(int)JOB_ATR_submit_host].at_val.at_str,
+		inet_ntoa(pjob->remote.sin_addr), pjob->ji_block_port, dis_emsg[ret]);
 	log_event(PBSEVENT_ERROR, PBS_EVENTCLASS_JOB, LOG_NOTICE,
-		jobid, log_buffer);
+		pjob->ji_qs.ji_jobid, log_buffer);
 
 done:
-	if ((ret = CS_close_socket(sock)) != CS_SUCCESS) {
-
+	if ((ret = CS_close_socket(pjob->ji_block_fd)) != CS_SUCCESS) {
 		sprintf(log_buffer, "Problem closing security context, %s (%s:%d)",
-			phost, inet_ntoa(remote.sin_addr), port);
-
-		log_joberr(-1, __func__, log_buffer, jobid);
+			pjob->ji_wattr[(int)JOB_ATR_submit_host].at_val.at_str, inet_ntoa(pjob->remote.sin_addr), pjob->ji_block_port);
+		log_joberr(-1, __func__, log_buffer, pjob->ji_qs.ji_jobid);
 	}
+	pjob->ji_is_replied = 1;
+	
 
 #ifdef WIN32
-	closesocket(sock);
+	closesocket(pjob->block_fd);
 #else
-	close(sock);
+	close(pjob->ji_block_fd);
 #endif
-
-	return;
+	return 0;
 }
 
 /**

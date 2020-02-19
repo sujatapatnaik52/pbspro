@@ -46,15 +46,17 @@ import subprocess
 import sys
 import time
 import unittest
+import pkgutil
 from distutils.util import strtobool
 
 import ptl
 from ptl.lib.pbs_testlib import *
 from ptl.utils.pbs_cliutils import CliUtils
-from ptl.utils.pbs_dshutils import DshUtils
+from ptl.utils.pbs_dshutils import DshUtils, PTLInspectEnv
 from ptl.utils.pbs_logutils import PBSLogAnalyzer
 from ptl.utils.pbs_procutils import ProcMonitor
 from ptl.utils.pbs_testusers import *
+
 try:
     from ptl.utils.plugins.ptl_test_tags import tags
 except ImportError:
@@ -90,6 +92,13 @@ default_requirements = {
     'no_comm_on_server': False,
     'no_comm_on_mom': True
 }
+
+class PTLInspectEnv_Default(PTLInspectEnv):
+    def __init__(self, server):
+        self.server = server
+
+    def get_env(self):
+        return ["default"]
 
 
 def skip(reason="Skipped test execution"):
@@ -458,6 +467,17 @@ class PBSTestSuite(unittest.TestCase):
             else:
                 cls.logger.error("Failed to save custom setup")
                 raise Exception("Failed to save custom setup")
+
+        # Get PBS server environment
+        pkg_dir = os.path.dirname(__file__)
+        for (module_loader, name, ispkg) in pkgutil.iter_modules([pkg_dir]):
+            if ispkg == False:
+                __import__(__package__ + '.' + name)
+        base_env_classes = [cls for cls in PTLInspectEnv.__subclasses__()]
+        for each in base_env_classes:
+            obj = each(cls.server)
+            cls.server.stat_job.extend(obj.get_env())
+
         cls.init_comms()
         cls.init_schedulers()
         cls.init_moms()
@@ -748,7 +768,6 @@ class PBSTestSuite(unittest.TestCase):
                                         single='scheduler',
                                         multiple='schedulers', skip=skip,
                                         func=init_sched_func)
-
         for sched in cls.scheds.values():
             if sched.server.name in cls.schedulers:
                 continue

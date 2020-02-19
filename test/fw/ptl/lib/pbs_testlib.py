@@ -58,6 +58,7 @@ import ast
 from collections import OrderedDict
 from distutils.version import LooseVersion
 from operator import itemgetter
+import importlib
 
 from ptl.lib.pbs_api_to_cli import api_to_cli
 from ptl.utils.pbs_cliutils import CliUtils
@@ -82,7 +83,6 @@ except:
                          "to make it\n")
         raise ImportError
     API_OK = False
-
 
 # suppress logging exceptions
 logging.raiseExceptions = False
@@ -221,6 +221,18 @@ CMD_ERROR_MAP = {
     'terminate': 'PbsQtermError',
     'alterresv': 'PbsResvAlterError'
 }
+
+
+def extended_status(func):
+    def wrapper(*args, **kwargs):
+        ret = func(*args, **kwargs)
+        if len(args[0].stat_job) > 1:
+            for each in args[0].stat_job[1:]:
+                module_name = "ptl.utils.decorators." + each
+                decorator_module = importlib.import_module(module_name)
+                getattr(decorator_module, each)(args[0], ret)
+        return ret
+    return wrapper
 
 
 class PtlConfig(object):
@@ -4611,6 +4623,7 @@ class Server(PBSService):
     version_tag = re.compile(r"[a-zA-Z_]*(?P<version>[\d\.]+.[\w\d\.]*)[\s]*")
 
     actions = ExpectActions()
+    stat_job = []
 
     def __init__(self, name=None, attrs={}, defaults={}, pbsconf_file=None,
                  snapmap={}, snap=None, client=None, client_pbsconf_file=None,
@@ -5531,6 +5544,7 @@ class Server(PBSService):
     def __del__(self):
         del self.__dict__
 
+    @extended_status
     def status(self, obj_type=SERVER, attrib=None, id=None,
                extend=None, level=logging.INFO, db_access=None, runas=None,
                resolve_indirectness=False, logerr=True):
@@ -8324,7 +8338,6 @@ class Server(PBSService):
                                        runas=runas, logerr=False)
             except PbsStatusError:
                 statlist = []
-
         if (statlist is None or len(statlist) == 0 or
                 statlist[0] is None or len(statlist[0]) == 0):
             if op == UNSET or list(set(attrib.values())) == [0]:

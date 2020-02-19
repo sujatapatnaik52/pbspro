@@ -100,6 +100,13 @@ class PtlUtilError(Exception):
         return (self.__class__.__name__ + '(rc=' + str(self.rc) + ', rv=' +
                 str(self.rv) + ', msg=' + str(self.msg) + ')')
 
+class PTLInspectEnv:
+    def __init__(self, server):
+        pass
+
+    def get_env(self):
+        pass
+
 
 class DshUtils(object):
 

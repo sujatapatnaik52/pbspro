@@ -482,9 +482,10 @@ class PBSTestSuite(unittest.TestCase):
         # setup block, rest of them to be added to this block
         # once save & load configurations are implemented for
         # comm, mom, scheduler
-        if self.use_cur_setup:
+        '''if self.use_cur_setup:
             self.server.delete_nodes()
-        else:
+        else:'''
+        if not self.use_cur_setup:
             self.revert_servers()
             self.revert_pbsconf()
         self.revert_moms()
@@ -1409,7 +1410,14 @@ class PBSTestSuite(unittest.TestCase):
             mom.signal('-HUP')
         if not mom.isUp():
             self.logger.error('mom ' + mom.shortname + ' is down after revert')
-        self.server.manager(MGR_CMD_CREATE, NODE, None, mom.shortname)
+
+        # --use-current-setup does not store the node level resources.
+        # This can be done by adding Mom save/load configuration. However,
+        # that may impose overhead as there could be multiple moms.
+        # The minimal change is to not delete nodes but revert the configs and
+        # restart Mom(s).
+        if not self.use_cur_setup:
+            self.server.manager(MGR_CMD_CREATE, NODE, None, mom.shortname)
         a = {'state': 'free'}
         self.server.expect(NODE, a, id=mom.shortname, interval=1)
         return mom

@@ -630,13 +630,14 @@ class NodeUtils(object):
             else:
                 pci_name = "pci" + pci_bus_id
                  
-                # If there are any pcies attached to this numa node
-                # update numa nodes dictionary with the pci bus id
-                if "pci" not in self.numa_nodes[info["numa_node"]]:
-                    self.numa_nodes[info["numa_node"]]["pci"] = []
-                if pci_name not in self.numa_nodes[info["numa_node"]]["pci"]:
-                    self.numa_nodes[info["numa_node"]]["pci"].append(pci_name)
-            
+            # If there are any pcies attached to this numa node
+            # update numa nodes dictionary with the pci bus id
+            if "pci" not in self.numa_nodes[info["numa_node"]]:
+                self.numa_nodes[info["numa_node"]]["pci"] = []
+            if pci_name not in self.numa_nodes[info["numa_node"]]["pci"]:
+                self.numa_nodes[info["numa_node"]]["pci"].append(pci_name)
+    
+            ### Update the final nodes dictionary        
             if pci_name not in self.nodes:
                 self.nodes[pci_name] = copy.deepcopy(numa_nodes[info["numa_node"]])
                 self.nodes[pci_name]["numa_node"] = [info["numa_node"]]
@@ -649,6 +650,7 @@ class NodeUtils(object):
         for nnid in numa_keys_to_delete:
             del numa_nodes[nnid]
         self.nodes = merge_dict(self.nodes, numa_nodes)
+        pbs.logmsg(pbs.LOG_DEBUG, "Numa Node info: %s" % self.numa_nodes)
         pbs.logmsg(pbs.LOG_DEBUG, "Final node info: %s" % self.nodes)
 
     def _add_ve_device_counts_to_nodes(self):
@@ -1084,75 +1086,79 @@ class NodeUtils(object):
         host_resc_avail['mem'] = pbs.size('0')
         host_resc_avail['vmem'] = pbs.size('0')
         host_resc_avail['hpmem'] = pbs.size('0')
-       
-        pci_num = 0 
+
+        ### create pci node_names and numa node names
+        
+        for nnid in self.numa_nodes.keys():
+            if "pci" in self.numa_nodes[nnid].keys():
+                pci_num = 0
+                for pci in self.numa_nodes[nnid]["pci"]:
+                    node_name = vnode_name + '[%d]_pci%d' % (nnid, pci_num)
+                    self.nodes[pci]["vnode_name"] = [node_name]
+                    pci_num += 1
+            else:
+                node_name = vnode_name + '[%d]' % nnid 
+                self.nodes[nnid]["vnode_name"] = [node_name]
+
+        pbs.logmsg(pbs.EVENT_DEBUG4, "The vnode names are %s" % self.nodes)
+        
         for node, info in self.nodes.items():     
-           if "pci" in str(node):
-               vnode_key = vnode_name + '[%d]_pci%d' % (info["numa_node"][0], pci_num)
-               vnode_list[vnode_key] = pbs.vnode(vnode_name)
-               vnode_resc_avail = vnode_list[vnode_key].resources_available
-               pci_num += 1
-           else:
-               vnode_key = vnode_name + '[%d]' % node
-               vnode_list[vnode_key] = pbs.vnode(vnode_name)
-               vnode_resc_avail = vnode_list[vnode_key].resources_available
-           for key, val in info.items():
-               if key is None:
-                   pbs.logmsg(pbs.EVENT_DEBUG4, '%s: key is None'
-                          % caller_name())
-                   continue
-               if val is None:
-                   pbs.logmsg(pbs.EVENT_DEBUG4, '%s: val is None'
-                          % caller_name())
-                   continue
-               if key in ['MemTotal', 'HugePages_Total']:
-                   # Irrelevant: transformed to other keys if vnodes is True
-                   # done outside of loop if vnodes is False
-                   pbs.logmsg(pbs.EVENT_DEBUG4, '%s: key %s skipped'
-                               % (caller_name(), key))
-               pbs.logmsg(pbs.EVENT_DEBUG4, '%s: %s = %s'
-                           % (caller_name(), key, val))
-               if key == 'cpus':
-                   if "pci" in vnode_key and "pci" in self.numa_nodes[info["numa_node"][0]]:
-                       threads = len(val) / len(self.numa_nodes[info["numa_node"][0]]["pci"]) 
-                   else:
-                       threads = len(val) 
-                   # set the value on the host to 0
-                   host_resc_avail['ncpus'] = 0
-                   pbs.logmsg(pbs.EVENT_DEBUG4, vnode_msg_cpu %
-                               (caller_name(), vnode_name,
-                                host_resc_avail['ncpus']))
-                   vnode_resc_avail['ncpus'] = threads
-                   pbs.logmsg(pbs.EVENT_DEBUG4, vnode_msg_cpu %
-                              (caller_name(), vnode_key,
-                              vnode_resc_avail['ncpus']))
-               elif key in ['mem', 'vmem', 'hpmem']:
-                   # Used for vnodes per NUMA socket
-                   mem_val = val
-                   if isinstance(val, float):
-                       mem_val = int(val)
-                       vnode_resc_avail[key] = pbs.size(convert_size(mem_val, 'mb'))
-               elif isinstance(val, list):
-                   pass
-               elif isinstance(val, dict):
-                   pass
-               else:
-                   pbs.logmsg(pbs.EVENT_DEBUG4, '%s: key = %s (%s)' %
-                              (caller_name(), key, type(key)))
-                   pbs.logmsg(pbs.EVENT_DEBUG4, '%s: val = %s (%s)' %
-                              (caller_name(), val, type(val)))
-                   vnode_resc_avail[key] = val
-                   host_resc_avail[key] = initialize_resource(val)
+            vnode_key = info["vnode_name"][0]
+            vnode_list[vnode_key] = pbs.vnode(vnode_name)
+            vnode_resc_avail = vnode_list[vnode_key].resources_available
+            for key, val in info.items():
+                if key is None:
+                    pbs.logmsg(pbs.EVENT_DEBUG4, '%s: key is None'
+                           % caller_name())
+                    continue
+                if val is None:
+                    pbs.logmsg(pbs.EVENT_DEBUG4, '%s: val is None'
+                           % caller_name())
+                    continue
+                if key in ['MemTotal', 'HugePages_Total']:
+                    # Irrelevant: transformed to other keys if vnodes is True
+                    # done outside of loop if vnodes is False
+                    pbs.logmsg(pbs.EVENT_DEBUG4, '%s: key %s skipped'
+                                % (caller_name(), key))
+                pbs.logmsg(pbs.EVENT_DEBUG4, '%s: %s = %s'
+                            % (caller_name(), key, val))
+                if key == 'cpus':
+                    if "pci" in vnode_key and "pci" in self.numa_nodes[info["numa_node"][0]]:
+                        threads = len(val) / len(self.numa_nodes[info["numa_node"][0]]["pci"]) 
+                    else:
+                        threads = len(val) 
+                    # set the value on the host to 0
+                    host_resc_avail['ncpus'] = 0
+                    pbs.logmsg(pbs.EVENT_DEBUG4, vnode_msg_cpu %
+                                (caller_name(), vnode_name,
+                                 host_resc_avail['ncpus']))
+                    vnode_resc_avail['ncpus'] = threads
+                    pbs.logmsg(pbs.EVENT_DEBUG4, vnode_msg_cpu %
+                               (caller_name(), vnode_key,
+                               vnode_resc_avail['ncpus']))
+                elif key in ['mem', 'vmem', 'hpmem']:
+                    # Used for vnodes per NUMA socket
+                    mem_val = val
+                    if isinstance(val, float):
+                        mem_val = int(val)
+                        vnode_resc_avail[key] = pbs.size(convert_size(mem_val, 'mb'))
+                elif isinstance(val, list):
+                    pass
+                elif isinstance(val, dict):
+                    pass
+                else:
+                    pbs.logmsg(pbs.EVENT_DEBUG4, '%s: key = %s (%s)' %
+                               (caller_name(), key, type(key)))
+                    pbs.logmsg(pbs.EVENT_DEBUG4, '%s: val = %s (%s)' %
+                               (caller_name(), val, type(val)))
+                    vnode_resc_avail[key] = val
+                    host_resc_avail[key] = initialize_resource(val)
         
         pbs.logmsg(pbs.EVENT_DEBUG4, '%s: vnode list: %s' %
                    (caller_name(), str(vnode_list)))
-        pci_num = 0
+        
         for node, info in self.nodes.items():
-            if "pci" in str(node):
-                vnode_key = vnode_name + '[%d]_pci%d' % (info["numa_node"][0], pci_num)
-                pci_num += 1
-            else:
-                vnode_key = vnode_name + '[%d]' % node
+            vnode_key = info["vnode_name"][0]
             vnode_resc_avail = vnode_list[vnode_key].resources_available
             pbs.logmsg(pbs.EVENT_DEBUG4, '%s: %s vnode_resc_avail: %s' %
                        (caller_name(), vnode_key, vnode_resc_avail))

@@ -53,4 +53,1681 @@ This hook services the following events:
 - execjob_postsuspend
 - execjob_preresume
 """
+import pbs
+import sys
+import os
+import stat
+import errno
+import signal
+import subprocess
+import re
+import glob
+import time
+import string
+import traceback
+import copy
+import operator
+import fnmatch
+import math
+import types
+import json
+import fcntl
+import pwd
+
+
+# Define some globals that get set in main
+PBS_EXEC = ''
+PBS_HOME = ''
+PBS_MOM_HOME = ''
+PBS_MOM_JOBS = ''
+
+# ============================================================================
+# Derived error classes
+# ============================================================================
+
+class UserError(Exception):
+    """
+    Base class for errors fixable by the user.
+    """
+    pass
+
+class SXAConfigError(Exception):
+    """
+    Errors in configuration.
+    """
+    pass
+
+
+class SXAProcessingError(Exception):
+    """
+    Errors processing cgroup.
+    """
+    pass
+
+
+# ============================================================================
+# Utility functions
+# ============================================================================
+
+#
+# FUNCTION caller_name
+#
+def caller_name():
+    """
+    Return the name of the calling function or method.
+    """
+    return str(sys._getframe(1).f_code.co_name)
+
+
+#
+# FUNCTION convert_size
+#
+def convert_size(value, units='b'):
+    """
+    Convert a string containing a size specification (e.g. "1m") to a
+    string using different units (e.g. "1024k").
+    This function only interprets a decimal number at the start of the string,
+    stopping at any unrecognized character and ignoring the rest of the string.
+    When down-converting (e.g. MB to KB), all calculations involve integers and
+    the result returned is exact. When up-converting (e.g. KB to MB) floating
+    point numbers are involved. The result is rounded up. For example:
+    1023MB -> GB yields 1g
+    1024MB -> GB yields 1g
+    1025MB -> GB yields 2g  <-- This value was rounded up
+    Pattern matching or conversion may result in exceptions.
+    """
+    logs = {'b': 0, 'k': 10, 'm': 20, 'g': 30,
+            't': 40, 'p': 50, 'e': 60, 'z': 70, 'y': 80}
+    try:
+        new = units[0].lower()
+        if new not in logs:
+            raise ValueError('Invalid unit value')
+        result = re.match(r'([-+]?\d+)([bkmgtpezy]?)',
+                          str(value).lower())
+        if not result:
+            raise ValueError('Unrecognized value')
+        val, old = result.groups()
+        if int(val) < 0:
+            raise ValueError('Value may not be negative')
+        if old not in logs:
+            old = 'b'
+        factor = logs[old] - logs[new]
+        val = float(val)
+        val *= 2 ** factor
+        if (val - int(val)) > 0.0:
+            val += 1.0
+        val = int(val)
+        # pbs.size() does not like units following zero
+        if val <= 0:
+            return '0'
+        return str(val) + new
+    except Exception:
+        return None
+
+
+#
+# FUNCTION size_as_int
+#
+def size_as_int(value):
+    """
+    Convert a size string to an integer representation of size in bytes
+    """
+    return int(convert_size(value).rstrip(string.ascii_lowercase))
+
+
+def decode_dict(data):
+    """
+    json hook to convert dictionaries from non string type to str
+    """
+    ret = {}
+    for key, value in list(data.items()):
+        # first the key
+        if isinstance(key, str):
+            pass
+        elif PYTHON2:
+            if isinstance(key, unicode):
+                key = key.encode('utf-8')
+            elif BYTEARRAY_EXISTS and isinstance(key, bytearray):
+                key = str(key)
+        elif isinstance(key, (bytes, bytearray)):
+            key = str(key, 'utf-8')
+
+        # now the value
+        if isinstance(value, str):
+            pass
+        if isinstance(value, list):
+            value = decode_list(value)
+        elif isinstance(value, dict):
+            value = decode_dict(value)
+        elif PYTHON2:
+            if isinstance(value, unicode):
+                value = value.encode('utf-8')
+            elif BYTEARRAY_EXISTS and isinstance(key, bytearray):
+                value = str(value)
+        elif isinstance(value, (bytes, bytearray)):
+            value = str(value, 'utf-8')
+
+        # add stringified (key, value) pair to result
+        ret[key] = value
+    return ret
+
+
+def merge_dict(base, new):
+    """
+    Merge together two multilevel dictionaries where new
+    takes precedence over base
+    """
+    if not isinstance(base, dict):
+        raise ValueError('base must be type dict')
+    if not isinstance(new, dict):
+        raise ValueError('new must be type dict')
+    newkeys = list(new.keys())
+    merged = {}
+    for key in base:
+        if key in newkeys and isinstance(base[key], dict):
+            # Take it off the list of keys to copy
+            newkeys.remove(key)
+            merged[key] = merge_dict(base[key], new[key])
+        else:
+            merged[key] = copy.deepcopy(base[key])
+    # Copy the remaining unique keys from new
+    for key in newkeys:
+        merged[key] = copy.deepcopy(new[key])
+    return merged
+
+
+def expand_list(old):
+    """
+    Convert condensed list format (with ranges) to an expanded Python list.
+    The input string is a comma separated list of digits and ranges.
+    Examples include:
+    0-3,8-11
+    0,2,4,6
+    2,5-7,10
+    """
+    new = []
+    if isinstance(old, list):
+        old = ",".join(list(map(str, old)))
+    stripped = old.strip()
+    if not stripped:
+        return new
+    for entry in stripped.split(','):
+        if '-' in entry[1:]:
+            start, end = entry.split('-', 1)
+            for i in range(int(start), int(end) + 1):
+                new.append(i)
+        else:
+            new.append(int(entry))
+    return new
+
+def initialize_resource(resc):
+    """
+    Return a properly cast zero value
+    """
+    if isinstance(resc, pbs.pbs_int):
+        ret = pbs.pbs_int(0)
+    elif isinstance(resc, pbs.pbs_float):
+        ret = pbs.pbs_float(0)
+    elif isinstance(resc, pbs.size):
+        ret = pbs.size('0')
+    elif isinstance(resc, int):
+        ret = 0
+    elif isinstance(resc, float):
+        ret = 0.0
+    elif isinstance(resc, list):
+        ret = []
+    elif isinstance(resc, dict):
+        ret = {}
+    elif isinstance(resc, tuple):
+        ret = ()
+    elif isinstance(resc, str):
+        ret = ''
+    else:
+        raise ValueError('Unable to initialize unknown resource type')
+    return ret
+
+
+# ============================================================================
+# Utility classes
+# ============================================================================
+
+
+#
+# CLASS Lock
+#
+class Lock(object):
+    """
+    Implement a simple locking mechanism using a file lock
+    """
+
+    def __init__(self, path):
+        self.path = path
+        self.lockfd = None
+
+    def getpath(self):
+        """
+        Return the path of the lock file.
+        """
+        return self.path
+
+    def getlockfd(self):
+        """
+        Return the file descriptor of the lock file.
+        """
+        return self.lockfd
+
+    def __enter__(self):
+        self.lockfd = open(self.path, 'w')
+        fcntl.flock(self.lockfd, fcntl.LOCK_EX)
+        pbs.logmsg(pbs.EVENT_DEBUG4, '%s file lock acquired by %s' %
+                   (self.path, str(sys._getframe(1).f_code.co_name)))
+
+    def __exit__(self, exc, val, trace):
+        if self.lockfd:
+            fcntl.flock(self.lockfd, fcntl.LOCK_UN)
+            self.lockfd.close()
+        pbs.logmsg(pbs.EVENT_DEBUG4, '%s file lock released by %s' %
+                   (self.path, str(sys._getframe(1).f_code.co_name)))
+
+
+
+#
+# CLASS HookUtils
+#
+class HookUtils(object):
+    """
+    Hook utility methods
+    """
+
+    def __init__(self, hook_events=None):
+        if hook_events is not None:
+            self.hook_events = hook_events
+        else:
+            # Defined in the order they appear in module_pbs_v1.c
+            self.hook_events = {}
+            self.hook_events[pbs.QUEUEJOB] = {
+                'name': 'queuejob',
+                'handler': self._queuejob_handler
+            }
+            self.hook_events[pbs.MODIFYJOB] = {
+                'name': 'modifyjob',
+                'handler': None
+            }
+            self.hook_events[pbs.RESVSUB] = {
+                'name': 'resvsub',
+                'handler': None
+            }
+            self.hook_events[pbs.MOVEJOB] = {
+                'name': 'movejob',
+                'handler': None
+            }
+            self.hook_events[pbs.RUNJOB] = {
+                'name': 'runjob',
+                'handler': None
+            }
+            self.hook_events[pbs.PROVISION] = {
+                'name': 'provision',
+                'handler': None
+            }
+            self.hook_events[pbs.EXECJOB_BEGIN] = {
+                'name': 'execjob_begin',
+                'handler': None
+            }
+            self.hook_events[pbs.EXECJOB_PROLOGUE] = {
+                'name': 'execjob_prologue',
+                'handler': None
+            }
+            self.hook_events[pbs.EXECJOB_EPILOGUE] = {
+                'name': 'execjob_epilogue',
+                'handler': None
+            }
+            self.hook_events[pbs.EXECJOB_PRETERM] = {
+                'name': 'execjob_preterm',
+                'handler': None
+            }
+            self.hook_events[pbs.EXECJOB_END] = {
+                'name': 'execjob_end',
+                'handler': None
+            }
+            self.hook_events[pbs.EXECJOB_LAUNCH] = {
+                'name': 'execjob_launch',
+                'handler': None
+            }
+            self.hook_events[pbs.EXECHOST_PERIODIC] = {
+                'name': 'exechost_periodic',
+                'handler': None
+            }
+            self.hook_events[pbs.EXECHOST_STARTUP] = {
+                'name': 'exechost_startup',
+                'handler': self._exechost_startup_handler
+            }
+            self.hook_events[pbs.EXECJOB_ATTACH] = {
+                'name': 'execjob_attach',
+                'handler': None
+            }
+            if hasattr(pbs, "EXECJOB_RESIZE"):
+                self.hook_events[pbs.EXECJOB_RESIZE] = {
+                    'name': 'execjob_resize',
+                    'handler': None
+                }
+            if hasattr(pbs, "EXECJOB_ABORT"):
+                self.hook_events[pbs.EXECJOB_ABORT] = {
+                    'name': 'execjob_abort',
+                    'handler': None
+                }
+            if hasattr(pbs, "EXECJOB_POSTSUSPEND"):
+                self.hook_events[pbs.EXECJOB_POSTSUSPEND] = {
+                    'name': 'execjob_postsuspend',
+                    'handler': None
+                }
+            if hasattr(pbs, "EXECJOB_PRERESUME"):
+                self.hook_events[pbs.EXECJOB_PRERESUME] = {
+                    'name': 'execjob_preresume',
+                    'handler': None
+                }
+            self.hook_events[pbs.MOM_EVENTS] = {
+                'name': 'mom_events',
+                'handler': None
+            }
+
+    def __repr__(self):
+        return 'HookUtils(%s)' % (repr(self.hook_events))
+
+    def event_name(self, hooktype):
+        """
+        Return the event name for the supplied hook type.
+        """
+        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Method called' % caller_name())
+        if hooktype in self.hook_events:
+            return self.hook_events[hooktype]['name']
+        pbs.logmsg(pbs.EVENT_DEBUG4,
+                   '%s: Type: %s not found' % (caller_name(), type))
+        return None
+
+    def hashandler(self, hooktype):
+        """
+        Return the handler for the supplied hook type.
+        """
+        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Method called' % caller_name())
+        if hooktype in self.hook_events:
+            return self.hook_events[hooktype]['handler'] is not None
+        return None
+
+    def invoke_handler(self, event, sxautils, jobutil, *args):
+        """
+        Call the appropriate handler for the supplied event.
+        """
+        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Method called' % caller_name())
+        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: UID: real=%d, effective=%d' %
+                   (caller_name(), os.getuid(), os.geteuid()))
+        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: GID: real=%d, effective=%d' %
+                   (caller_name(), os.getgid(), os.getegid()))
+        if self.hashandler(event.type):
+            return self.hook_events[event.type]['handler'](event, sxautils,
+                                                           jobutil, *args)
+        pbs.logmsg(pbs.EVENT_DEBUG2,
+                   '%s: %s event not handled by this hook' %
+                   (caller_name(), self.event_name(event.type)))
+        return False
+
+    def _queuejob_handler(self, event):
+        """
+        Handler for queuejob event
+        """
+        pass
+
+    def _exechost_startup_handler(self, event, sxautils, jobutil):
+        """
+        Handler for exechost_startup events.
+        """
+        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Method called' % caller_name())
+        node = NodeUtils(sxautils.cfg)
+        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: NodeUtils class instantiated' %
+                   caller_name())
+        node.create_vnodes()
+        return True
+        '''host = node.hostname
+        # The memory limits are interdependent and might fail when set.
+        # There are three limits. Worst case scenario is to loop three
+        # times in order to set them all.
+        mem_on_node = 0
+        for _ in range(3):
+            result = True
+            if 'memory' in cgroup.subsystems:
+                val = node.get_memory_on_node()
+                mem_on_node = val
+                if val is not None and val > 0:
+                    try:
+                        cgroup.set_limit('mem', val)
+                    except Exception:
+                        result = False
+                try:
+                    val = int(cgroup.cfg['cgroup']['memory']['swappiness'])
+                    cgroup.set_swappiness(val)
+                except Exception:
+                    # error is not fatal, do not set result to False
+                    pbs.logmsg(pbs.EVENT_DEBUG,
+                               '%s: Failed to set swappiness' % caller_name())
+            if 'memsw' in cgroup.subsystems:
+                val = node.get_vmem_on_node()
+                if val < mem_on_node:
+                    val = mem_on_node
+                if val is not None and val > 0:
+                    try:
+                        cgroup.set_limit('vmem', val)
+                    except Exception:
+                        result = False
+            if 'hugetlb' in cgroup.subsystems:
+                val = node.get_hpmem_on_node(ignore_reserved=False)
+                if val is not None and val > 0:
+                    try:
+                        cgroup.set_limit('hpmem', val)
+                    except Exception:
+                        result = False
+            if result:
+                return True
+        return False'''
+
+#
+# CLASS JobUtils
+#
+
+class JobUtils:
+    """
+    Job utility methods
+    """
+
+    def __init__(self, job, hostname=None, assigned_resources=None):
+        self.job = job
+        if hostname is not None:
+            self.hostname = hostname
+        else:
+            self.hostname = pbs.get_local_nodename()
+
+    def __repr__(self):
+        return ('JobUtils(%s, %s, %s)' %
+                (repr(self.job),
+                 repr(self.hostname),
+                 repr(self.assigned_resources)))
+
+#
+# CLASS NodeUtils
+#
+class NodeUtils(object):
+    """
+    Node utility methods
+    NOTE: Multiple log messages pertaining to devices have been commented
+          out due to the size of the messages. They may be uncommented for
+          additional debugging if necessary.
+    """
+
+    def __init__(self, cfg, hostname=None, cpuinfo=None, meminfo=None,
+                 numa_nodes=None, devices=None):
+        self.cfg = cfg
+        if hostname is not None:
+            self.hostname = hostname
+        else:
+            self.hostname = pbs.get_local_nodename()
+        if cpuinfo is not None:
+            self.cpuinfo = cpuinfo
+        else:
+            self.cpuinfo = self._discover_cpuinfo()
+        if meminfo is not None:
+            self.meminfo = meminfo
+        else:
+            self.meminfo = self._discover_meminfo()
+        if numa_nodes is not None:
+            self.numa_nodes = numa_nodes
+        else:
+            self.numa_nodes = dict()
+            self.numa_nodes = self._discover_numa_nodes()
+        if devices is not None:
+            self.devices = devices
+        else:
+            self.devices = self._discover_devices()
+
+        # Add the devices count i.e. nmics and ngpus to the numa nodes
+        #self._add_device_counts_to_numa_nodes()
+        # Information for offlining nodes
+        '''self.offline_file = os.path.join(PBS_MOM_HOME, 'mom_priv', 'hooks',
+                                         ('%s.offline' %
+                                          pbs.event().hook_name))
+        self.offline_msg = 'Hook %s: ' % pbs.event().hook_name
+        self.offline_msg += 'Unable to clean up one or more cgroups'''
+
+    def __repr__(self):
+        return ('NodeUtils(%s, %s, %s, %s, %s, %s)' %
+                (repr(self.cfg),
+                 repr(self.hostname),
+                 repr(self.cpuinfo),
+                 repr(self.meminfo),
+                 repr(self.numa_nodes),
+                 repr(self.devices)))
+
+    def _add_device_counts_to_numa_nodes(self):
+        """
+        Update the device counts per numa node
+        """
+        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Method called' % caller_name())
+        for dclass in self.devices:
+            pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Device class: %s' %
+                       (caller_name(), dclass))
+            if dclass == 'mic' or dclass == 'gpu':
+                for inst in self.devices[dclass]:
+                    numa_node = self.devices[dclass][inst]['numa_node']
+                    if dclass == 'mic' and inst.find('mic') != -1:
+                        if 'nmics' not in self.numa_nodes[numa_node]:
+                            self.numa_nodes[numa_node]['nmics'] = 1
+                        else:
+                            self.numa_nodes[numa_node]['nmics'] += 1
+                    elif dclass == 'gpu':
+                        if 'ngpus' not in self.numa_nodes[numa_node]:
+                            self.numa_nodes[numa_node]['ngpus'] = 1
+                        else:
+                            self.numa_nodes[numa_node]['ngpus'] += 1
+        pbs.logmsg(pbs.EVENT_DEBUG4, 'NUMA nodes: %s' % (self.numa_nodes))
+        return
+
+    def _discover_numa_nodes(self):
+        """
+        Discover what type of hardware is on this node and how it
+        is partitioned
+        """
+        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Method called' % caller_name())
+        numa_nodes = {}
+        for node in glob.glob(os.path.join(os.sep, 'sys', 'devices',
+                                           'system', 'node', 'node*')):
+            # The basename will be node0, node1, etc.
+            # Capture the numeric portion as the identifier/ordinal.
+            num = int(os.path.basename(node)[4:])
+            if num not in numa_nodes:
+                numa_nodes[num] = {}
+                numa_nodes[num]['devices'] = []
+            with open(os.path.join(node, 'cpulist'), 'r') as desc:
+                avail = expand_list(desc.readline())
+                numa_nodes[num]['cpus'] = [x for x in avail]
+            with open(os.path.join(node, 'meminfo'), 'r') as desc:
+                for line in desc:
+                    # Each line will contain four or five fields. Examples:
+                    # Node 0 MemTotal:       32995028 kB
+                    # Node 0 HugePages_Total:     0
+                    entries = line.split()
+                    if len(entries) < 4:
+                        continue
+                    if entries[2] == 'MemTotal:':
+                        numa_nodes[num]['MemTotal'] = \
+                            convert_size(entries[3] + entries[4], 'kb')
+                    elif entries[2] == 'HugePages_Total:':
+                        numa_nodes[num]['HugePages_Total'] = int(entries[3])
+
+        pbs.logmsg(pbs.LOG_DEBUG, "The numa nodes info is %s" % numa_nodes)    
+        num_numa_nodes = len(numa_nodes)
+        if num_numa_nodes > 0:
+            host_mem_net = self.get_memory_on_node()
+            host_vmem_net = self.get_vmem_on_node()
+            node_swapmem = int(math.floor((host_vmem_net - host_mem_net)
+                                          / num_numa_nodes))
+            if node_swapmem < 0:
+                node_swapmem = 0
+            node_swapmem -= node_swapmem % (1024 * 1024)
+            for num in numa_nodes:
+                val = 0
+                val = numa_nodes[num]['HugePages_Total']
+                if 'Hugepagesize' in self.meminfo:
+                    val *= size_as_int(self.meminfo['Hugepagesize'])
+                numa_nodes[num]['hpmem'] = val
+                val = size_as_int(numa_nodes[num]['MemTotal'])
+                numa_nodes[num]['mem'] = val
+                val += node_swapmem
+                # round down only svr-reported values, not internal values
+                numa_nodes[num]['vmem'] = val
+        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: %s' % (caller_name(), numa_nodes))
+        return numa_nodes
+
+    def _devinfo(self, path):
+        """
+        Returns major minor and type from device
+        """
+        # If the stat fails, log it and continue.
+        try:
+            statinfo = os.stat(path)
+        except OSError:
+            pbs.logmsg(pbs.EVENT_DEBUG2, '%s: Stat error on %s' %
+                       (caller_name(), path))
+            return None
+        major = os.major(statinfo.st_rdev)
+        minor = os.minor(statinfo.st_rdev)
+        if stat.S_ISCHR(statinfo.st_mode):
+            dtype = 'c'
+        else:
+            dtype = 'b'
+        pbs.logmsg(pbs.EVENT_DEBUG4,
+                   'Path: %s, Major: %d, Minor: %d, Type: %s' %
+                   (path, major, minor, dtype))
+        return {'major': major, 'minor': minor, 'type': dtype}
+
+    def _discover_devices(self):
+        """
+        Identify devices and to which numa nodes they are attached
+        """
+        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Method called' % caller_name())
+        devices = {}
+         
+        # First loop identifies all devices and determines their true path,
+        # major/minor device IDs, and NUMA node affiliation (if any).
+        paths = glob.glob(os.path.join(os.sep, 'sys', 'class', '*', '*'))
+        paths.extend(glob.glob(os.path.join(
+            os.sep, 'sys', 'bus', 'pci', 'devices', '*')))
+        for path in paths:
+            # Skip this path if it is not a directory
+            if not os.path.isdir(path):
+                continue
+            dirs = path.split(os.sep)   # Path components
+            dclass = dirs[-2]   # Device class
+            inst = dirs[-1]   # Device instance
+            if dclass not in devices:
+                devices[dclass] = {}
+            devices[dclass][inst] = {}
+            devices[dclass][inst]['realpath'] = os.path.realpath(path)
+            # Determine the PCI bus ID of the device
+            devices[dclass][inst]['bus_id'] = ''
+            if dirs[-3] == 'pci' and dirs[-2] == 'devices':
+                devices[dclass][inst]['bus_id'] = dirs[-1]
+            # Determine the major and minor device numbers
+            filename = os.path.join(devices[dclass][inst]['realpath'], 'dev')
+            devices[dclass][inst]['major'] = None
+            devices[dclass][inst]['minor'] = None
+            if os.path.isfile(filename):
+                with open(filename, 'r') as desc:
+                    major, minor = list(
+                        map(int, desc.readline().strip().split(':')))
+                    devices[dclass][inst]['major'] = int(major)
+                    devices[dclass][inst]['minor'] = int(minor)
+            numa_node = -1
+            subdir = os.path.join(devices[dclass][inst]['realpath'], 'device')
+            # The numa_node file is not always in the same place
+            # so work our way up the path trying to find it.
+            while len(subdir.split(os.sep)) > 2:
+                filename = os.path.join(subdir, 'numa_node')
+                if os.path.isfile(filename):
+                    # The file should contain a single integer
+                    with open(filename, 'r') as desc:
+                        numa_node = int(desc.readline().strip())
+                    break
+                subdir = os.path.dirname(subdir)
+            if numa_node < 0:
+                numa_node = 0
+            devices[dclass][inst]['numa_node'] = numa_node
+
+        #### Find out the number of pcies and ves connected to each of the pcies 
+        for ve, info in devices["ve"].items(): 
+            pbs.logmsg(pbs.LOG_DEBUG, "The ve devices info is %s, %s" % (ve, info))
+            dirs = info["realpath"].split(os.sep)
+            pci_bus_id = dirs[-5]
+            if not pci_bus_id.startswith("pci"):
+                if not "pcie" in self.numa_nodes[info["numa_node"]]:
+                    self.numa_nodes[info["numa_node"]]["pcie"] = {}
+                if pci_bus_id not in self.numa_nodes[info["numa_node"]]["pcie"]:
+                    self.numa_nodes[info["numa_node"]]["pcie"][pci_bus_id] = []
+                self.numa_nodes[info["numa_node"]]["pcie"][pci_bus_id].append(ve)
+            else:
+                if not "ve" in self.numa_nodes[info["numa_node"]]:
+                    self.numa_nodes[info["numa_node"]]["ve"] = []
+                self.numa_nodes[info["numa_node"]]["ve"].append(ve)
+             
+        pbs.logmsg(pbs.LOG_DEBUG, "Hey the pcies are %s" % self.numa_nodes) 
+        # Second loop determines device types and their location
+        # under /dev. Only look for block and character devices.
+        '''for path in find_files(os.path.join(os.sep, 'dev'), kind='bc',
+                               follow_mounts=False):
+            # If the stat fails, log it and continue.
+            devinfo = self._devinfo(path)
+            if not devinfo:
+                continue
+
+            for dclass in devices:
+                for inst in devices[dclass]:
+                    if 'type' not in devices[dclass][inst]:
+                        devices[dclass][inst]['type'] = None
+                    if 'device' not in devices[dclass][inst]:
+                        devices[dclass][inst]['device'] = None
+                    if devices[dclass][inst]['major'] == devinfo['major']:
+                        if devices[dclass][inst]['minor'] == devinfo['minor']:
+                            devices[dclass][inst]['type'] = devinfo['type']
+                            devices[dclass][inst]['device'] = path'''
+        
+        return devices
+
+    def _discover_nves(self):
+        """
+        Return a dictionary where the keys are the name of the VE devices
+        and the values are the PCI bus IDs.
+        """
+        pbs.logmsg(pbs.EVENT_DEBUG, '%s: Method called' % caller_name())
+        nves = {}
+        vecmd = os.path.join(os.sep, 'opt', 'nec', 've', 'bin', 'vecmd')
+        cmd = [vecmd, 'info', 'sys']
+        pbs.logmsg(pbs.EVENT_DEBUG, 've command: %s' % cmd)
+        try:
+            process = subprocess.Popen(cmd, shell=False,
+                                       stdout=subprocess.PIPE,
+                                       stderr=subprocess.PIPE)
+            output, err = process.communicate()
+        except Exception:
+            pbs.logmsg(pbs.EVENT_DEBUG4, 'Failed to execute: %s' %
+                       string.join(cmd, ' '))
+        output = output.decode("utf-8").split("\n")
+        for line in output:
+            if '[VE' in line:
+                ve = line.split(':')[0].strip('[').strip(' ').lower()
+                nves[ve] = {}
+            if 'Bus ID' in line:
+                id = line.split(':', 1)[1].strip(' ')
+                nves[ve]['bus_id'] = id
+        pbs.logmsg(pbs.EVENT_DEBUG, 'List of vector engines: %s' % nves)
+        return nves
+
+    def _discover_meminfo(self):
+        """
+        Return a dictionary where the keys are the NUMA node ordinals
+        and the values are the various memory sizes
+        """
+        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Method called' % caller_name())
+        meminfo = {}
+        with open(os.path.join(os.sep, 'proc', 'meminfo'), 'r') as desc:
+            for line in desc:
+                entries = line.split()
+                if entries[0] == 'MemTotal:':
+                    meminfo[entries[0].rstrip(':')] = \
+                        convert_size(entries[1] + entries[2], 'kb')
+                elif entries[0] == 'SwapTotal:':
+                    meminfo[entries[0].rstrip(':')] = \
+                        convert_size(entries[1] + entries[2], 'kb')
+                elif entries[0] == 'Hugepagesize:':
+                    meminfo[entries[0].rstrip(':')] = \
+                        convert_size(entries[1] + entries[2], 'kb')
+                elif entries[0] == 'HugePages_Total:':
+                    meminfo[entries[0].rstrip(':')] = int(entries[1])
+                elif entries[0] == 'HugePages_Rsvd:':
+                    meminfo[entries[0].rstrip(':')] = int(entries[1])
+        pbs.logmsg(pbs.EVENT_DEBUG4, 'Discover meminfo: %s' % meminfo)
+        return meminfo
+
+    def _discover_cpuinfo(self):
+        """
+        Return a dictionary where the keys include both global settings
+        and individual CPU characteristics
+        """
+        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Method called' % caller_name())
+        cpuinfo = {}
+        cpuinfo['cpu'] = {}
+        proc = None
+        with open(os.path.join(os.sep, 'proc', 'cpuinfo'), 'r') as desc:
+            for line in desc:
+                entries = line.strip().split(':')
+                if len(entries) < 2:
+                    # Blank line indicates end of processor
+                    proc = None
+                    continue
+                key = entries[0].strip()
+                val = entries[1].strip()
+                if proc is None and key != 'processor':
+                    raise SXAProcessingError('Failed to parse /proc/cpuinfo')
+                if key == 'processor':
+                    proc = int(val)
+                    if proc in cpuinfo:
+                        raise SXAProcessingError('Duplicate CPU ID found')
+                    cpuinfo['cpu'][proc] = {}
+                    cpuinfo['cpu'][proc]['threads'] = []
+                elif key == 'flags':
+                    cpuinfo['cpu'][proc][key] = val.split()
+                elif val.isdigit():
+                    cpuinfo['cpu'][proc][key] = int(val)
+                else:
+                    cpuinfo['cpu'][proc][key] = val
+        if not cpuinfo['cpu']:
+            raise SXAProcessingError('No CPU information found')
+        cpuinfo['logical_cpus'] = len(cpuinfo['cpu'])
+        cpuinfo['hyperthreads_per_core'] = 1
+        cpuinfo['hyperthreads'] = []
+        # Now try to construct a dictionary with hyperthread information
+        # if this is an Intel based processor
+        try:
+            if ('Intel' in cpuinfo['cpu'][0]['vendor_id']
+                    or 'AuthenticAMD' in cpuinfo['cpu'][0]['vendor_id']):
+                if 'ht' in cpuinfo['cpu'][0]['flags']:
+                    cpuinfo['hyperthreads_per_core'] = \
+                        int(cpuinfo['cpu'][0]['siblings']
+                            // cpuinfo['cpu'][0]['cpu cores'])
+                    # Map hyperthreads to physical cores
+                    if cpuinfo['hyperthreads_per_core'] > 1:
+                        pbs.logmsg(pbs.EVENT_DEBUG4,
+                                   'Mapping hyperthreads to cores')
+                        cores = list(cpuinfo['cpu'].keys())
+                        threads = set()
+                        # CPUs with matching core IDs are hyperthreads
+                        # sharing the same physical core. Loop through
+                        # the cores to construct a list of threads.
+                        for xid in cores:
+                            xcore = cpuinfo['cpu'][xid]
+                            for yid in cores:
+                                if yid < xid:
+                                    continue
+                                if yid == xid:
+                                    cpuinfo['cpu'][xid]['threads'].append(yid)
+                                    continue
+                                ycore = cpuinfo['cpu'][yid]
+                                if xcore['physical id'] != \
+                                        ycore['physical id']:
+                                    continue
+                                if xcore['core id'] == ycore['core id']:
+                                    cpuinfo['cpu'][xid]['threads'].append(yid)
+                                    cpuinfo['cpu'][yid]['threads'].append(xid)
+                                    threads.add(yid)
+                        pbs.logmsg(pbs.EVENT_DEBUG4, 'HT cores: %s' % threads)
+                        cpuinfo['hyperthreads'] = sorted(threads)
+                    else:
+                        cores = cpuinfo['cpu'].keys()
+                        for xid in cores:
+                            cpuinfo['cpu'][xid]['threads'].append(xid)
+        except Exception:
+            pbs.logmsg(pbs.EVENT_DEBUG, '%s: Hyperthreading check failed' %
+                       caller_name())
+        cpuinfo['physical_cpus'] = int(cpuinfo['logical_cpus']
+                                       // cpuinfo['hyperthreads_per_core'])
+        pbs.logmsg(pbs.EVENT_DEBUG4, '%s returning: %s' %
+                   (caller_name(), cpuinfo))
+        return cpuinfo
+
+    def gather_jobs_on_node(self, cgroup):
+        """
+        Gather the jobs assigned to this node and local vnodes
+        """
+        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Method called' % caller_name())
+        # Construct a dictionary where the keys are job IDs and the values
+        # are timestamps. The job IDs are collected from the cgroup jobs
+        # file and by inspecting MoM's job directory. Both are needed to
+        # ensure orphans are properly identified.
+        jobdict = cgroup.read_cgroup_jobs()
+        pbs.logmsg(pbs.EVENT_DEBUG4,
+                   'cgroup_jobs file content: %s' % str(jobdict))
+        try:
+            for jobfile in glob.glob(os.path.join(PBS_MOM_JOBS, '*.JB')):
+                (jobid, dot_jb) = os.path.splitext(os.path.basename(jobfile))
+                if jobid not in jobdict:
+                    if os.stat_float_times():
+                        jobdict[jobid] = os.path.getmtime(jobfile)
+                    else:
+                        jobdict[jobid] = float(os.path.getmtime(jobfile))
+        except Exception:
+            pbs.logmsg(pbs.EVENT_DEBUG, 'Could not get job list for %s' %
+                       self.hostname)
+        pbs.logmsg(pbs.EVENT_DEBUG4, 'Local job dictionary: %s' % str(jobdict))
+        return jobdict
+
+    def get_memory_on_node(self, memtotal=None):
+        """
+        Get the memory resource on this mom
+        """
+        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Method called' % caller_name())
+        total = 0
+        if self.numa_nodes:
+            # Caller wants the sum of all NUMA nodes
+            for nnid in self.numa_nodes:
+                if 'mem' in self.numa_nodes[nnid]:
+                    total += self.numa_nodes[nnid]['mem']
+                else:
+                    # NUMA node unreliable, make sure other method is used
+                    total = 0
+                    break
+            # only round down svr-reported values, not internal values
+            if total > 0:
+                return total
+            pbs.logmsg(pbs.EVENT_DEBUG4,
+                       '%s: Failed to obtain memory using NUMA node method' %
+                       caller_name())
+        # Calculate total memory
+        try:
+            if memtotal is None:
+                total = size_as_int(self.meminfo['MemTotal'])
+            else:
+                total = size_as_int(memtotal)
+        except Exception:
+            pbs.logmsg(pbs.EVENT_DEBUG,
+                       '%s: Could not determine total node memory' %
+                       caller_name())
+            raise
+        if total <= 0:
+            raise ValueError('Total node memory value invalid')
+        pbs.logmsg(pbs.EVENT_DEBUG4, 'total visible mem: %d' % total)
+        amount = convert_size(str(total), 'kb')
+        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Returning: %s' %
+                   (caller_name(), amount))
+        return size_as_int(total)
+
+    def get_vmem_on_node(self, vmemtotal=None):
+        """
+        Get the virtual memory resource on this mom
+        """
+        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Method called' % caller_name())
+        total = 0
+        # If NUMA nodes were not yet discovered then get totals
+        # using non-NUMA methods
+        if self.numa_nodes:
+            # Caller wants the sum of all NUMA nodes, and they were
+            # computed earlier
+            for nnid in self.numa_nodes:
+                if 'vmem' in self.numa_nodes[nnid]:
+                    total += self.numa_nodes[nnid]['vmem']
+                else:
+                    total = 0
+                    break
+            # only round down svr-reported values, not internal values
+            if total > 0:
+                return total
+            pbs.logmsg(pbs.EVENT_DEBUG4,
+                       '%s: Failed to obtain vmem using NUMA node method' %
+                       caller_name())
+        # Calculate total vmem; start with visible or usable physical memory
+        total = self.get_memory_on_node(None)
+        # Calculate total swap
+        try:
+            if vmemtotal is None:
+                swap = size_as_int(self.meminfo['SwapTotal'])
+            else:
+                swap = size_as_int(vmemtotal)
+        except Exception:
+            pbs.logmsg(pbs.EVENT_DEBUG,
+                       '%s: Could not determine total node swap' %
+                       caller_name())
+            raise
+        if swap <= 0:
+            pbs.logmsg(pbs.EVENT_DEBUG4,
+                       '%s: No swap space detected' %
+                       caller_name())
+            swap = 0
+        pbs.logmsg(pbs.EVENT_DEBUG4, 'total swap: %d' % swap)
+        total = self.get_memory_on_node()
+        pbs.logmsg(pbs.EVENT_DEBUG4, 'total mem: %d' % total)
+        total += swap
+        pbs.logmsg(pbs.EVENT_DEBUG4, 'total vmem: %d' % total)
+        amount = convert_size(str(total), 'kb')
+        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Returning: %s' %
+                   (caller_name(), amount))
+        return size_as_int(total)
+
+    def get_hpmem_on_node(self, hpmemtotal=None):
+        """
+        Get the huge page memory resource on this mom
+        """
+        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Method called' % caller_name())
+        total = 0
+        if self.numa_nodes:
+            # Caller wants the sum of all NUMA nodes
+            for nnid in self.numa_nodes:
+                if 'hpmem' in self.numa_nodes[nnid]:
+                    total += self.numa_nodes[nnid]['hpmem']
+                else:
+                    total = 0
+                    break
+            # only round down svr-reported values, not internal values
+            if total > 0:
+                return total
+            pbs.logmsg(pbs.EVENT_DEBUG4,
+                       '%s: Failed to obtain memory using NUMA node method' %
+                       caller_name())
+        # Calculate hpmem
+        try:
+            if hpmemtotal is None:
+                total = size_as_int(self.meminfo['Hugepagesize'])
+                total *= (self.meminfo['HugePages_Total'] -
+                          self.meminfo['HugePages_Rsvd'])
+            else:
+                total = size_as_int(hpmemtotal)
+        except Exception:
+            pbs.logmsg(pbs.EVENT_DEBUG3,
+                       '%s: Could not determine huge page availability' %
+                       caller_name())
+            total = 0
+        if total <= 0:
+            total = 0
+            pbs.logmsg(pbs.EVENT_DEBUG4,
+                       '%s: No huge page memory detected' %
+                       caller_name())
+            return 0
+        amount = convert_size(str(total), 'kb')
+        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Returning: %s' %
+                   (caller_name(), amount))
+        # Remove any bytes beyond the last MB
+        return size_as_int(total)
+
+    def create_vnodes(self, vntype=None):
+        """
+        Create vnodes for each PCIE with ves and each numa node
+        which does not have any ve.
+        """
+        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Method called' % caller_name())
+        vnode_list = pbs.event().vnode_list
+        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: numa nodes: %s' %
+                   (caller_name(), self.numa_nodes))
+        vnode_name = self.hostname
+        # In some cases the hostname and vnode name do not match
+        # admin should fix this!
+        # Give hints
+        if vnode_name not in vnode_list:
+            pbs.logmsg(pbs.EVENT_ERROR,
+                       "Could not find hostname %s in vnode_list %s"
+                       % (vnode_name, str(vnode_list.keys())))
+            pbs.logmsg(pbs.EVENT_ERROR,
+                       "This error is FATAL. Possible causes:")
+            pbs.logmsg(pbs.EVENT_ERROR, "a) the server's name for "
+                       "the natural node created on the server "
+                       "does not match the output of 'hostname' on the host.")
+            pbs.logmsg(pbs.EVENT_ERROR, "   Please use PBS_MOM_NODE_NAME "
+                       "in /etc/pbs.conf to tell MoM the correct vnode name.")
+            pbs.logmsg(pbs.EVENT_ERROR, "b) v2 config files are used "
+                       "but none mention the natural vnode. Add a line for "
+                       "the natural vnode in one of the v2 config files.")
+            raise SXAProcessingError('Could not identify local vnode')
+        vnode_list[vnode_name] = pbs.vnode(vnode_name)
+        host_resc_avail = vnode_list[vnode_name].resources_available
+        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: host_resc_avail: %s' %
+                   (caller_name(), host_resc_avail))
+        # Set resources_available.vntype of natural node according
+        # to what's in local file if it needs to be propagated to server
+        '''if (vntype and self.cfg['propagate_vntype_to_server']):
+            host_resc_avail['vntype'] = vntype
+            pbs.logmsg(pbs.EVENT_DEBUG4, '%s: vnode type set to %s'
+                       % (caller_name(), vntype))'''
+
+        vnode_msg_cpu = '%s: vnode_list[%s].resources_available[ncpus] = %d'
+        vnode_msg_mem = '%s: vnode_list[%s].resources_available[mem] = %s'
+
+        '''if not vnodes:
+            # memory (global for host)
+            mem = self.get_memory_on_node(ignore_reserved=False)
+            # remove X MB - handle jitter in MemTotal observed in field
+            mem -= (1024 * 1024
+                    * self.cfg['cgroup']['memory']['vnode_hidden_mb'])
+            if mem < 0:
+                mem = 0
+            mem -= mem % (1024 * 1024)
+            mem = pbs.size(convert_size(mem, 'mb'))
+            host_resc_avail['mem'] = mem
+            pbs.logmsg(pbs.EVENT_DEBUG4, vnode_msg_mem %
+                       (caller_name(), vnode_name,
+                        str(host_resc_avail['mem'])))
+            # memory+swap ('vmem') (global for host)
+            vmem = self.get_vmem_on_node(ignore_reserved=False)
+            # remove X MB - handle jitter in MemTotal observed in field
+            vmem -= (1024 * 1024
+                     * self.cfg['cgroup']['memory']['vnode_hidden_mb'])
+            if vmem < 0:
+                vmem = 0
+            vmem -= vmem % (1024 * 1024)
+            vmem = pbs.size(convert_size(vmem, 'mb'))
+            host_resc_avail['vmem'] = vmem
+            pbs.logmsg(pbs.EVENT_DEBUG4, vnode_msg_mem %
+                       (caller_name(), vnode_name,
+                        str(host_resc_avail['mem'])))
+            # huge page mem (global for host)
+            val = self.get_hpmem_on_node(ignore_reserved=False)
+            # remove X MB - handle jitter in mem reported by OS
+            val -= (1024 * 1024
+                    * self.cfg['cgroup']['hugetlb']
+                              ['vnode_hidden_mb'])
+            if val < 0:
+                val = 0
+            val -= val % (1024 * 1024)  # round down to MB
+            host_resc_avail['hpmem'] = \
+                pbs.size(convert_size(val, 'mb'))'''
+        #else:
+        # set the value on the host to 0
+        host_resc_avail['mem'] = pbs.size('0')
+        host_resc_avail['vmem'] = pbs.size('0')
+        host_resc_avail['hpmem'] = pbs.size('0')
+        # Some kernel drivers "reserve" memory on /proc/meminfo
+        # and this is not reflected in the node meminfo; if necessary,
+        # adjust the values published as resources_available.mem
+        # on the per-socket vnodes by the difference spread over nodes
+        '''adjust_bytes_per_node = 0
+        num_numa_nodes = len(self.numa_nodes)
+        total_nodemem = 0
+        for num in self.numa_nodes:
+            total_nodemem += size_as_int(self.numa_nodes[num]['MemTotal'])
+        total_hostmem = size_as_int(self.meminfo['MemTotal'])
+        pbs.logmsg(pbs.EVENT_DEBUG4,
+                   '%s: host memtotal %s; node memtotal %s'
+                   % (caller_name(),
+                      str(total_hostmem), str(total_nodemem)))
+        if total_hostmem < total_nodemem:
+            adjust_bytes_per_node = \
+                int(math.ceil((total_nodemem - total_hostmem)
+                              / float(num_numa_nodes)))
+            pbs.logmsg(pbs.EVENT_DEBUG,
+                       '%s: host memtotal %s < node memtotal %s, '
+                       'adjusting each vnode mem down by %s bytes'
+                       % (caller_name(),
+                          str(total_hostmem), str(total_nodemem),
+                          str(adjust_bytes_per_node)))'''
+        for nnid in self.numa_nodes:
+            if "pcie" in self.numa_nodes[nnid]:
+                pcie_num = 0
+                vnode_resc_avail = {}
+                for pcie, ves in self.numa_nodes[nnid]["pcie"].items():
+                    vnode_key = vnode_name + '[%d]_pci%d' % (nnid, pcie_num)
+                    vnode_list[vnode_key] = pbs.vnode(vnode_name)
+                    vnode_resc_avail[vnode_key] = vnode_list[vnode_key].resources_available
+                    pcie_num += 1
+                for key, val in sorted(self.numa_nodes[nnid].items()):
+                    if key is None:
+                        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: key is None'
+                              % caller_name())
+                        continue
+                    if val is None:
+                        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: val is None'
+                                   % caller_name())
+                        continue
+                    if key in ['MemTotal', 'HugePages_Total']:
+                        # Irrelevant: transformed to other keys if vnodes is True
+                        # done outside of loop if vnodes is False
+                        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: key %s skipped'
+                                   % (caller_name(), key))
+                    pbs.logmsg(pbs.EVENT_DEBUG4, '%s: %s = %s'
+                               % (caller_name(), key, val))
+                    if key == 'cpus':
+                        threads = len(val) / len(self.numa_nodes[nnid]["pcie"])
+                        # set the value on the host to 0
+                        host_resc_avail['ncpus'] = 0
+                        pbs.logmsg(pbs.EVENT_DEBUG4, vnode_msg_cpu %
+                                   (caller_name(), vnode_name,
+                                    host_resc_avail['ncpus']))
+                        # set the each pci vnode ncpus
+                        for vnode in vnode_list:
+                            if "pci" in vnode:
+                                vnode_resc_avail[vnode]['ncpus'] = threads 
+                                pbs.logmsg(pbs.EVENT_DEBUG4, vnode_msg_cpu %
+                                           (caller_name(), vnode,
+                                            vnode_resc_avail[vnode]['ncpus']))
+                    elif key in ['mem', 'vmem', 'hpmem']:
+                    # Used for vnodes per NUMA socket
+                        mem_val = val
+                        if isinstance(val, float):
+                            mem_val = int(val)
+                        for vnode in vnode_list:
+                            if "pci" in vnode:
+                                vnode_resc_avail[vnode][key] = pbs.size(convert_size(mem_val, 'mb'))
+                    elif isinstance(val, list):
+                        pass
+                    elif isinstance(val, dict):
+                        pass
+                    else:
+                        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: key = %s (%s)' %
+                                   (caller_name(), key, type(key)))
+                        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: val = %s (%s)' %
+                                   (caller_name(), val, type(val)))
+                        pass 
+                        #vnode_resc_avail[key] = val
+                        #host_resc_avail[key] = initialize_resource(val)
+
+            #elif "ve" in self.numa_nodes[nnid]:
+            #pass
+            else:
+                vnode_key = vnode_name + '[%d]' % nnid
+                vnode_list[vnode_key] = pbs.vnode(vnode_name)
+                vnode_resc_avail = vnode_list[vnode_key].resources_available
+                '''if (vntype and self.cfg['propagate_vntype_to_server']):
+                        vnode_resc_avail['vntype'] = vntype'''
+                for key, val in sorted(self.numa_nodes[nnid].items()):
+                    if key is None:
+                        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: key is None'
+                              % caller_name())
+                        continue
+                    if val is None:
+                        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: val is None'
+                                   % caller_name())
+                        continue
+                    pbs.logmsg(pbs.EVENT_DEBUG4, '%s: %s = %s'
+                               % (caller_name(), key, val))
+                    if key in ['MemTotal', 'HugePages_Total']:
+                        # Irrelevant: transformed to other keys if vnodes is True
+                        # done outside of loop if vnodes is False
+                        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: key %s skipped'
+                                   % (caller_name(), key))
+                    elif key == 'cpus':
+                        threads = len(val)
+                        # set the value on the host to 0
+                        host_resc_avail['ncpus'] = 0
+                        pbs.logmsg(pbs.EVENT_DEBUG4, vnode_msg_cpu %
+                                   (caller_name(), vnode_name,
+                                    host_resc_avail['ncpus']))
+                        # set the vnode value
+                        vnode_resc_avail['ncpus'] = threads
+                        pbs.logmsg(pbs.EVENT_DEBUG4, vnode_msg_cpu %
+                                   (caller_name(), vnode_key,
+                                    vnode_resc_avail['ncpus']))
+                    elif key in ['mem', 'vmem', 'hpmem']:
+                        mem_val = val
+                        if isinstance(val, float):
+                            mem_val = int(val)
+                        vnode_resc_avail[key] = \
+                            pbs.size(convert_size(mem_val, 'mb'))
+                    elif isinstance(val, list):
+                        pass
+                    elif isinstance(val, dict):
+                        pass
+                    else:
+                        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: key = %s (%s)' %
+                                   (caller_name(), key, type(key)))
+                        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: val = %s (%s)' %
+                                   (caller_name(), val, type(val)))
+                        vnode_resc_avail[key] = val
+                        host_resc_avail[key] = initialize_resource(val)
+        
+        '''pbs.logmsg(pbs.EVENT_DEBUG4, '%s: vnode list: %s' %
+                   (caller_name(), str(vnode_list)))'''
+       
+        '''for nnid in self.numa_nodes:
+            vnode_key = vnode_name + '[%d]' % nnid
+            vnode_resc_avail = vnode_list[vnode_key].resources_available
+            pbs.logmsg(pbs.EVENT_DEBUG4, '%s: %s vnode_resc_avail: %s' %
+                       (caller_name(), vnode_key, vnode_resc_avail))
+        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: host_resc_avail: %s' %
+                   (caller_name(), host_resc_avail))'''
+        return True
+
+    def take_node_offline(self):
+        """
+        Take the local node and associated vnodes offline
+        """
+        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Method called' % caller_name())
+        pbs.logmsg(pbs.EVENT_DEBUG2, '%s: Taking vnode(s) offline' %
+                   caller_name())
+        # Attempt to take vnodes that match this host offline
+        # Assume vnode names resemble self.hostname[#]
+        match_found = False
+        for vnode_name in pbs.event().vnode_list:
+            if (vnode_name == self.hostname or
+                    re.match(self.hostname + r'\[.*\]', vnode_name)):
+                pbs.event().vnode_list[vnode_name].state = pbs.ND_OFFLINE
+                pbs.event().vnode_list[vnode_name].comment = self.offline_msg
+                pbs.logmsg(pbs.EVENT_DEBUG2, '%s: %s; offlining %s' %
+                           (caller_name(), self.offline_msg, vnode_name))
+                match_found = True
+        if not match_found:
+            pbs.logmsg(pbs.EVENT_DEBUG2, '%s: No vnodes match %s' %
+                       (caller_name(), self.hostname))
+            return
+        # Write a file locally to reduce server traffic when the node
+        # is brought back online
+        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Offline file: %s' %
+                   (caller_name(), self.offline_file))
+        if os.path.isfile(self.offline_file):
+            pbs.logmsg(pbs.EVENT_DEBUG2,
+                       '%s: Offline file already exists, not overwriting' %
+                       caller_name())
+            return
+        try:
+            # Write a timestamp so that exechost_periodic can avoid
+            # cleaning up before this event has sent updates to server
+            with open(self.offline_file, 'w') as fd:
+                fd.write(str(time.time()))
+        except Exception as exc:
+            pbs.logmsg(pbs.EVENT_DEBUG, '%s: Failed to write to %s: %s' %
+                       (caller_name(), self.offline_file, exc))
+            pass
+        if not os.path.isfile(self.offline_file):
+            pbs.logmsg(pbs.EVENT_DEBUG2, '%s: Offline file not present: %s' %
+                       (caller_name(), self.offline_file))
+        pbs.logmsg(pbs.EVENT_DEBUG2, '%s: Node taken offline' %
+                   caller_name())
+
+    def bring_node_online(self):
+        """
+        Bring the local node and associated vnodes online
+        """
+        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Method called' % caller_name())
+        if not os.path.isfile(self.offline_file):
+            pbs.logmsg(pbs.EVENT_DEBUG3, '%s: Offline file not present: %s' %
+                       (caller_name(), self.offline_file))
+            return
+        # Read timestamp from offline file
+        timestamp = float()
+        try:
+            with open(self.offline_file, 'r') as fd:
+                timestamp = float(fd.read())
+        except Exception as exc:
+            pbs.logmsg(pbs.EVENT_DEBUG, '%s: Failed to read from %s: %s' %
+                       (caller_name(), self.offline_file, exc))
+            return
+        # Only bring node online after minimum delay has passed
+        delta = time.time() - timestamp
+        if delta < float(self.cfg['online_nodes_min_delay']):
+            pbs.logmsg(pbs.EVENT_DEBUG2,
+                       '%s: Too soon since node was offlined' % caller_name())
+            return
+        # Get comments for vnodes associated with this event
+        vnl = pbs.event().vnode_list.keys()
+        (vnode_comments, failure) = \
+            fetch_vnode_comments(vnl, timeout=self.cfg['server_timeout'])
+        if failure:
+            pbs.logmsg(pbs.EVENT_ERROR,
+                       '%s: Failed contacting server for vnode comments'
+                       % caller_name())
+            pbs.logmsg(pbs.EVENT_ERROR, '%s: Not bringing vnodes online'
+                       % caller_name())
+            return
+        # Bring vnodes online that this hook has taken offline
+        for vnode_name in vnode_comments:
+            if vnode_comments[vnode_name] != self.offline_msg:
+                pbs.logmsg(pbs.EVENT_DEBUG, ('%s: Comment for vnode %s '
+                           + 'was not set by this hook')
+                           % (caller_name(), vnode_name))
+                continue
+            vnode = pbs.event().vnode_list[vnode_name]
+            vnode.state = pbs.ND_FREE
+            vnode.comment = None
+            pbs.logmsg(pbs.EVENT_DEBUG,
+                       '%s: Vnode %s will be brought back online' %
+                       (caller_name(), vnode_name))
+        # Remove the offline file
+        try:
+            os.remove(self.offline_file)
+        except Exception as exc:
+            pbs.logmsg(pbs.EVENT_DEBUG,
+                       '%s: Failed to remove offline file: %s' %
+                       (caller_name(), exc))
+
+#
+# CLASS SXAUtils
+#
+class SXAUtils:
+    """
+    SX Aurora utility methods
+    """
+
+    def __init__(self, hostname, vnode, cfg=None, subsystems=None,
+                 paths=None, vntype=None, assigned_resources=None,
+                 systemd_version=None):
+        self.hostname = hostname
+        self.vnode = vnode
+        if cfg is not None:
+            self.cfg = cfg
+        else:
+            self.cfg = self.parse_config_file()
+
+    @staticmethod
+    def parse_config_file():
+        """
+        Read the config file in json format
+        """
+        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Method called' % caller_name())
+        defaults = {} 
+        defaults['sxa_lock_file'] = os.path.join(PBS_MOM_HOME, 'mom_priv',
+                                                    'sxa.lock')
+
+        # Identify the config file and read in the data
+        config_file = ''
+        if 'PBS_HOOK_CONFIG_FILE' in os.environ:
+            config_file = os.environ['PBS_HOOK_CONFIG_FILE']
+        if not config_file:
+            tmpcfg = os.path.join(PBS_MOM_HOME, 'mom_priv', 'hooks',
+                                  'pbs_sx_aurora.CF')
+            if os.path.isfile(tmpcfg):
+                config_file = tmpcfg
+        if not config_file:
+            tmpcfg = os.path.join(PBS_HOME, 'server_priv', 'hooks',
+                                  'pbs_sx_aurora.CF')
+            if os.path.isfile(tmpcfg):
+                config_file = tmpcfg
+        if not config_file:
+            tmpcfg = os.path.join(PBS_MOM_HOME, 'mom_priv', 'hooks',
+                                  'pbs_sx_aurora.json')
+            if os.path.isfile(tmpcfg):
+                config_file = tmpcfg
+        if not config_file:
+            tmpcfg = os.path.join(PBS_HOME, 'server_priv', 'hooks',
+                                  'pbs_aurora.json')
+            if os.path.isfile(tmpcfg):
+                config_file = tmpcfg
+        if not config_file:
+            raise SXAConfigError('Config file not found')
+        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Config file is %s' %
+                   (caller_name(), config_file))
+        try:
+            with open(config_file, 'r') as desc:
+                config = merge_dict(defaults,
+                                    json.load(desc, object_hook=decode_dict))
+        except IOError:
+            raise SXAConfigError('I/O error reading config file')
+        pbs.logmsg(pbs.EVENT_DEBUG4,
+                   '%s: sx aurora hook configuration: %s' %
+                   (caller_name(), config))
+        return config
+
+def set_global_vars():
+    """
+    Define some global variables that the hook may use
+    """
+    global PBS_EXEC
+    global PBS_HOME
+    global PBS_MOM_HOME
+    global PBS_MOM_JOBS
+    # Determine location of PBS_HOME, PBS_MOM_HOME, and PBS_EXEC. These
+    # should have each be initialized to empty strings near the beginning
+    # of this hook.
+    # Try the environment first
+    if not PBS_EXEC and 'PBS_EXEC' in os.environ:
+        PBS_EXEC = os.environ['PBS_EXEC']
+    if not PBS_HOME and 'PBS_HOME' in os.environ:
+        PBS_HOME = os.environ['PBS_HOME']
+    if not PBS_MOM_HOME and 'PBS_MOM_HOME' in os.environ:
+        PBS_MOM_HOME = os.environ['PBS_MOM_HOME']
+    # Try the built in config values next
+    pbs_conf = pbs.get_pbs_conf()
+    if pbs_conf:
+        if not PBS_EXEC and 'PBS_EXEC' in pbs_conf:
+            PBS_EXEC = pbs_conf['PBS_EXEC']
+        if not PBS_HOME and 'PBS_HOME' in pbs_conf:
+            PBS_HOME = pbs_conf['PBS_HOME']
+        if not PBS_MOM_HOME and 'PBS_MOM_HOME' in pbs_conf:
+            PBS_MOM_HOME = pbs_conf['PBS_MOM_HOME']
+    # Try reading the config file directly
+    if not PBS_EXEC or not PBS_HOME or not PBS_MOM_HOME:
+        if 'PBS_CONF_FILE' in os.environ:
+            pbs_conf_file = os.environ['PBS_CONF_FILE']
+        else:
+            pbs_conf_file = os.path.join(os.sep, 'etc', 'pbs.conf')
+        regex = re.compile(r'\s*([^\s]+)\s*=\s*([^\s]+)\s*')
+        try:
+            with open(pbs_conf_file, 'r') as desc:
+                for line in desc:
+                    match = regex.match(line)
+                    if match:
+                        if not PBS_EXEC and match.group(1) == 'PBS_EXEC':
+                            PBS_EXEC = match.group(2)
+                        if not PBS_HOME and match.group(1) == 'PBS_HOME':
+                            PBS_HOME = match.group(2)
+                        if not PBS_MOM_HOME and (match.group(1) ==
+                                                 'PBS_MOM_HOME'):
+                            PBS_MOM_HOME = match.group(2)
+        except Exception:
+            pass
+    # If PBS_MOM_HOME is not set, use the PBS_HOME value
+    if not PBS_MOM_HOME:
+        PBS_MOM_HOME = PBS_HOME
+    PBS_MOM_JOBS = os.path.join(PBS_MOM_HOME, 'mom_priv', 'jobs')
+    # Sanity check to make sure each global path is set
+    if not PBS_EXEC:
+        raise ConfigError('Unable to determine PBS_EXEC')
+    if not PBS_HOME:
+        raise ConfigError('Unable to determine PBS_HOME')
+    if not PBS_MOM_HOME:
+        raise ConfigError('Unable to determine PBS_MOM_HOME')
+
+
+def main():
+    """
+    Main function for execution
+    """
+    pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Function called' % caller_name())
+    # If an exception occurs, jobutil must be set to something
+    jobutil = None
+    hostname = pbs.get_local_nodename()
+    pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Host is %s' % (caller_name(), hostname))
+    # Log the hook event type
+    event = pbs.event()
+    pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Hook name is %s' %
+               (caller_name(), event.hook_name))
+    try:
+        set_global_vars()
+    except Exception:
+        pbs.logmsg(pbs.EVENT_DEBUG,
+                   '%s: Hook failed to initialize configuration properly' %
+                   caller_name())
+        pbs.logmsg(pbs.EVENT_DEBUG,
+                   str(traceback.format_exc().strip().splitlines()))
+        event.accept()
+    # Instantiate the hook utility class
+    try:
+        hooks = HookUtils()
+        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Hook utility class instantiated' %
+                   caller_name())
+    except Exception:
+        pbs.logmsg(pbs.EVENT_DEBUG,
+                   '%s: Failed to instantiate hook utility class' %
+                   caller_name())
+        pbs.logmsg(pbs.EVENT_DEBUG,
+                   str(traceback.format_exc().strip().splitlines()))
+        event.accept()
+    # Bail out if there is no handler for this event
+    if not hooks.hashandler(event.type):
+        pbs.logmsg(pbs.EVENT_DEBUG, '%s: %s event not handled by this hook' %
+                   (caller_name(), hooks.event_name(event.type)))
+        event.accept()
+    try:
+        # Instantiate the job utility class first so jobutil can be accessed
+        # by the exception handlers.
+        if hasattr(event, 'job'):
+            jobutil = JobUtils(event.job)
+            pbs.logmsg(pbs.EVENT_DEBUG4,
+                       '%s: Job information class instantiated' %
+                       caller_name())
+        else:
+            pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Event does not include a job' %
+                       caller_name())
+        # Parse the sx_aurora configuration file here so we can use the file lock
+        cfg = SXAUtils.parse_config_file()
+        # Instantiate the sx_aurora utility class
+        vnode = None
+        if hasattr(event, 'vnode_list'):
+            if hostname in event.vnode_list:
+                vnode = event.vnode_list[hostname]
+        with Lock(cfg['sxa_lock_file']):
+            # Only write this once we grabbed the lock,
+            # otherwise *another* event could actually win the lock
+            # even though *this* event printed this message last,
+            # and we'd be confused about the event that the winner services
+            loglevel = pbs.EVENT_DEBUG2
+            if hasattr(event, 'job') and hasattr(event.job, 'id'):
+                pbs.logmsg(loglevel, '%s: Event type is %s, job ID is %s'
+                           % (caller_name(), hooks.event_name(event.type),
+                              event.job.id))
+            else:
+                pbs.logmsg(loglevel, '%s: Event type is %s'
+                           % (caller_name(), hooks.event_name(event.type)))
+
+            sxautils = SXAUtils(hostname, vnode, cfg=cfg)
+            pbs.logmsg(pbs.EVENT_DEBUG4,
+                       '%s: SX Aurora utility class instantiated' % caller_name())
+
+            # Call the appropriate handler
+            if hooks.invoke_handler(event, sxautils, jobutil):
+                pbs.logmsg(pbs.EVENT_DEBUG4,
+                           '%s: Hook handler returned success for %s event' %
+                           (caller_name(), hooks.event_name(event.type)))
+                event.accept()
+            else:
+                pbs.logmsg(pbs.EVENT_DEBUG,
+                           '%s: Hook handler returned failure for %s event' %
+                           (caller_name(), hooks.event_name(event.type)))
+                event.reject()
+    except SystemExit:
+        # The event.accept() and event.reject() methods generate a SystemExit
+        # exception.
+        pass
+    except UserError as exc:
+        # User must correct problem and resubmit job, job gets deleted
+        msg = ('User error in %s handling %s event' %
+               (event.hook_name, hooks.event_name(event.type)))
+        if jobutil is not None:
+            msg += (' for job %s' % (event.job.id))
+            try:
+                event.job.delete()
+                msg += ' (deleted)'
+            except Exception:
+                msg += ' (deletion failed)'
+        msg += (': %s %s' % (exc.__class__.__name__, str(exc.args)))
+        pbs.logmsg(pbs.EVENT_ERROR, msg)
+        event.reject(msg)
+    except SXAProcessingError as exc:
+        # Something went wrong manipulating the cgroups
+        pbs.logmsg(pbs.EVENT_DEBUG,
+                   str(traceback.format_exc().strip().splitlines()))
+        msg = ('Processing error in %s handling %s event' %
+               (event.hook_name, hooks.event_name(event.type)))
+        if jobutil is not None:
+            msg += (' for job %s' % (event.job.id))
+        msg += (': %s %s' % (exc.__class__.__name__, str(exc.args)))
+        pbs.logmsg(pbs.EVENT_ERROR, msg)
+        event.reject(msg)
+    except Exception as exc:
+        # Catch all other exceptions and report them, job gets held
+        # and a stack trace is logged
+        pbs.logmsg(pbs.EVENT_DEBUG,
+                   str(traceback.format_exc().strip().splitlines()))
+        msg = ('Unexpected error in %s handling %s event' %
+               (event.hook_name, hooks.event_name(event.type)))
+        if jobutil is not None:
+            msg += (' for job %s' % (event.job.id))
+            try:
+                event.job.Hold_Types = pbs.hold_types('s')
+                event.job.rerun()
+                msg += ' (system hold set)'
+            except Exception:
+                msg += ' (system hold failed)'
+        msg += (': %s %s' % (exc.__class__.__name__, str(exc.args)))
+        pbs.logmsg(pbs.EVENT_ERROR, msg)
+        event.reject(msg)
+
+
+if (__name__ == 'builtins') or (__name__ == '__builtin__'):
+    START = time.time()
+    try:
+        main()
+    except SystemExit:
+        # The event.accept() and event.reject() methods generate a
+        # SystemExit exception.
+        pass
+    except Exception:
+        # "Should never happen" since main() is supposed to catch these
+        pbs.logmsg(pbs.EVENT_DEBUG,
+                   str(traceback.format_exc().strip().splitlines()))
+        pbs.event().reject(str(traceback.format_exc().strip().splitlines()))
+    finally:
+        event = pbs.event()
+        loglevel = pbs.EVENT_DEBUG2
+        if hasattr(event, 'job') and hasattr(event.job, 'id'):
+            pbs.logmsg(loglevel, 'Hook ended: %s, job ID %s, '
+                       'event_type %s (elapsed time: %0.4lf)' %
+                       (pbs.event().hook_name,
+                        event.job.id,
+                        str(pbs.event().type),
+                        (time.time() - START)))
+        else:
+            pbs.logmsg(loglevel, 'Hook ended: %s, '
+                       'event_type %s (elapsed time: %0.4lf)' %
+                       (pbs.event().hook_name,
+                        str(pbs.event().type),
+                        (time.time() - START)))
 

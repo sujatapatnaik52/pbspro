@@ -260,6 +260,37 @@ def expand_list(old):
             new.append(int(entry))
     return new
 
+def exec_cmd(cmd):
+    """
+    Run given command and return output
+    :param cmd: command to run
+    :type cmd: list
+    """
+    pbs.logmsg(pbs.EVENT_DEBUG4, "%s: Method called" % (caller_name()))
+    pbs.logmsg(pbs.EVENT_DEBUG4, "Cmd is: %s" % " ".join(cmd))
+    try:
+        process = subprocess.Popen(cmd, shell=False,
+                                   stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE)
+        output, err = process.communicate()
+    except OSError:
+        pbs.logmsg(pbs.EVENT_DEBUG, "Failed to execute: %s" %
+                   ' '.join(cmd))
+        return None
+    except ValueError:
+        pbs.logmsg(pbs.EVENT_DEBUG, "Failed to execute: %s" %
+                   ' '.join(cmd))
+        pbs.logmsg(pbs.EVENT_DEBUG, "Invalid arguments passed.")
+        return None
+    status = process.returncode
+    if status != 0:
+        pbs.logmsg(pbs.EVENT_DEBUG,
+                   "Unable to run command: %s.\n err: %s" %
+                   (' '.join(cmd), err))
+        return None
+    return output.decode('utf-8')
+
+
 def initialize_resource(resc):
     """
     Return a properly cast zero value
@@ -418,12 +449,12 @@ class HookUtils(object):
             if hasattr(pbs, "EXECJOB_POSTSUSPEND"):
                 self.hook_events[pbs.EXECJOB_POSTSUSPEND] = {
                     'name': 'execjob_postsuspend',
-                    'handler': None
+                    'handler': '_execjob_postsuspend_handler'
                 }
             if hasattr(pbs, "EXECJOB_PRERESUME"):
                 self.hook_events[pbs.EXECJOB_PRERESUME] = {
                     'name': 'execjob_preresume',
-                    'handler': None
+                    'handler': '_execjob_preresume_handler'
                 }
             self.hook_events[pbs.MOM_EVENTS] = {
                 'name': 'mom_events',
@@ -486,47 +517,124 @@ class HookUtils(object):
                    caller_name())
         node.create_vnodes()
         return True
-        '''host = node.hostname
-        # The memory limits are interdependent and might fail when set.
-        # There are three limits. Worst case scenario is to loop three
-        # times in order to set them all.
-        mem_on_node = 0
-        for _ in range(3):
-            result = True
-            if 'memory' in cgroup.subsystems:
-                val = node.get_memory_on_node()
-                mem_on_node = val
-                if val is not None and val > 0:
-                    try:
-                        cgroup.set_limit('mem', val)
-                    except Exception:
-                        result = False
-                try:
-                    val = int(cgroup.cfg['cgroup']['memory']['swappiness'])
-                    cgroup.set_swappiness(val)
-                except Exception:
-                    # error is not fatal, do not set result to False
-                    pbs.logmsg(pbs.EVENT_DEBUG,
-                               '%s: Failed to set swappiness' % caller_name())
-            if 'memsw' in cgroup.subsystems:
-                val = node.get_vmem_on_node()
-                if val < mem_on_node:
-                    val = mem_on_node
-                if val is not None and val > 0:
-                    try:
-                        cgroup.set_limit('vmem', val)
-                    except Exception:
-                        result = False
-            if 'hugetlb' in cgroup.subsystems:
-                val = node.get_hpmem_on_node(ignore_reserved=False)
-                if val is not None and val > 0:
-                    try:
-                        cgroup.set_limit('hpmem', val)
-                    except Exception:
-                        result = False
-            if result:
-                return True
-        return False'''
+
+    def _execjob_launch_handler(event):
+        """
+        Handler for execjob_launch event.
+        """
+
+        global host_job_dir
+        global host_job_ppid_filename
+
+        if not event.job.in_ms_mom():
+            if not os.path.exists(host_job_dir):
+                os.makedirs(host_job_dir, 0o755)
+            try:
+                filename = host_job_ppid_filename % event.job.id
+                with open(filename, 'w') as desc:
+                    desc.write(str(os.getppid()))
+            except Exception:
+                event.reject("Unable to create the pid file on this node")
+
+    def _execjob_postsuspend_handler(event):
+        """
+        Handler for execjob_postsuspend event.
+        """
+        global host_job_dir
+        global host_job_ppid_filename
+   
+        job = event.job
+        ps_cmd = ""
+        if job.in_ms_mom():
+            ps_cmd = ["ps", "-s", str(job.session_id), "-o", "pid",
+                      "--no-headers"]
+        else: 
+            pid = ""
+            try:
+                filename = host_job_ppid_filename % event.job.id
+                with open(filename, 'r') as desc:
+                    pid = desc.read()
+            except Exception:
+                e.reject("Unable to read pid file on this node. Cannot "
+                         "swap out VE processes.")
+            ps_cmd = ["ps", "-s", pid, "-o", "pid", "--no-headers"]
+
+        p = Popen(ps_cmd, stdin=PIPE, stdout=PIPE)
+        result, error = p.communicate()
+        if p.returncode != 0:
+            e.reject("Unable to find VE process ID's on this node due"
+                     " to %s" % error)
+
+        pids = [pid.strip() for pid in result.decode("utf-8").strip().split("\n")]
+        swapout_procs = []
+        for pid in pids:
+            swap_out_cmd = ["/opt/nec/ve/bin/veswap", "-o", pid]
+            p = Popen(swap_out_cmd, stdin=PIPE, stdout=PIPE)
+            result, error = p.communicate()
+            if p.returncode == 0:
+                swapout_procs.append(pid)
+        if len(swapout_procs) > 0:
+            pbs.logmsg(pbs.LOG_DEBUG, "The VE processes of job %s swapped out on "
+                                      "this node are %s" % (job.id, swapout_procs))
+        else: 
+            pbs.logmsg(pbs.LOG_DEBUG, "No VE processes swapped out for "
+                                      "job %s" % job.id)
+    
+    def _execjob_preresume_handler(event):
+        """
+        Handler for execjob_preresume event.
+        """
+        global host_job_dir
+        global host_job_ppid_filename
+     
+        job = event.job
+        ps_cmd = ""
+        if job.in_ms_mom():
+            ps_cmd = ["ps", "-s", str(job.session_id), "-o", "pid",
+                     "--no-headers"]
+        else:
+            pid = ""
+            try:
+                filename = host_job_ppid_filename % event.job.id
+
+                with open(filename, 'r') as desc:
+                    pid = desc.read()
+            except Exception:
+                e.reject("Unable to read pid file on this node. "
+                          "Cannot swap in VE processes.")
+
+            ps_cmd = ["ps", "-s", pid, "-o", "pid", "--no-headers"]
+
+        p = Popen(ps_cmd, stdin=PIPE, stdout=PIPE)
+        result, error = p.communicate()
+        if p.returncode != 0:
+            e.reject("Unable to find VE process ID's on this node "
+                     "due to %s" % error)
+
+        pids = [pid.strip() for pid in result.decode("utf-8").strip().split("\n")]
+        swapin_procs = []
+        for pid in pids:
+            swap_in_cmd = ["/opt/nec/ve/bin/veswap", "-i", pid]
+            p = Popen(swap_in_cmd, stdin=PIPE, stdout=PIPE)
+            result, error = p.communicate()
+            if p.returncode == 0:
+                swapin_procs.append(pid)
+        if len(swapin_procs) > 0:
+            pbs.logmsg(pbs.LOG_DEBUG, "The VE processes of job %s swapped in on "
+                                      "this node are %s" % (job.id, swapin_procs))
+        else:
+            pbs.logmsg(pbs.LOG_DEBUG, "No VE processes swapped in for"
+                                      " job %s" % job.id)
+
+    def _execjob_end_handler(event):
+        """
+        Handler for execjob_end event.
+        """
+        global host_job_ppid_filename
+   
+        job = event.job 
+        if not job.in_ms_mom():
+            os.remove(host_job_ppid_filename % job.id)
 
 #
 # CLASS JobUtils
@@ -617,15 +725,14 @@ class NodeUtils(object):
         numa_nodes = copy.deepcopy(self.numa_nodes)
         for ve, info in self.ves.items():
 
-            ### Identify PCI_bus_id using realpath
-            dirs = info["realpath"].split(os.sep)
-            pci_bus_id = dirs[-5]
+            ### Identify PCI_bus_id from the ve info
+            pci_bus_id = info["pci"]
            
             # The if-block is for a model in which each numa node 
             # has one pcie slot. The else-block is for the model in which 
             # each numa node can have multiple pcie slots.
             
-            if pci_bus_id.startswith("pci"):
+            if len(pci_bus_id) == 0:
                 pci_name = "pci%d" % info["numa_node"]
             else:
                 pci_name = "pci" + pci_bus_id
@@ -726,51 +833,50 @@ class NodeUtils(object):
 
     def _discover_ves(self):
         """
-        Identify ves, their realpath and to which 
-        numa nodes they are attached
+        Identify ves, to which pcies and numa nodes they are attached
+        using "vecmd topo tree"
         """
         pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Method called' % caller_name())
-        devices = {}
-         
-        # First loop identifies all devices and determines their true path,
-        # major/minor device IDs, and NUMA node affiliation (if any).
-        paths = glob.glob(os.path.join(os.sep, 'sys', 'class', '*', '*'))
-        paths.extend(glob.glob(os.path.join(
-            os.sep, 'sys', 'bus', 'pci', 'devices', '*')))
-        for path in paths:
-            # Skip this path if it is not a directory
-            if not os.path.isdir(path):
-                continue
-            dirs = path.split(os.sep)   # Path components
-            dclass = dirs[-2]   # Device class
-            inst = dirs[-1]   # Device instance
-            if dclass not in devices:
-                devices[dclass] = {}
-            devices[dclass][inst] = {}
-            devices[dclass][inst]['realpath'] = os.path.realpath(path)
-            # Determine the PCI bus ID of the device
-            devices[dclass][inst]['bus_id'] = ''
-            if dirs[-3] == 'pci' and dirs[-2] == 'devices':
-                devices[dclass][inst]['bus_id'] = dirs[-1]
-            numa_node = -1
-            subdir = os.path.join(devices[dclass][inst]['realpath'], 'device')
-            # The numa_node file is not always in the same place
-            # so work our way up the path trying to find it.
-            while len(subdir.split(os.sep)) > 2:
-                filename = os.path.join(subdir, 'numa_node')
-                if os.path.isfile(filename):
-                    # The file should contain a single integer
-                    with open(filename, 'r') as desc:
-                        numa_node = int(desc.readline().strip())
-                    break
-                subdir = os.path.dirname(subdir)
-            if numa_node < 0:
-                numa_node = 0
-            devices[dclass][inst]['numa_node'] = numa_node
-             
-        pbs.logmsg(pbs.LOG_DEBUG, "VE devices info: %s" % devices["ve"]) 
-        return devices["ve"]
+          
+        ves = {}       
+        cmd = ["/opt/nec/ve/bin/vecmd", "topo", "tree"]
+        output = exec_cmd(cmd)
+        if output is None:
+            return 
+        result = output.split("+-")[1:]
 
+        if output is None:
+            pbs.logmsg(pbs.EVENT_DEBUG,
+                          '%s: Execution of cmd %s failed' %
+                          (caller_name(), cmd))
+            pbs.event().reject()         
+
+        index = 0
+        bridge_id = ""
+        pci_bus_id = ""
+        
+        while index < len(result):
+            bridge_id = result[index].strip("-")
+            if "SOCKET" in result[index + 1] or "SOCKET" in result[index]:
+                if "RE" in result[index + 1] or "RE" in bridge_id:
+                    index += 1
+                    continue
+                if "VE" in result[index + 1]:
+                    ve = ""
+                    bus_details = result[index + 1].split(" ")
+                    for each in bus_details:
+                        if "VE" in each:
+                            ve = each.strip("[").strip("]")
+                            ves[ve] = {"pci" : pci_bus_id}
+                        if "SOCKET" in each:
+                            socket = each.strip("[").split("]")[0]
+                            ves[ve]["numa_node"] = int(socket.lstrip("SOCKET"))
+            else:
+                pci_bus_id = result[index + 1].strip("-")
+            index += 2
+             
+        pbs.logmsg(pbs.LOG_DEBUG, "VE devices info: %s" % ves) 
+        return ves
 
     def _discover_meminfo(self):
         """

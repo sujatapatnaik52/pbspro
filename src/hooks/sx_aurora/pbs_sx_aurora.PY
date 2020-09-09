@@ -418,11 +418,11 @@ class HookUtils(object):
             }
             self.hook_events[pbs.EXECJOB_END] = {
                 'name': 'execjob_end',
-                'handler': None
+                'handler': self._execjob_end_handler
             }
             self.hook_events[pbs.EXECJOB_LAUNCH] = {
                 'name': 'execjob_launch',
-                'handler': None
+                'handler': self._execjob_launch_handler
             }
             self.hook_events[pbs.EXECHOST_PERIODIC] = {
                 'name': 'exechost_periodic',
@@ -449,12 +449,12 @@ class HookUtils(object):
             if hasattr(pbs, "EXECJOB_POSTSUSPEND"):
                 self.hook_events[pbs.EXECJOB_POSTSUSPEND] = {
                     'name': 'execjob_postsuspend',
-                    'handler': '_execjob_postsuspend_handler'
+                    'handler': self._execjob_postsuspend_handler
                 }
             if hasattr(pbs, "EXECJOB_PRERESUME"):
                 self.hook_events[pbs.EXECJOB_PRERESUME] = {
                     'name': 'execjob_preresume',
-                    'handler': '_execjob_preresume_handler'
+                    'handler': self._execjob_preresume_handler
                 }
             self.hook_events[pbs.MOM_EVENTS] = {
                 'name': 'mom_events',
@@ -518,31 +518,25 @@ class HookUtils(object):
         node.create_vnodes()
         return True
 
-    def _execjob_launch_handler(event):
+    def _execjob_launch_handler(self, event, sxautils, jobutil):
         """
         Handler for execjob_launch event.
         """
-
-        global host_job_dir
-        global host_job_ppid_filename
-
+        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Method called' % caller_name())
         if not event.job.in_ms_mom():
-            if not os.path.exists(host_job_dir):
-                os.makedirs(host_job_dir, 0o755)
             try:
-                filename = host_job_ppid_filename % event.job.id
+                filename = sxautils.host_job_ppid % event.job.id
                 with open(filename, 'w') as desc:
                     desc.write(str(os.getppid()))
             except Exception:
                 event.reject("Unable to create the pid file on this node")
+        return True
 
-    def _execjob_postsuspend_handler(event):
+    def _execjob_postsuspend_handler(self, event, sxautils, jobutil):
         """
         Handler for execjob_postsuspend event.
         """
-        global host_job_dir
-        global host_job_ppid_filename
-   
+        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Method called' % caller_name())
         job = event.job
         ps_cmd = ""
         if job.in_ms_mom():
@@ -551,7 +545,7 @@ class HookUtils(object):
         else: 
             pid = ""
             try:
-                filename = host_job_ppid_filename % event.job.id
+                filename = sxautils.host_job_ppid % event.job.id
                 with open(filename, 'r') as desc:
                     pid = desc.read()
             except Exception:
@@ -559,34 +553,32 @@ class HookUtils(object):
                          "swap out VE processes.")
             ps_cmd = ["ps", "-s", pid, "-o", "pid", "--no-headers"]
 
-        p = Popen(ps_cmd, stdin=PIPE, stdout=PIPE)
-        result, error = p.communicate()
-        if p.returncode != 0:
+        output = exec_cmd(ps_cmd)
+        if output is None: 
             e.reject("Unable to find VE process ID's on this node due"
-                     " to %s" % error)
+                         " to %s" % error)
 
-        pids = [pid.strip() for pid in result.decode("utf-8").strip().split("\n")]
+        pids = [pid.strip() for pid in output.strip().split("\n")]
         swapout_procs = []
         for pid in pids:
             swap_out_cmd = ["/opt/nec/ve/bin/veswap", "-o", pid]
-            p = Popen(swap_out_cmd, stdin=PIPE, stdout=PIPE)
+            p = subprocess.Popen(swap_out_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
             result, error = p.communicate()
             if p.returncode == 0:
                 swapout_procs.append(pid)
         if len(swapout_procs) > 0:
-            pbs.logmsg(pbs.LOG_DEBUG, "The VE processes of job %s swapped out on "
+            pbs.logmsg(pbs.EVENT_DEBUG, "The VE processes of job %s swapped out on "
                                       "this node are %s" % (job.id, swapout_procs))
         else: 
-            pbs.logmsg(pbs.LOG_DEBUG, "No VE processes swapped out for "
+            pbs.logmsg(pbs.EVENT_DEBUG, "No VE processes swapped out for "
                                       "job %s" % job.id)
-    
-    def _execjob_preresume_handler(event):
+        return True   
+ 
+    def _execjob_preresume_handler(self, event, sxautils, jobutil):
         """
         Handler for execjob_preresume event.
         """
-        global host_job_dir
-        global host_job_ppid_filename
-     
+        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Method called' % caller_name())
         job = event.job
         ps_cmd = ""
         if job.in_ms_mom():
@@ -595,8 +587,7 @@ class HookUtils(object):
         else:
             pid = ""
             try:
-                filename = host_job_ppid_filename % event.job.id
-
+                filename = sxautils.host_job_ppid % event.job.id
                 with open(filename, 'r') as desc:
                     pid = desc.read()
             except Exception:
@@ -605,17 +596,16 @@ class HookUtils(object):
 
             ps_cmd = ["ps", "-s", pid, "-o", "pid", "--no-headers"]
 
-        p = Popen(ps_cmd, stdin=PIPE, stdout=PIPE)
-        result, error = p.communicate()
-        if p.returncode != 0:
+        output = exec_cmd(ps_cmd)
+        if output is None:
             e.reject("Unable to find VE process ID's on this node "
-                     "due to %s" % error)
+                         "due to %s" % error)
 
-        pids = [pid.strip() for pid in result.decode("utf-8").strip().split("\n")]
+        pids = [pid.strip() for pid in output.split("\n")]
         swapin_procs = []
         for pid in pids:
             swap_in_cmd = ["/opt/nec/ve/bin/veswap", "-i", pid]
-            p = Popen(swap_in_cmd, stdin=PIPE, stdout=PIPE)
+            p = subprocess.Popen(swap_in_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
             result, error = p.communicate()
             if p.returncode == 0:
                 swapin_procs.append(pid)
@@ -625,16 +615,19 @@ class HookUtils(object):
         else:
             pbs.logmsg(pbs.LOG_DEBUG, "No VE processes swapped in for"
                                       " job %s" % job.id)
+        return True
 
-    def _execjob_end_handler(event):
+    def _execjob_end_handler(self, event, sxautils, jobutil):
         """
         Handler for execjob_end event.
         """
-        global host_job_ppid_filename
-   
+        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Method called' % caller_name())
         job = event.job 
         if not job.in_ms_mom():
-            os.remove(host_job_ppid_filename % job.id)
+            fn = sxautils.host_job_ppid % job.id
+            os.remove(fn)
+            pbs.logmsg(pbs.EVENT_DEBUG4, "Removing the parent pid file %s" % fn)
+        return True
 
 #
 # CLASS JobUtils
@@ -1382,15 +1375,26 @@ class SXAUtils:
     SX Aurora utility methods
     """
 
-    def __init__(self, hostname, vnode, cfg=None, subsystems=None,
-                 paths=None, vntype=None, assigned_resources=None,
-                 systemd_version=None):
+    def __init__(self, hostname, vnode, cfg=None):
         self.hostname = hostname
         self.vnode = vnode
         if cfg is not None:
             self.cfg = cfg
         else:
             self.cfg = self.parse_config_file()
+         
+        pbs.logmsg(pbs.EVENT_DEBUG4, "SX Aurora Hook cfg: %s" % repr(self.cfg))
+
+        self.hook_storage_dir = os.path.join(PBS_MOM_HOME, 'mom_priv',
+                                                 'hooks', 'hook_data')
+
+        if not os.path.isdir(self.hook_storage_dir):
+            try:
+                os.makedirs(self.hook_storage_dir, 0o700)
+            except OSError:
+                pbs.logmsg(pbs.EVENT_DEBUG, 'Failed to create %s' %
+                           self.hook_storage_dir)
+        self.host_job_ppid = os.path.join(self.hook_storage_dir, '%s.ppid')
 
     @staticmethod
     def parse_config_file():

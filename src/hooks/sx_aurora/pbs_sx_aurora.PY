@@ -523,6 +523,12 @@ class HookUtils(object):
         Handler for execjob_launch event.
         """
         pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Method called' % caller_name())
+
+        # If the node is sister, create a pid file that stores the 
+        # parent pid of the job on this node. This file shall be used by 
+        # suspend/resume hook events to fetch the child pids of the job
+        # on this node for swap-out and swap-in operations. 
+
         if not event.job.in_ms_mom():
             try:
                 filename = sxautils.host_job_ppid % event.job.id
@@ -534,38 +540,38 @@ class HookUtils(object):
 
     def _execjob_postsuspend_handler(self, event, sxautils, jobutil):
         """
-        Handler for execjob_postsuspend event.
+        Handler for execjob_postsuspend event - VE processes of a job 
+        need to be swapped out to vector host. 
         """
+
         pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Method called' % caller_name())
         job = event.job
-        ps_cmd = ""
-        if job.in_ms_mom():
-            ps_cmd = ["ps", "-s", str(job.session_id), "-o", "pid",
-                      "--no-headers"]
-        else: 
-            pid = ""
-            try:
-                filename = sxautils.host_job_ppid % event.job.id
-                with open(filename, 'r') as desc:
-                    pid = desc.read()
-            except Exception:
-                e.reject("Unable to read pid file on this node. Cannot "
-                         "swap out VE processes.")
-            ps_cmd = ["ps", "-s", pid, "-o", "pid", "--no-headers"]
+ 
+        # Find out all the child pids of the job. Ideally, hook should be 
+        # fetching VE pids, but there is no way to differentiate between 
+        # VH and VE processes of a job. 
+        
+        pids = jobutil.get_child_pids(sxautils.host_job_ppid)
+        if pids is None:
+            pbs.logmsg(pbs.EVENT_DEBUG,
+                          '%s: Unable to fetch pids of job' %
+                          caller_name())
+            pbs.event().reject() 
 
-        output = exec_cmd(ps_cmd)
-        if output is None: 
-            e.reject("Unable to find VE process ID's on this node due"
-                         " to %s" % error)
-
-        pids = [pid.strip() for pid in output.strip().split("\n")]
+        pids = [pid.strip() for pid in pids.strip().split("\n")]
         swapout_procs = []
+
+        # For all the child pids fetched on this node for the job, 
+        # try to swap out each of them, VE processes would be 
+        # swapped out.
+
         for pid in pids:
             swap_out_cmd = ["/opt/nec/ve/bin/veswap", "-o", pid]
             p = subprocess.Popen(swap_out_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
             result, error = p.communicate()
             if p.returncode == 0:
                 swapout_procs.append(pid)
+
         if len(swapout_procs) > 0:
             pbs.logmsg(pbs.EVENT_DEBUG, "The VE processes of job %s swapped out on "
                                       "this node are %s" % (job.id, swapout_procs))
@@ -573,6 +579,7 @@ class HookUtils(object):
             pbs.logmsg(pbs.EVENT_DEBUG, "No VE processes swapped out for "
                                       "job %s" % job.id)
         return True   
+
  
     def _execjob_preresume_handler(self, event, sxautils, jobutil):
         """
@@ -580,29 +587,25 @@ class HookUtils(object):
         """
         pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Method called' % caller_name())
         job = event.job
-        ps_cmd = ""
-        if job.in_ms_mom():
-            ps_cmd = ["ps", "-s", str(job.session_id), "-o", "pid",
-                     "--no-headers"]
-        else:
-            pid = ""
-            try:
-                filename = sxautils.host_job_ppid % event.job.id
-                with open(filename, 'r') as desc:
-                    pid = desc.read()
-            except Exception:
-                e.reject("Unable to read pid file on this node. "
-                          "Cannot swap in VE processes.")
+       
+        # Find out all the child pids of the job. Ideally, hook should be
+        # fetching VE pids, but there is no way to differentiate between
+        # VH and VE processes of a job.
 
-            ps_cmd = ["ps", "-s", pid, "-o", "pid", "--no-headers"]
+        pids = jobutil.get_child_pids(sxautils.host_job_ppid)
+        if pids is None:
+            pbs.logmsg(pbs.EVENT_DEBUG,
+                          '%s: Unable to fetch pids of job' %
+                          caller_name())
+            pbs.event().reject()
 
-        output = exec_cmd(ps_cmd)
-        if output is None:
-            e.reject("Unable to find VE process ID's on this node "
-                         "due to %s" % error)
-
-        pids = [pid.strip() for pid in output.split("\n")]
+        pids = [pid.strip() for pid in pids.strip().split("\n")]
         swapin_procs = []
+
+        # For all the child pids fetched on this node for the job,
+        # try to swap in each of them, VE processes should be 
+        # swapped in.
+
         for pid in pids:
             swap_in_cmd = ["/opt/nec/ve/bin/veswap", "-i", pid]
             p = subprocess.Popen(swap_in_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
@@ -650,6 +653,36 @@ class JobUtils:
                 (repr(self.job),
                  repr(self.hostname),
                  repr(self.assigned_resources)))
+
+
+    def get_child_pids(self, filename=""):
+        """
+        Helper method for fetching the child pids
+        of a job on this node.
+        """
+
+        ps_cmd = ""
+        if self.job.in_ms_mom():
+            # If the node is mother superior, with the session id,
+            # the child pids can be fetched.
+            ps_cmd = ["ps", "-s", str(self.job.session_id), "-o", "pid",
+                      "--no-headers"]
+        else:
+            pid = ""
+
+            # If the node is sister, read the pid from the parent pid file
+            # i.e. created in execjob_launch hook event for this job. Fetch
+            # the child pids on the sister mom using the parent pid.
+
+            try:
+                fn = filename % self.job.id
+                with open(fn, 'r') as desc:
+                    pid = desc.read()
+            except Exception:
+                return 
+            ps_cmd = ["ps", "-s", pid, "-o", "pid", "--no-headers"]
+
+        return exec_cmd(ps_cmd)    
 
 #
 # CLASS NodeUtils

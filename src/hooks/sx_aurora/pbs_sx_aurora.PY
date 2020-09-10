@@ -583,7 +583,8 @@ class HookUtils(object):
  
     def _execjob_preresume_handler(self, event, sxautils, jobutil):
         """
-        Handler for execjob_preresume event.
+        Handler for execjob_preresume event - - VE processes of a job
+        need to be swapped in.
         """
         pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Method called' % caller_name())
         job = event.job

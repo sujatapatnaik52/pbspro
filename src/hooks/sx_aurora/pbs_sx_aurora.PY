@@ -402,7 +402,7 @@ class HookUtils(object):
             }
             self.hook_events[pbs.EXECJOB_BEGIN] = {
                 'name': 'execjob_begin',
-                'handler': None
+                'handler': self._execjob_begin_handler
             }
             self.hook_events[pbs.EXECJOB_PROLOGUE] = {
                 'name': 'execjob_prologue',
@@ -516,6 +516,16 @@ class HookUtils(object):
         pbs.logmsg(pbs.EVENT_DEBUG4, '%s: NodeUtils class instantiated' %
                    caller_name())
         node.create_vnodes()
+        return True
+
+    def _execjob_begin_handler(self, event, sxautils, jobutil):
+        """
+        Handler for execjob_begin events.
+        """
+        pbs.logmsg(pbs.EVENT_DEBUG, '%s: Method called' % caller_name())
+        node = NodeUtils(sxautils.cfg)
+        pbs.logmsg(pbs.EVENT_DEBUG, '%s: Host assigned job resources: %s' %
+                   (caller_name(), jobutil.assigned_resources))
         return True
 
     def _execjob_launch_handler(self, event, sxautils, jobutil):
@@ -649,12 +659,120 @@ class JobUtils:
         else:
             self.hostname = pbs.get_local_nodename()
 
+        if assigned_resources is not None:
+            self.assigned_resources = assigned_resources
+        else:
+            self.assigned_resources = self._get_assigned_job_resources()
+
     def __repr__(self):
         return ('JobUtils(%s, %s, %s)' %
                 (repr(self.job),
                  repr(self.hostname),
                  repr(self.assigned_resources)))
 
+    def _get_assigned_job_resources(self, hostname=None):
+        """
+        Return a dictionary of assigned resources on the local node
+        """
+        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Method called' % caller_name())
+        # Bail out if no hostname was provided
+        if not hostname:
+            hostname = self.hostname
+        if not hostname:
+            raise CgroupProcessingError('No hostname available')
+        # Bail out if no job information is present
+        if self.job is None:
+            raise CgroupProcessingError('No job information available')
+        # Create a list of local vnodes
+        vnodes = []
+        vnhost_pattern = r'%s\[[\d]+\].pci\d' % hostname
+        pbs.logmsg(pbs.EVENT_DEBUG, '%s: vnhost pattern: %s' %
+                   (caller_name(), vnhost_pattern))
+        pbs.logmsg(pbs.EVENT_DEBUG, '%s: Job exec_vnode list: %s' %
+                   (caller_name(), self.job.exec_vnode))
+        for match in re.findall(vnhost_pattern, str(self.job.exec_vnode)):
+            vnodes.append(match)
+        if vnodes:
+            pbs.logmsg(pbs.EVENT_DEBUG, '%s: Vnodes on %s: %s' %
+                       (caller_name(), hostname, vnodes))
+        # Collect host assigned resources
+        resources = {}
+        for chunk in self.job.exec_vnode.chunks:
+            if vnodes:
+                # Vnodes list is not empty
+                if chunk.vnode_name not in vnodes:
+                    continue
+                if 'vnodes' not in resources:
+                    resources['vnodes'] = {}
+                if chunk.vnode_name not in resources['vnodes']:
+                    resources['vnodes'][chunk.vnode_name] = {}
+                # Initialize any missing resources for the vnode.
+                # This check is needed because some resources might
+                # not be present in each chunk of a job. For example:
+                # exec_vnodes =
+                # (node1[0]:ncpus=4:mem=4gb+node1[1]:mem=2gb) +
+                # (node1[1]:ncpus=3+node[0]:ncpus=1:mem=4gb)
+                for resc in list(chunk.chunk_resources.keys()):
+                    vnresc = resources['vnodes'][chunk.vnode_name]
+                    if resc in list(vnresc.keys()):
+                        pbs.logmsg(pbs.EVENT_DEBUG, '%s: %s:%s defined' %
+                                   (caller_name(), chunk.vnode_name, resc))
+                    else:
+                        pbs.logmsg(pbs.EVENT_DEBUG, '%s: %s:%s missing' %
+                                   (caller_name(), chunk.vnode_name, resc))
+                        vnresc[resc] = \
+                            initialize_resource(chunk.chunk_resources[resc])
+                pbs.logmsg(pbs.EVENT_DEBUG, '%s: Chunk %s resources: %s' %
+                           (caller_name(), chunk.vnode_name, resources))
+            else:
+                # Vnodes list is empty
+                if chunk.vnode_name != hostname:
+                    continue
+            for resc in list(chunk.chunk_resources.keys()):
+                if resc not in list(resources.keys()):
+                    resources[resc] = \
+                        initialize_resource(chunk.chunk_resources[resc])
+                # Add resource value to total
+                if isinstance(chunk.chunk_resources[resc],
+                              (pbs.pbs_int, pbs.pbs_float, pbs.size)):
+                    resources[resc] += chunk.chunk_resources[resc]
+                    pbs.logmsg(pbs.EVENT_DEBUG,
+                               '%s: resources[%s][%s] is now %s' %
+                               (caller_name(), hostname, resc,
+                                resources[resc]))
+                    if vnodes:
+                        resources['vnodes'][chunk.vnode_name][resc] += \
+                            chunk.chunk_resources[resc]
+                else:
+                    pbs.logmsg(pbs.EVENT_DEBUG,
+                               '%s: Setting resource %s to string %s' %
+                               (caller_name(), resc,
+                                str(chunk.chunk_resources[resc])))
+                    resources[resc] = str(chunk.chunk_resources[resc])
+                    if vnodes:
+                        resources['vnodes'][chunk.vnode_name][resc] = \
+                            str(chunk.chunk_resources[resc])
+        if resources:
+            pbs.logmsg(pbs.EVENT_DEBUG, '%s: Resources for %s: %s' %
+                       (caller_name(), hostname, repr(resources)))
+            # Return assigned resources for specified host
+            return resources
+        else:
+            pbs.logmsg(pbs.EVENT_JOB_USAGE, "WARNING: job seems "
+                       + "to have no resources assigned to this host.")
+            pbs.logmsg(pbs.EVENT_JOB_USAGE,
+                       "Server and MoM vnode names may not be consistent.")
+            pbs.logmsg(pbs.EVENT_JOB_USAGE,
+                       "Pattern for expected vnode name(s) is %s"
+                       % vnhost_pattern)
+            pbs.logmsg(pbs.EVENT_JOB_USAGE,
+                       "Job exec_vnode is %s" % str(self.job.exec_vnode))
+            pbs.logmsg(pbs.EVENT_JOB_USAGE,
+                       "You may have forgotten to set PBS_MOM_NODE_NAME to "
+                       "the desired matching entry in the exec_vnode string")
+            pbs.logmsg(pbs.EVENT_JOB_USAGE,
+                       "Job will fail or be configured with default ncpus/mem")
+            return {}
 
     def get_child_pids(self, filename=""):
         """

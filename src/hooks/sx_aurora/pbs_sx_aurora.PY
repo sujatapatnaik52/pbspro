@@ -905,10 +905,12 @@ class NodeUtils(object):
         """
         numa_keys_to_delete = []
         numa_nodes = copy.deepcopy(self.numa_nodes)
+        
         for ve, info in self.ves.items():
 
             ### Identify PCI_bus_id from the ve info
             pci_bus_id = info["pci"]
+            pci_name = ""
            
             # The if-block is for a model in which each numa node 
             # has one pcie slot. The else-block is for the model in which 
@@ -925,7 +927,7 @@ class NodeUtils(object):
                 self.numa_nodes[info["numa_node"]]["pci"] = []
             if pci_name not in self.numa_nodes[info["numa_node"]]["pci"]:
                 self.numa_nodes[info["numa_node"]]["pci"].append(pci_name)
-    
+        
             ### Update the final nodes dictionary        
             if pci_name not in self.nodes:
                 self.nodes[pci_name] = copy.deepcopy(numa_nodes[info["numa_node"]])
@@ -939,6 +941,18 @@ class NodeUtils(object):
         for nnid in numa_keys_to_delete:
             del numa_nodes[nnid]
         self.nodes = merge_dict(self.nodes, numa_nodes)
+
+        for nnid in self.numa_nodes.keys():
+            if "pci" in self.numa_nodes[nnid].keys():
+                pci_num = 0
+                for pci in self.numa_nodes[nnid]["pci"]:
+                    node_name = self.hostname + '[%d]_pci%d' % (nnid, pci_num)
+                    self.nodes[pci]["vnode_name"] = [node_name]
+                    pci_num += 1
+            else:
+                node_name = self.hostname + '[%d]' % nnid
+                self.nodes[nnid]["vnode_name"] = [node_name]
+
         pbs.logmsg(pbs.LOG_DEBUG, "Numa Node info: %s" % self.numa_nodes)
         pbs.logmsg(pbs.LOG_DEBUG, "Final node info: %s" % self.nodes)
 
@@ -1377,7 +1391,7 @@ class NodeUtils(object):
 
         ### create pci node_names and numa node names
         
-        for nnid in self.numa_nodes.keys():
+        '''for nnid in self.numa_nodes.keys():
             if "pci" in self.numa_nodes[nnid].keys():
                 pci_num = 0
                 for pci in self.numa_nodes[nnid]["pci"]:
@@ -1388,7 +1402,7 @@ class NodeUtils(object):
                 node_name = vnode_name + '[%d]' % nnid 
                 self.nodes[nnid]["vnode_name"] = [node_name]
 
-        pbs.logmsg(pbs.EVENT_DEBUG4, "The vnode names are %s" % self.nodes)
+        pbs.logmsg(pbs.EVENT_DEBUG4, "The vnode names are %s" % self.nodes)'''
         
         for node, info in self.nodes.items():     
             vnode_key = info["vnode_name"][0]

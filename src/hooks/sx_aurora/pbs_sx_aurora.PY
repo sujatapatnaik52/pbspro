@@ -679,33 +679,56 @@ class JobUtils:
         """
         pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Method called' % caller_name())
         env_list = []
-        env_list.append('VE_NODE_NUMBER=%s\n_VENODELIST="%s"\n_NECMPI_VE_NUM_NODES=%s\n_NECMPI_VE_NODELIST="%s"\n_NEC_NQSV_JOB=1' % (ves[0], string.join(ves, ' '), len(ves), string.join(ves, ' ')))
+        env_list.append('VE_NODE_NUMBER=%s' % ves[0])
+        env_list.append('_VENODELIST="%s"' % ' '.join(ves))
+        env_list.append('_NECMPI_VE_NUM_NODES=%s' % len(ves))
+        env_list.append('_NECMPI_VE_NODELIST="%s"' % ' ' .join(ves))
+        env_list.append('_NEC_NQSV_JOB=1')
         # TODO _NEC_HCA_LIST_IO=%s\n_NEC_HCA_LIST_MPI=
         # and PBS_NODEFILE_VE
+        pbs.logmsg(pbs.EVENT_DEBUG, "%s" % env_list)
+        self.host_job_env_dir = os.path.join(PBS_MOM_HOME, 'aux')
+        self.host_job_env_filename = os.path.join(self.host_job_env_dir,
+                                                  '%s.env')
+        jobid = str(pbs.event().job.id)
+        if not os.path.exists(self.host_job_env_dir):
+            os.makedirs(self.host_job_env_dir, 0o755)
+        # Write out assigned_resources
+        try:
+            lines = "\n".join(env_list)
+            filename = self.host_job_env_filename % jobid
+            with open(filename, 'w') as desc:
+                desc.write(lines)
+            pbs.logmsg(pbs.EVENT_DEBUG4, 'Wrote out file: %s' % (filename))
+            pbs.logmsg(pbs.EVENT_DEBUG4, 'Data: %s' % (lines))
+            return True
+        except Exception:
+            return False
 
     def _assign_ves(self, node):
         """
         """
-        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Method called' % caller_name())
+        pbs.logmsg(pbs.EVENT_DEBUG, '%s: Method called' % caller_name())
         nodes = node.nodes
         ves_available = []
-        for vnode in assigned_resources.keys():
-            # use the _pci[0-4] part of the vnode name
-            vnode = vnode.split("_")[1]
+        for vnode in self.assigned_resources['vnodes']:
             if vnode in nodes:
-                ves_available.append(nodes['ves'])
-            else:
-                # somethings wrong
-                pbs.logmsg(pbs.EVENT_DEBUG, 'Somethings wrong')
+                ves_available.extend(nodes[vnode]['ves'])
+        if not ves_available:
+            # somethings wrong
+            pbs.logmsg(pbs.EVENT_DEBUG, 'Somethings wrong')
         assign_ve = []
         # TODO get a list of ves already assigned
         #for ve in ves_available:
         #    if ve in already_assigned:
         #        ves_available.delete(ve)
-        no_ves_requested = assigned_resources['nves']
+        no_ves_requested = self.assigned_resources['nves']
         assign_ve = ves_available[:no_ves_requested]
-        return assign_ve
-                    
+        ve_num = []
+        for ve in assign_ve:
+           ve_num.append(ve[-1])
+        ve_num.sort()
+        return ve_num
 
     def _get_assigned_job_resources(self, hostname=None):
         """

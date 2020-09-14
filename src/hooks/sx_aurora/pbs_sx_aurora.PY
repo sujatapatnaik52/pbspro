@@ -410,7 +410,7 @@ class HookUtils(object):
             }
             self.hook_events[pbs.EXECJOB_EPILOGUE] = {
                 'name': 'execjob_epilogue',
-                'handler': None
+                'handler': self._execjob_epilogue_handler
             }
             self.hook_events[pbs.EXECJOB_PRETERM] = {
                 'name': 'execjob_preterm',
@@ -501,11 +501,29 @@ class HookUtils(object):
                    (caller_name(), self.event_name(event.type)))
         return False
 
-    def _queuejob_handler(self, event):
+    def _queuejob_handler(self, event, sxautils, jobutil):
         """
-        Handler for queuejob event
+        Handler for queuejob event - Process the NEC_PROCESS_DIST
+        environment variable.
         """
-        pass
+        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Method called' % caller_name())
+        job = event.job
+
+        # Check if user has asked for NEC_PROCESS_DIST
+        vlist = re.split(r'(?<!\\),', str(job.Variable_List))
+        process_dist = ""
+        for var in vlist:
+            if var.startswith('NEC_PROCESS_DIST'):
+                process_dist = var.split("=")[1]
+                pbs.logmsg(pbs.EVENT_DEBUG, 'NEC_PROCESS_DIST = %s' % process_dist)
+
+        if not process_dist:
+            return True
+
+        chunks = str(job.Resource_List.select).split('+')
+        pbs.logmsg(pbs.EVENT_DEBUG, 'select=%s' % chunks)
+
+        return True
 
     def _exechost_startup_handler(self, event, sxautils, jobutil):
         """
@@ -633,6 +651,56 @@ class HookUtils(object):
         else:
             pbs.logmsg(pbs.LOG_DEBUG, "No VE processes swapped in for"
                                       " job %s" % job.id)
+        return True
+
+    def _execjob_epilogue_handler(self, event, sxautils, jobutil):
+        """
+        Handler for execjob_epilogue event - Calculate the VE
+        processes cpu time and memory consumption and update
+        the job's resources_used attribute.
+        """
+        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Method called' % caller_name())
+        job = event.job
+        total_pcput = 0
+        total_pmem = 0
+
+        ### TODO: Modify this to read from job's env file the VENODELIST
+        ves = "2 3"
+        ves = ves.split(" ")
+
+        # The hook will use the parent pid for grepping the VE processes
+        # usage metrics. Thus, get the parent pid on each node for the job.
+        parent_pid = ""
+
+        if job.in_ms_mom():
+            parent_pid = job.session_id
+        else:
+            try:
+                fn = sxautils.host_job_ppid % job.id
+                with open(fn, 'r') as desc:
+                    parent_pid = desc.read()
+            except Exception:
+                pbs.logmsg(pbs.EVENT_DEBUG, "Unable to read pid file on this node.")
+                pbs.logmsg(pbs.EVENT_DEBUG, "VE Process accounting is not added in this node for job %s" % job.id)
+                return
+
+        for ve in ves:
+            cmd = ["/opt/nec/ve/sbin/dump-acct", "--ve-info",
+                   "/var/opt/nec/ve/account/pacct_%s" % ve]
+            result = exec_cmd(cmd)
+            result = result.split("\n")
+            for record in result:
+                if str(parent_pid) in record:
+                    process_stats = record.split("|")
+                    # cpu time is in ticks, Convert it to seconds.
+                    total_pcput += (float(process_stats[2]) / 100)
+                    total_pmem += int(process_stats[14])
+        job.resources_used["ve_cput"] = pbs.duration(total_pcput)
+
+        # The unit of memory usage is in kilobytes
+        job.resources_used["ve_mem"] = pbs.size(str(total_pmem) + "kb")
+        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Updated resc_used = %s' %
+                   (caller_name(), str(job.resources_used)))
         return True
 
     def _execjob_end_handler(self, event, sxautils, jobutil):

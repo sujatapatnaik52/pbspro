@@ -905,56 +905,52 @@ class NodeUtils(object):
         """
         numa_keys_to_delete = []
         numa_nodes = copy.deepcopy(self.numa_nodes)
-        
+            
         for ve, info in self.ves.items():
 
             ### Identify PCI_bus_id from the ve info
             pci_bus_id = info["pci"]
-            pci_name = ""
            
             # The if-block is for a model in which each numa node 
             # has one pcie slot. The else-block is for the model in which 
             # each numa node can have multiple pcie slots.
             
-            if len(pci_bus_id) == 0:
-                pci_name = "pci%d" % info["numa_node"]
+            if len(pci_bus_id) > 0:
+                # If there are any pcies attached to this numa node
+                # update numa nodes dictionary with the pci bus id
+                if "pci" not in self.numa_nodes[info["numa_node"]]:
+                    self.numa_nodes[info["numa_node"]]["pci"] = {}
+                if pci_bus_id not in self.numa_nodes[info["numa_node"]]["pci"]:
+                    self.numa_nodes[info["numa_node"]]["pci"][pci_bus_id] = []
+                self.numa_nodes[info["numa_node"]]["pci"][pci_bus_id].append(ve)
             else:
-                pci_name = "pci" + pci_bus_id
-                 
-            # If there are any pcies attached to this numa node
-            # update numa nodes dictionary with the pci bus id
-            if "pci" not in self.numa_nodes[info["numa_node"]]:
-                self.numa_nodes[info["numa_node"]]["pci"] = []
-            if pci_name not in self.numa_nodes[info["numa_node"]]["pci"]:
-                self.numa_nodes[info["numa_node"]]["pci"].append(pci_name)
+                if "ves" not in self.numa_nodes[info["numa_node"]]:
+                    self.numa_nodes[info["numa_node"]]["ves"] = []
+                self.numa_nodes[info["numa_node"]]["ves"].append(ve)
+
+        pbs.logmsg(pbs.EVENT_DEBUG4, "Updated Numa nodes info: %s" % self.numa_nodes)
         
-            ### Update the final nodes dictionary        
-            if pci_name not in self.nodes:
-                self.nodes[pci_name] = copy.deepcopy(numa_nodes[info["numa_node"]])
-                self.nodes[pci_name]["numa_node"] = [info["numa_node"]]
-                if not info["numa_node"] in numa_keys_to_delete:
-                    numa_keys_to_delete.append(info["numa_node"])
-                self.nodes[pci_name]["ves"] = []
-            self.nodes[pci_name]["ves"].append(ve)
-
-        pbs.logmsg(pbs.LOG_DEBUG, "PCI nodes info: %s" % self.nodes)
-        for nnid in numa_keys_to_delete:
-            del numa_nodes[nnid]
-        self.nodes = merge_dict(self.nodes, numa_nodes)
-
         for nnid in self.numa_nodes.keys():
+            pci_num = 0
             if "pci" in self.numa_nodes[nnid].keys():
-                pci_num = 0
-                for pci in self.numa_nodes[nnid]["pci"]:
+                for pci, ves in self.numa_nodes[nnid]["pci"].items():
                     node_name = self.hostname + '[%d]_pci%d' % (nnid, pci_num)
-                    self.nodes[pci]["vnode_name"] = [node_name]
+                    self.nodes[node_name] = copy.deepcopy(numa_nodes[nnid])
+                    self.nodes[node_name]["numa_node"] = [nnid]
+                    self.nodes[node_name]["ves"] = copy.deepcopy(ves)
                     pci_num += 1
             else:
-                node_name = self.hostname + '[%d]' % nnid
-                self.nodes[nnid]["vnode_name"] = [node_name]
+                if "ves" in self.numa_nodes[nnid].keys():
+                    node_name = self.hostname + '[%d]_pci%d' % (nnid, pci_num)
+                    self.nodes[node_name] = copy.deepcopy(numa_nodes[nnid])
+                    self.nodes[node_name]["numa_node"] = [nnid]
+                    self.nodes[node_name]["ves"] = copy.deepcopy(self.numa_nodes[nnid]["ves"])
+                else:
+                    node_name = self.hostname + '[%d]' % nnid
+                    self.nodes[node_name] = copy.deepcopy(numa_nodes[nnid])
+                pci_num += 1
+        pbs.logmsg(pbs.LOG_DEBUG, "Final nodes info: %s" % self.nodes)
 
-        pbs.logmsg(pbs.LOG_DEBUG, "Numa Node info: %s" % self.numa_nodes)
-        pbs.logmsg(pbs.LOG_DEBUG, "Final node info: %s" % self.nodes)
 
     def _add_ve_device_counts_to_nodes(self):
         """
@@ -1389,23 +1385,9 @@ class NodeUtils(object):
         host_resc_avail['vmem'] = pbs.size('0')
         host_resc_avail['hpmem'] = pbs.size('0')
 
-        ### create pci node_names and numa node names
-        
-        '''for nnid in self.numa_nodes.keys():
-            if "pci" in self.numa_nodes[nnid].keys():
-                pci_num = 0
-                for pci in self.numa_nodes[nnid]["pci"]:
-                    node_name = vnode_name + '[%d]_pci%d' % (nnid, pci_num)
-                    self.nodes[pci]["vnode_name"] = [node_name]
-                    pci_num += 1
-            else:
-                node_name = vnode_name + '[%d]' % nnid 
-                self.nodes[nnid]["vnode_name"] = [node_name]
-
-        pbs.logmsg(pbs.EVENT_DEBUG4, "The vnode names are %s" % self.nodes)'''
         
         for node, info in self.nodes.items():     
-            vnode_key = info["vnode_name"][0]
+            vnode_key = node
             vnode_list[vnode_key] = pbs.vnode(vnode_name)
             vnode_resc_avail = vnode_list[vnode_key].resources_available
             for key, val in info.items():
@@ -1460,7 +1442,7 @@ class NodeUtils(object):
                    (caller_name(), str(vnode_list)))
         
         for node, info in self.nodes.items():
-            vnode_key = info["vnode_name"][0]
+            vnode_key = node
             vnode_resc_avail = vnode_list[vnode_key].resources_available
             pbs.logmsg(pbs.EVENT_DEBUG4, '%s: %s vnode_resc_avail: %s' %
                        (caller_name(), vnode_key, vnode_resc_avail))

@@ -526,10 +526,10 @@ class HookUtils(object):
         node = NodeUtils(sxautils.cfg)
         pbs.logmsg(pbs.EVENT_DEBUG, '%s: Host assigned job resources: %s' %
                    (caller_name(), jobutil.assigned_resources))
-        #TODO: _get_assigned_resources
-
-        assigned_ves = jobutil._assign_ves(node)
-        jobutil._write_job_env_file(assigned_ves)
+        #TODO: _get_assigned
+        already_assigned_ves = jobutil._get_assigned_ves(event.job.id)
+        job_ves = jobutil._assign_ves(node, already_assigned_ves)
+        jobutil._write_job_env_file(job_ves)
         return True
 
     def _execjob_launch_handler(self, event, sxautils, jobutil):
@@ -658,6 +658,9 @@ class JobUtils:
 
     def __init__(self, job, hostname=None, assigned_resources=None):
         self.job = job
+        self.host_job_env_dir = os.path.join(PBS_MOM_HOME, 'aux')
+        self.host_job_env_filename = os.path.join(self.host_job_env_dir,
+                                                  '%s.env')
         if hostname is not None:
             self.hostname = hostname
         else:
@@ -674,6 +677,45 @@ class JobUtils:
                  repr(self.hostname),
                  repr(self.assigned_resources)))
 
+    def gather_jobs_on_node(self):
+        """
+        """
+        pbs.logmsg(pbs.EVENT_DEBUG, '%s: Method called' % caller_name())
+        joblist = []
+        try:
+            for jobfile in glob.glob(os.path.join(PBS_MOM_JOBS, '*.JB')):
+                (jobid, dot_jb) = os.path.splitext(os.path.basename(jobfile))
+                joblist.append(jobid) 
+        except Exception:
+            pbs.logmsg(pbs.EVENT_DEBUG, 'Could not get job list for %s' %
+                       self.hostname)
+        pbs.logmsg(pbs.EVENT_DEBUG, 'Local job dictionary: %s' % str(joblist))
+        return joblist
+
+    def _get_assigned_ves(self, curr_job_id):
+        """
+        """
+        pbs.logmsg(pbs.EVENT_DEBUG, '%s: Method called' % caller_name())
+        assigned_ves = []
+        venodelist_value = ""
+        lines = []
+        e = pbs.event()
+        for job in self.gather_jobs_on_node():
+            if job == curr_job_id:
+                continue
+            filename = self.host_job_env_filename % job
+            try:
+                with open(filename, 'r') as f1:
+                    lines = f1.readlines()
+            except Exception:
+                pass
+        for line in lines:
+            if '_VENODELIST' in line:
+                venodelist_value = line.split('=')[1]
+        assigned_ves = re.findall(r'\d+', venodelist_value) 
+        pbs.logmsg(pbs.EVENT_DEBUG, 'already assigned ves: %s' % assigned_ves)
+        return assigned_ves        
+
     def _write_job_env_file(self, ves):
         """
         """
@@ -687,9 +729,6 @@ class JobUtils:
         # TODO _NEC_HCA_LIST_IO=%s\n_NEC_HCA_LIST_MPI=
         # and PBS_NODEFILE_VE
         pbs.logmsg(pbs.EVENT_DEBUG, "%s" % env_list)
-        self.host_job_env_dir = os.path.join(PBS_MOM_HOME, 'aux')
-        self.host_job_env_filename = os.path.join(self.host_job_env_dir,
-                                                  '%s.env')
         jobid = str(pbs.event().job.id)
         if not os.path.exists(self.host_job_env_dir):
             os.makedirs(self.host_job_env_dir, 0o755)
@@ -705,7 +744,7 @@ class JobUtils:
         except Exception:
             return False
 
-    def _assign_ves(self, node):
+    def _assign_ves(self, node, assigned_ves):
         """
         """
         pbs.logmsg(pbs.EVENT_DEBUG, '%s: Method called' % caller_name())
@@ -722,13 +761,18 @@ class JobUtils:
         #for ve in ves_available:
         #    if ve in already_assigned:
         #        ves_available.delete(ve)
-        no_ves_requested = self.assigned_resources['nves']
-        assign_ve = ves_available[:no_ves_requested]
         ve_num = []
-        for ve in assign_ve:
+        for ve in ves_available:
            ve_num.append(ve[-1])
         ve_num.sort()
-        return ve_num
+
+        # remove already assigned ves
+        for ve in ve_num:
+            if ve in assigned_ves:
+                ve_num.remove(ve)
+
+        no_ves_requested = self.assigned_resources['nves']        
+        return ve_num[:no_ves_requested]
 
     def _get_assigned_job_resources(self, hostname=None):
         """
@@ -1204,32 +1248,6 @@ class NodeUtils(object):
         pbs.logmsg(pbs.EVENT_DEBUG4, '%s returning: %s' %
                    (caller_name(), cpuinfo))
         return cpuinfo
-
-    def gather_jobs_on_node(self, cgroup):
-        """
-        Gather the jobs assigned to this node and local vnodes
-        """
-        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Method called' % caller_name())
-        # Construct a dictionary where the keys are job IDs and the values
-        # are timestamps. The job IDs are collected from the cgroup jobs
-        # file and by inspecting MoM's job directory. Both are needed to
-        # ensure orphans are properly identified.
-        jobdict = cgroup.read_cgroup_jobs()
-        pbs.logmsg(pbs.EVENT_DEBUG4,
-                   'cgroup_jobs file content: %s' % str(jobdict))
-        try:
-            for jobfile in glob.glob(os.path.join(PBS_MOM_JOBS, '*.JB')):
-                (jobid, dot_jb) = os.path.splitext(os.path.basename(jobfile))
-                if jobid not in jobdict:
-                    if os.stat_float_times():
-                        jobdict[jobid] = os.path.getmtime(jobfile)
-                    else:
-                        jobdict[jobid] = float(os.path.getmtime(jobfile))
-        except Exception:
-            pbs.logmsg(pbs.EVENT_DEBUG, 'Could not get job list for %s' %
-                       self.hostname)
-        pbs.logmsg(pbs.EVENT_DEBUG4, 'Local job dictionary: %s' % str(jobdict))
-        return jobdict
 
     def get_memory_on_node(self, memtotal=None):
         """

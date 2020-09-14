@@ -526,6 +526,10 @@ class HookUtils(object):
         node = NodeUtils(sxautils.cfg)
         pbs.logmsg(pbs.EVENT_DEBUG, '%s: Host assigned job resources: %s' %
                    (caller_name(), jobutil.assigned_resources))
+        #TODO: _get_assigned_resources
+
+        assigned_ves = jobutil._assign_ves(node)
+        jobutil._write_job_env_file(assigned_ves)
         return True
 
     def _execjob_launch_handler(self, event, sxautils, jobutil):
@@ -669,6 +673,39 @@ class JobUtils:
                 (repr(self.job),
                  repr(self.hostname),
                  repr(self.assigned_resources)))
+
+    def _write_job_env_file(self, ves):
+        """
+        """
+        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Method called' % caller_name())
+        env_list = []
+        env_list.append('VE_NODE_NUMBER=%s\n_VENODELIST="%s"\n_NECMPI_VE_NUM_NODES=%s\n_NECMPI_VE_NODELIST="%s"\n_NEC_NQSV_JOB=1' % (ves[0], string.join(ves, ' '), len(ves), string.join(ves, ' ')))
+        # TODO _NEC_HCA_LIST_IO=%s\n_NEC_HCA_LIST_MPI=
+        # and PBS_NODEFILE_VE
+
+    def _assign_ves(self, node):
+        """
+        """
+        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Method called' % caller_name())
+        nodes = node.nodes
+        ves_available = []
+        for vnode in assigned_resources.keys():
+            # use the _pci[0-4] part of the vnode name
+            vnode = vnode.split("_")[1]
+            if vnode in nodes:
+                ves_available.append(nodes['ves'])
+            else:
+                # somethings wrong
+                pbs.logmsg(pbs.EVENT_DEBUG, 'Somethings wrong')
+        assign_ve = []
+        # TODO get a list of ves already assigned
+        #for ve in ves_available:
+        #    if ve in already_assigned:
+        #        ves_available.delete(ve)
+        no_ves_requested = assigned_resources['nves']
+        assign_ve = ves_available[:no_ves_requested]
+        return assign_ve
+                    
 
     def _get_assigned_job_resources(self, hostname=None):
         """

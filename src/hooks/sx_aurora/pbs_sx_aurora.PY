@@ -547,7 +547,7 @@ class HookUtils(object):
         #TODO: _get_assigned
         already_assigned_ves = jobutil._get_assigned_ves(event.job.id)
         job_ves = jobutil._assign_ves(node, already_assigned_ves)
-        jobutil._write_job_env_file(job_ves)
+        jobutil._write_job_env_file(job_ves, node.nodes)
         return True
 
     def _execjob_launch_handler(self, event, sxautils, jobutil):
@@ -784,7 +784,7 @@ class JobUtils:
         pbs.logmsg(pbs.EVENT_DEBUG, 'already assigned ves: %s' % assigned_ves)
         return assigned_ves        
 
-    def _write_job_env_file(self, ves):
+    def _write_job_env_file(self, ves, node):
         """
         """
         pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Method called' % caller_name())
@@ -794,43 +794,49 @@ class JobUtils:
         env_list.append('_NECMPI_VE_NUM_NODES=%s' % len(ves))
         env_list.append('_NECMPI_VE_NODELIST="%s"' % ' ' .join(ves))
         env_list.append('_NEC_NQSV_JOB=1')
-        # TODO _NEC_HCA_LIST_IO=%s\n_NEC_HCA_LIST_MPI=
-        # and PBS_NODEFILE_VE
+        # TODO PBS_NODEFILE_VE
         
-        infini = self.discover_infini()
         # check on job statement if nhcas is requested
         e = pbs.event()
         job_statement = str(e.job.schedselect)
         hca_req = {}
         # store the chunk position in job select spec
         chunk_pos = 0
+        export_hca = 0
         if 'nhcas' in job_statement:
             chunks = str(e.job.schedselect).split("+")
             for chunk in chunks:
                 res = chunk.split(":")
-                for re in res:
-                    if "nhcas" in re:
+                for r in res:
+                    if "nhcas" in r:
                         hca_req[chunk_pos] = []
-                        hca_req[chunk_pos] = re[-1]
+                        hca_req[chunk_pos] = r[-1]
                 chunk_pos +=1
-        pbs.logmsg(pbs.EVENT_DEBUG, "nhcas req=%s" % hca_req)
 
-        # map the chunk with vnode using chunk_pos
-        vnode_pos = 0
-        export_hca = 0
-        # just check if the exec_vnode in the chunk_pos is for the current host
-        for chunk in self.job.exec_vnode.chunks:
-            if vnode_pos in hca_req:
-                 if self.hostname in chunk.vnode_name:
-                     export_hca = 1
-
-        #TODO: find the ves selected and identify the correct hca
-        
-        infini_env = ""
-        for i in range(len(ves)):
-            infini_env += infini[:-1] + " "
-        env_list.append('_NEC_HCA_LIST_IO=%s' % infini_env[:-1])
-        env_list.append('_NEC_HCA_LIST_MPI=%s' % infini_env[:-1])
+            execv_chunks = re.findall(r'\(.*?\)', str(self.job.exec_vnode))
+            vnode_pos = 0
+            vnode_name = []
+            for chunk in execv_chunks:
+                if vnode_pos in hca_req:
+                    if self.hostname in chunk:
+                        export_hca = 1
+                        ch = chunk.split("+")
+                        for c in ch:
+                            vnode_name.append((c.split(":")[0]).strip('(').strip(')'))
+                vnode_pos += 1
+        infini_env = "" 
+        if export_hca:
+            for ve in ves:
+                for vnode in node:
+                    if "VE" + ve in node[vnode]["ves"]:
+                        infini_env += node[vnode]["ibs"][0] + " "
+        else:
+            infini = self.discover_infini()
+            for i in range(len(ves)):
+                infini_env += infini[:-1] + " "
+            infini_env = infini_env[:-1]
+        env_list.append('_NEC_HCA_LIST_IO=%s' % infini_env)
+        env_list.append('_NEC_HCA_LIST_MPI=%s' % infini_env)
 
         pbs.logmsg(pbs.EVENT_DEBUG, "%s" % env_list)
         jobid = str(pbs.event().job.id)

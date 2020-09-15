@@ -796,6 +796,42 @@ class JobUtils:
         env_list.append('_NEC_NQSV_JOB=1')
         # TODO _NEC_HCA_LIST_IO=%s\n_NEC_HCA_LIST_MPI=
         # and PBS_NODEFILE_VE
+        
+        infini = self.discover_infini()
+        # check on job statement if nhcas is requested
+        e = pbs.event()
+        job_statement = str(e.job.schedselect)
+        hca_req = {}
+        # store the chunk position in job select spec
+        chunk_pos = 0
+        if 'nhcas' in job_statement:
+            chunks = str(e.job.schedselect).split("+")
+            for chunk in chunks:
+                res = chunk.split(":")
+                for re in res:
+                    if "nhcas" in re:
+                        hca_req[chunk_pos] = []
+                        hca_req[chunk_pos] = re[-1]
+                chunk_pos +=1
+        pbs.logmsg(pbs.EVENT_DEBUG, "nhcas req=%s" % hca_req)
+
+        # map the chunk with vnode using chunk_pos
+        vnode_pos = 0
+        export_hca = 0
+        # just check if the exec_vnode in the chunk_pos is for the current host
+        for chunk in self.job.exec_vnode.chunks:
+            if vnode_pos in hca_req:
+                 if self.hostname in chunk.vnode_name:
+                     export_hca = 1
+
+        #TODO: find the ves selected and identify the correct hca
+        
+        infini_env = ""
+        for i in range(len(ves)):
+            infini_env += infini[:-1] + " "
+        env_list.append('_NEC_HCA_LIST_IO=%s' % infini_env[:-1])
+        env_list.append('_NEC_HCA_LIST_MPI=%s' % infini_env[:-1])
+
         pbs.logmsg(pbs.EVENT_DEBUG, "%s" % env_list)
         jobid = str(pbs.event().job.id)
         if not os.path.exists(self.host_job_env_dir):
@@ -811,6 +847,23 @@ class JobUtils:
             return True
         except Exception:
             return False
+
+    def discover_infini(self):
+        """
+        """
+        pbs.logmsg(pbs.EVENT_DEBUG, '%s: Method called' % caller_name())
+        infini = ""
+        cmd = ["ibv_devinfo"]
+        output = exec_cmd(cmd)
+        if output is None:
+            print("Failed to execute cmd: %s" % " ".join(cmd))
+        list = output.split('\n')
+        for el in list:
+            if 'hca_id:\t' in el:
+                infini += el.split('\t')[-1]
+            if '\tport:\t' in el:
+                infini += ":" + el.split(':')[-1].strip('\t') + ","
+        return infini
 
     def _assign_ves(self, node, assigned_ves):
         """

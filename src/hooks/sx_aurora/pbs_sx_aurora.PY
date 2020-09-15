@@ -1064,7 +1064,7 @@ class NodeUtils(object):
         if ves is not None:
             self.ves = ves
         else:
-            self.ves = self._discover_ves_and_ibs()
+            self.ves, self.ibs = self._discover_ves_and_ibs()
         
         self.finalize_nodes()
 

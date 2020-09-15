@@ -1043,6 +1043,7 @@ class NodeUtils(object):
                  numa_nodes=None, ves=None):
         self.cfg = cfg
         self.nodes = {}
+        self.ibs = {}
         if hostname is not None:
             self.hostname = hostname
         else:
@@ -1063,7 +1064,7 @@ class NodeUtils(object):
         if ves is not None:
             self.ves = ves
         else:
-            self.ves = self._discover_ves()
+            self.ves = self._discover_ves_and_ibs()
         
         self.finalize_nodes()
 
@@ -1093,39 +1094,62 @@ class NodeUtils(object):
         """
         numa_keys_to_delete = []
         numa_nodes = copy.deepcopy(self.numa_nodes)
-            
+
+        # Update the VE devices info in numa nodes
         for ve, info in self.ves.items():
 
             ### Identify PCI_bus_id from the ve info
             pci_bus_id = info["pci"]
-           
-            # The if-block is for a model in which each numa node 
-            # has one pcie slot. The else-block is for the model in which 
+
+            # The if-block is for a model in which each numa node
+            # has one pcie slot. The else-block is for the model in which
             # each numa node can have multiple pcie slots.
-            
+
             if len(pci_bus_id) > 0:
                 # If there are any pcies attached to this numa node
                 # update numa nodes dictionary with the pci bus id
                 if "pci" not in self.numa_nodes[info["numa_node"]]:
                     self.numa_nodes[info["numa_node"]]["pci"] = {}
                 if pci_bus_id not in self.numa_nodes[info["numa_node"]]["pci"]:
-                    self.numa_nodes[info["numa_node"]]["pci"][pci_bus_id] = []
-                self.numa_nodes[info["numa_node"]]["pci"][pci_bus_id].append(ve)
+                    self.numa_nodes[info["numa_node"]]["pci"][pci_bus_id] = {}
+                if "ves" not in self.numa_nodes[info["numa_node"]]["pci"][pci_bus_id]:
+                    self.numa_nodes[info["numa_node"]]["pci"][pci_bus_id]["ves"] = []
+                self.numa_nodes[info["numa_node"]]["pci"][pci_bus_id]["ves"].append(ve)
             else:
                 if "ves" not in self.numa_nodes[info["numa_node"]]:
                     self.numa_nodes[info["numa_node"]]["ves"] = []
                 self.numa_nodes[info["numa_node"]]["ves"].append(ve)
 
+        for ib, info in self.ibs.items():
+
+            ### Identify PCI_bus_id from the ib info
+            pci_bus_id = info["pci"]
+            if len(pci_bus_id) > 0:
+                # If there are any pcies attached to this numa node
+                # update numa nodes dictionary with the pci bus id
+                if "pci" not in self.numa_nodes[info["numa_node"]]:
+                    self.numa_nodes[info["numa_node"]]["pci"] = {}
+                if pci_bus_id not in self.numa_nodes[info["numa_node"]]["pci"]:
+                    self.numa_nodes[info["numa_node"]]["pci"][pci_bus_id] = {}
+                if "ibs" not in self.numa_nodes[info["numa_node"]]["pci"][pci_bus_id]:
+                    self.numa_nodes[info["numa_node"]]["pci"][pci_bus_id]["ibs"] = []
+                self.numa_nodes[info["numa_node"]]["pci"][pci_bus_id]["ibs"].append(ib)
+            else:
+                if "ibs" not in self.numa_nodes[info["numa_node"]]:
+                    self.numa_nodes[info["numa_node"]]["ibs"] = []
+                self.numa_nodes[info["numa_node"]]["ibs"].append(ib)
+
         pbs.logmsg(pbs.EVENT_DEBUG4, "Updated Numa nodes info: %s" % self.numa_nodes)
-        
+
         for nnid in self.numa_nodes.keys():
             pci_num = 0
             if "pci" in self.numa_nodes[nnid].keys():
-                for pci, ves in self.numa_nodes[nnid]["pci"].items():
+                for pci, info in self.numa_nodes[nnid]["pci"].items():
                     node_name = self.hostname + '[%d]_pci%d' % (nnid, pci_num)
                     self.nodes[node_name] = copy.deepcopy(numa_nodes[nnid])
                     self.nodes[node_name]["numa_node"] = [nnid]
-                    self.nodes[node_name]["ves"] = copy.deepcopy(ves)
+                    self.nodes[node_name]["ves"] = copy.deepcopy(info["ves"])
+                    self.nodes[node_name]["ibs"] = copy.deepcopy(info["ibs"])
                     pci_num += 1
             else:
                 if "ves" in self.numa_nodes[nnid].keys():
@@ -1133,6 +1157,8 @@ class NodeUtils(object):
                     self.nodes[node_name] = copy.deepcopy(numa_nodes[nnid])
                     self.nodes[node_name]["numa_node"] = [nnid]
                     self.nodes[node_name]["ves"] = copy.deepcopy(self.numa_nodes[nnid]["ves"])
+                    if "ibs" in self.numa_nodes[nnid].keys():
+                        self.nodes[node_name]["ibs"] = copy.deepcopy(self.numa_nodes[nnid]["ibs"])
                 else:
                     node_name = self.hostname + '[%d]' % nnid
                     self.nodes[node_name] = copy.deepcopy(numa_nodes[nnid])
@@ -1211,14 +1237,15 @@ class NodeUtils(object):
         pbs.logmsg(pbs.EVENT_DEBUG4, '%s: %s' % (caller_name(), numa_nodes))
         return numa_nodes
 
-    def _discover_ves(self):
+    def _discover_ves_and_ibs(self):
         """
         Identify ves, to which pcies and numa nodes they are attached
         using "vecmd topo tree"
         """
         pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Method called' % caller_name())
           
-        ves = {}       
+        ves = {}
+        ibs = {}
         cmd = ["/opt/nec/ve/bin/vecmd", "topo", "tree"]
         output = exec_cmd(cmd)
         if output is None:
@@ -1251,12 +1278,24 @@ class NodeUtils(object):
                         if "SOCKET" in each:
                             socket = each.strip("[").split("]")[0]
                             ves[ve]["numa_node"] = int(socket.lstrip("SOCKET"))
+                if "IB" in result[index + 1]:
+                    ib_name = ""
+                    socket = ""
+                    bus_details = result[index + 1].split(" ")
+                    for each in bus_details:
+                        if "SOCKET" in each:
+                            ib_index = bus_details.index(each)
+                            socket = each.strip("[").split("]")[0]
+                            ib_name = bus_details[ib_index + 1].split("\n")[0]
+                            ibs[ib_name] = {"pci": pci_bus_id}
+                            ibs[ib_name]["numa_node"] = int(socket.lstrip("SOCKET"))
             else:
                 pci_bus_id = result[index + 1].strip("-")
             index += 2
              
-        pbs.logmsg(pbs.LOG_DEBUG, "VE devices info: %s" % ves) 
-        return ves
+        pbs.logmsg(pbs.EVENT_DEBUG, "VE devices info: %s" % ves)
+        pbs.logmsg(pbs.EVENT_DEBUG, "IB devices info: %s" % ibs)
+        return (ves, ibs)
 
     def _discover_meminfo(self):
         """

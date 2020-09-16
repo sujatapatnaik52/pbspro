@@ -515,13 +515,164 @@ class HookUtils(object):
         for var in vlist:
             if var.startswith('NEC_PROCESS_DIST'):
                 process_dist = var.split("=")[1]
-                pbs.logmsg(pbs.EVENT_DEBUG, 'NEC_PROCESS_DIST = %s' % process_dist)
+                pbs.logmsg(pbs.EVENT_DEBUG, 'NEC_PROCESS_DIST = %s'
+                           % process_dist)
 
         if not process_dist:
             return True
 
+        process_dist = process_dist.split("+")
         chunks = str(job.Resource_List.select).split('+')
         pbs.logmsg(pbs.EVENT_DEBUG, 'select=%s' % chunks)
+
+        # Number of chunks in NEC_RPOCESS_DIST and Resource_List.select
+        # should be same
+        if len(chunks) != len(process_dist):
+            msg = "The length of chunks in select spec and " \
+                  "NEC_PROCESS_DIST does not match"
+            event.reject(msg)
+
+        # Constraints for VH Process specification in NEC_PROCESS_DIST
+        # 1. A chunk shall not have more than one VH Process specification
+        # i.e. NEC_PROCESS_DIST=s3:3:S2
+        # 2. A chunk with VH process specification shall have a positive
+        # number for processes i.e. NEC_PROCESS_DIST=s0:3
+
+        # Constraints for number of VH processes and resource mpiprocs
+        # 3. In a chunk, the number of VH processes should be <= mpiprocs
+        # value i.e
+        # Ex - #PBS -l select=ncpus=4:mpiprocs=4:nves=1
+        #      #PBS –v NEC_PROCESS_DIST=s5:3
+        #
+        # 4. In a chunk, if number of VE processes are not specified,
+        # the number of VH processes should be equal to mpiprocs value
+        # Ex - #PBS –l select=ncpus=4:mpiprocs=4
+        #      #PBS –v NEC_PROCESS_DIST=s3
+        #
+        # 5. In a chunk, if number of VE processes is 0,
+        # then the VH processes should be equal to mpiprocs value
+        # Ex - #PBS –l select=ncpus=4:mpiprocs=4:nves=4
+        #      #PBS –v NEC_PROCESS_DIST=s3:0
+        #
+        # 6. In a chunk, for equal VE process distribution,
+        # the number of VE processes should be equal to ceil(n,m),
+        # where n is the value of mpiprocs after subtracting VH processes
+        # and m is Resource_List.nves
+        # Ex - #PBS –l select=ncpus=2:mpiprocs=9:nves=2
+        #      #PBS –v NEC_PROCESS_DIST=s2:3
+
+        # Constraints for number of VE processes and resource mpiprocs
+        # 7. In Unequal VE process distribution, the number of colon
+        # seperated VE processes should be equal to Resource_List.nves
+        # Ex - #PBS –l select=mpiprocs=8:nves=2
+        #      #PBS –v NEC_PROCESS_DIST=1:5:2
+        #
+        # 8. For Unequal VE process distribution, all the colon seperated
+        # VE processes values should be greater than zero.
+        # Ex - #PBS –l select=mpiprocs=8:nves=2
+        #      #PBS –v NEC_PROCESS_DIST=1:0
+        #
+        # 9. The sum of Unequal VE Process distribution and VH process
+        # should be equal to Resource_List.mpiprocs.
+        # Ex - #PBS –l select=mpiprocs=8:nves=2
+        #      #PBS –v NEC_PROCESS_DIST=s4:1:4
+
+        chunk_len = len(chunks)
+        chunk_num = 0
+
+        # Process each chunk of NEC_PROCESS_DIST and select spec
+        while chunk_num < chunk_len:
+            is_ve_process = 0
+            is_vh_process = 0
+            mpiprocs_val = 0
+            vh_procs_num = 0
+            ve_procs_num = []
+            nves_val = 0
+            processes = process_dist[chunk_num].split(":")
+            select_chunk = chunks[chunk_num].split(":")
+
+            for process in processes:
+                # VH process
+                if "s" in process or "S" in process:
+                    # Constraint - 1
+                    if is_vh_process == 1:
+                        event.reject("Please specify only one VH Process in "
+                                     "the chunk %s of NEC_PROCESS_DIST"
+                                     % process_dist[chunk_num])
+                    elif is_vh_process == 0:
+                        is_vh_process = 1
+
+                    vh_procs_num = int(process[1])
+                    # Constraint - 2
+                    if vh_procs_num == 0:
+                        event.reject("VH processes should be greater than "
+                                     "0 in chunk %s of NEC_PROCESS_DIST" %
+                                     process_dist[chunk_num])
+                else:  # VE Process
+                    is_ve_process = 1
+                    ve_procs_num.append(process)
+
+            for resc in select_chunk:
+                if "mpiprocs" in resc:
+                    mpiprocs_val = int(resc.split("=")[1])
+                if "nves" in resc:
+                    nves_val = int(resc.split("=")[1])
+
+            # Constraint - 3
+            if vh_procs_num > mpiprocs_val:
+                event.reject("Number of VH processes > mpiprocs in "
+                             "chunk %s of NEC_PROCESS_DIST for %s chunk"
+                             "of select spec" %
+                             (process_dist[chunk_num], chunks[chunk_num]))
+
+            # Constraint - 4
+            if not is_ve_process and vh_procs_num != mpiprocs_val:
+                event.reject("number of VH processes != mpiprocs value"
+                             "in chunk %s of NEC_PROCESS_DIST for %s "
+                             "chunk of select spec" %
+                             (process_dist[chunk_num], chunks[chunk_num]))
+
+            # Constraint - 5
+            if len(ve_procs_num) == 1 and ve_procs_num[0] == "0":
+                if mpiprocs_val > 0 and vh_procs_num != mpiprocs_val:
+                    event.reject("For VE offloading, number of VH processes"
+                                 " and mpiprocs value should be equal in "
+                                 "chunk %s of NEC_PROCESS_DIST for %s chunk "
+                                 "of select spec" %
+                                 (process_dist[chunk_num], chunks[chunk_num]))
+
+            # Constraint - 6
+            if len(ve_procs_num) == 1:
+                ve_mpiprocs = mpiprocs_val - vh_procs_num
+                if (ve_mpiprocs / nves_val) != int(ve_procs_num[0]):
+                    event.reject("Equal VE Process distribution is not correct"
+                                 " in chunk %s of NEC_PROCESS_DIST" %
+                                 process_dist[chunk_num])
+
+            if len(ve_procs_num) > 1:
+                msg = ""
+                total_procs = sum(map(int, ve_procs_num)) + vh_procs_num
+                # Constraint - 7
+                if nves_val != len(ve_procs_num):
+                    msg = "nves value in select chunk %s is not same as " \
+                          "the number of VE processes requested in " \
+                          "chunk %s of NEC_PROCESS_DIST" % \
+                          (chunks[chunk_num], process_dist[chunk_num])
+                # Contraint - 8
+                elif "0" in ve_procs_num:
+                    msg = "Number of VE Processes is not greater than" \
+                          " zero in chunk %s of NEC_PROCESS_DIST" % \
+                          process_dist[chunk_num]
+                # Contraint - 9
+                elif total_procs != mpiprocs_val:
+                    msg = "Sum of VH-VE Processes in chunk %s of " \
+                          "NEC_PROCESS_DIST is not equal to mpiprocs " \
+                          "%s of select spec" % \
+                          (process_dist[chunk_num], chunks[chunk_num])
+                if msg:
+                    event.reject(msg)
+
+            chunk_num += 1
 
         return True
 

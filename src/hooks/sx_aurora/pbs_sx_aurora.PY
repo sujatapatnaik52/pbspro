@@ -813,13 +813,25 @@ class HookUtils(object):
         """
         pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Method called' % caller_name())
         job = event.job
+        ves = []
         total_pcput = 0
         total_pmem = 0
 
-        ### TODO: Modify this to read from job's env file the VENODELIST
-        ves = "2 3"
-        ves = ves.split(" ")
-
+        # Get the VE numbers assigned to this job
+        fn = jobutil.host_job_env_filename % job.id
+        with open(fn, 'r') as desc:
+            ve_env_list = desc.readlines()
+            
+        for ve_env in ve_env_list:
+            if "_VENODELIST" in ve_env:
+                ves = ve_env.strip("\n").split("=")[1]
+                ves = ves.strip('"').split(" ")     
+                pbs.logmsg(pbs.EVENT_DEBUG, "VE's : %s" % ves) 
+    
+        if len(ves) == 0:
+            pbs.logmsg(pbs.EVENT_DEBUG, "No VE's are found for job %s" % job.id)
+            return True
+          
         # The hook will use the parent pid for grepping the VE processes
         # usage metrics. Thus, get the parent pid on each node for the job.
         parent_pid = ""
@@ -2189,7 +2201,8 @@ def main():
     try:
         # Instantiate the job utility class first so jobutil can be accessed
         # by the exception handlers.
-        if hasattr(event, 'job'):
+        jobutil = ""
+        if hasattr(event, 'job') and not event.type == pbs.QUEUEJOB:
             jobutil = JobUtils(event.job)
             pbs.logmsg(pbs.EVENT_DEBUG4,
                        '%s: Job information class instantiated' %

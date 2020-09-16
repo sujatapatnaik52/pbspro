@@ -695,11 +695,10 @@ class HookUtils(object):
         node = NodeUtils(sxautils.cfg)
         pbs.logmsg(pbs.EVENT_DEBUG, '%s: Host assigned job resources: %s' %
                    (caller_name(), jobutil.assigned_resources))
-        #TODO: _get_assigned
         already_assigned_ves = jobutil._get_assigned_ves(event.job.id)
         job_ves = jobutil._assign_ves(node, already_assigned_ves)
-        jobutil.node_file(job_ves)
-        jobutil._write_job_env_file(job_ves, node.nodes)
+        path = jobutil.node_file(job_ves)
+        jobutil._write_job_env_file(job_ves, node.nodes, path)
         return True
 
     def _execjob_launch_handler(self, event, sxautils, jobutil):
@@ -720,6 +719,8 @@ class HookUtils(object):
                     desc.write(str(os.getppid()))
             except Exception:
                 event.reject("Unable to create the pid file on this node")
+        # export NEC env vars
+        jobutil.setup_job_devices_env()
         return True
 
     def _execjob_postsuspend_handler(self, event, sxautils, jobutil):
@@ -1045,18 +1046,17 @@ class JobUtils:
             i = i+1
         return path
 
-    def _write_job_env_file(self, ves, node):
+    def _write_job_env_file(self, ves, node, path):
         """
         """
         pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Method called' % caller_name())
         env_list = []
         env_list.append('VE_NODE_NUMBER=%s' % ves[0])
-        env_list.append('_VENODELIST="%s"' % ' '.join(ves))
+        env_list.append('_VENODELIST=%s' % ' '.join(ves))
         env_list.append('_NECMPI_VE_NUM_NODES=%s' % len(ves))
-        env_list.append('_NECMPI_VE_NODELIST="%s"' % ' ' .join(ves))
+        env_list.append('_NECMPI_VE_NODELIST=%s' % ' ' .join(ves))
         env_list.append('_NEC_NQSV_JOB=1')
-        # TODO PBS_NODEFILE_VE
-        
+        env_list.append('PBS_NODEFILE_VE=%s' % path)
         # check on job statement if nhcas is requested
         e = pbs.event()
         job_statement = str(e.job.schedselect)
@@ -1145,10 +1145,6 @@ class JobUtils:
             # somethings wrong
             pbs.logmsg(pbs.EVENT_DEBUG, 'Somethings wrong')
         assign_ve = []
-        # TODO get a list of ves already assigned
-        #for ve in ves_available:
-        #    if ve in already_assigned:
-        #        ves_available.delete(ve)
         ve_num = []
         for ve in ves_available:
            ve_num.append(ve[-1])
@@ -1161,6 +1157,23 @@ class JobUtils:
 
         no_ves_requested = self.assigned_resources['nves']        
         return ve_num[:no_ves_requested]
+
+    def setup_job_devices_env(self):
+        """
+        """
+        pbs.logmsg(pbs.EVENT_DEBUG, '%s: Method called' % caller_name())
+        e = pbs.event()
+        filename = self.host_job_env_filename % e.job.id
+        try:
+            with open(filename, 'r') as f1:
+                lines = f1.readlines()
+        except Exception:
+            pass
+        for line in lines:
+            key = line.split('=')[0]
+            value = line.split('=')[1].strip("\n")
+            e.env[key] = '%s' % value
+        return
 
     def _get_assigned_job_resources(self, hostname=None):
         """

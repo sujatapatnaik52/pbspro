@@ -547,6 +547,7 @@ class HookUtils(object):
         #TODO: _get_assigned
         already_assigned_ves = jobutil._get_assigned_ves(event.job.id)
         job_ves = jobutil._assign_ves(node, already_assigned_ves)
+        jobutil.node_file(job_ves)
         jobutil._write_job_env_file(job_ves, node.nodes)
         return True
 
@@ -713,6 +714,22 @@ class HookUtils(object):
             fn = sxautils.host_job_ppid % job.id
             os.remove(fn)
             pbs.logmsg(pbs.EVENT_DEBUG4, "Removing the parent pid file %s" % fn)
+        filelist = []
+        if pbs.pbs_conf['PBS_MOM_HOME']:
+            home_dir = pbs.pbs_conf['PBS_MOM_HOME']
+        else:
+            home_dir = pbs.pbs_conf['PBS_HOME']
+        path = os.path.join(home_dir,'aux', job.id + '.nodefile')
+        filelist.append(path)        
+        filelist.append(jobutil.host_job_env_filename % job.id)
+        for filename in filelist:
+            try:
+                os.remove(filename)
+            except OSError:
+                pbs.logmsg(pbs.EVENT_DEBUG4, 'File: %s not found' % (filename))
+            except Exception:
+                pbs.logmsg(pbs.EVENT_DEBUG4,
+                           'Error removing file: %s' % (filename))
         return True
 
 #
@@ -782,7 +799,88 @@ class JobUtils:
                 venodelist_value = line.split('=')[1]
         assigned_ves = re.findall(r'\d+', venodelist_value) 
         pbs.logmsg(pbs.EVENT_DEBUG, 'already assigned ves: %s' % assigned_ves)
-        return assigned_ves        
+        return assigned_ves
+
+    def node_file(self, ves):
+        pbs.logmsg(pbs.EVENT_DEBUG, '%s: Method called' % caller_name())
+        e = pbs.event()
+        job_sel = str(e.job.schedselect)
+        job_chunks = job_sel.split('+')
+        varlist = str(e.job.Variable_List)
+        vlist = re.split(r'(?<!\\),', varlist)
+        procs_env = ""
+        for i in vlist:
+            if i.startswith('NEC_PROCESS_DIST'):
+                name = i.split("=")
+                procs_env = name[1]
+                pbs.logmsg(pbs.EVENT_DEBUG, 'procs_env = %s' % procs_env)
+        if not procs_env:
+            return
+        chunk_procs = procs_env.split('+')
+        procs = {}
+        for chunk in chunk_procs:
+            procs[chunk] = []
+            j = len(chunk)
+            i = 0
+            while i < j:
+                if chunk[i] == '[':
+                    procs[chunk].append(chunk[i+1] + 'h')
+                    i = i+2
+                elif chunk[i] == ':':
+                    i = i + 1
+                else:
+                    procs[chunk].append(chunk[i])
+                    i = i+1
+        pbs.logmsg(pbs.EVENT_DEBUG, 'procs = %s' % procs)
+        nves = []
+        mult = 1
+        for chunk in job_chunks:
+            res = chunk.split(':')
+            for rs in res:
+                if len(rs) == 1:
+                    mult = int(rs)
+                if rs.startswith('nves'):
+                    val = rs.split('=')
+                    for i in range(mult):
+                        nves.append(val[1])
+        pbs.logmsg(pbs.EVENT_DEBUG, 'nves = %s' % nves)
+        pbs.logmsg(pbs.EVENT_DEBUG, 'ves = %s' % ves)
+        # write to file
+        if pbs.pbs_conf['PBS_MOM_HOME']:
+            home_dir = pbs.pbs_conf['PBS_MOM_HOME']
+        else:
+            home_dir = pbs.pbs_conf['PBS_HOME']
+        path = os.path.join(home_dir,'aux', e.job.id + '.nodefile')
+        # negative cases
+        if len(procs) != len(nves):
+             pbs.logmsg(pbs.EVENT_DEBUG, 'something is wrong')
+             return path
+        count = 0
+        for ch in procs:
+            for ele in procs[ch]:
+                if 'h' not in ele:
+                    count=count+1
+        if count != len(ves):
+            pbs.logmsg(pbs.EVENT_DEBUG, 'something is wrong')
+            return path
+        file = open(path, "a")
+        i=0
+        j=0
+        for chunk in chunk_procs:
+            if len(chunk) == 1:
+                for c in range(int(nves[i])*int(procs[chunk][0])):
+                    file.write("ve=" + ves[j] + "\n")
+                j = j+1
+            else:
+                for ele in procs[chunk]:
+                    if 'h' in ele:
+                        file.write("\n")
+                    else:
+                        for c in range(int(ele)):
+                            file.write("ve=" + ves[j] + "\n")
+                        j = j+1
+            i = i+1
+        return path
 
     def _write_job_env_file(self, ves, node):
         """

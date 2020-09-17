@@ -361,7 +361,181 @@ class Lock(object):
                    (self.path, str(sys._getframe(1).f_code.co_name)))
 
 
+#
+# CLASS SXAUtils
+#
+class SXAUtils:
+    """
+    SX Aurora utility methods
+    """
 
+    def __init__(self, hostname):
+        self.hostname = hostname
+
+    # NEC_PROCESS_DIST constraints
+     
+    def check_nec_process_dist(self, process_dist, chunks): 
+        """
+        Helper method for verifying chunks of NEC specific
+        environment variable i.e. NEC_PROCESS_DIST
+        """
+        # Number of chunks in NEC_RPOCESS_DIST and Resource_List.select
+        # should be same
+        if len(chunks) != len(process_dist):
+            pbs.event().reject("The length of chunks in select spec and " \
+                               "NEC_PROCESS_DIST does not match")
+
+        chunk_len = len(chunks)
+        chunk_num = 0
+
+        # Process each chunk of NEC_PROCESS_DIST and select spec
+        while chunk_num < chunk_len:
+            mpiprocs = 0
+            nves = 0
+            select_chunk = chunks[chunk_num].split(":")
+            for resc in select_chunk:
+                if "mpiprocs" in resc:
+                    mpiprocs = int(resc.split("=")[1])
+                if "nves" in resc:
+                    nves = int(resc.split("=")[1])
+
+            # Check few constraints of NEC_PROCESS_DIST
+            vh_procs, ve_procs = self.check_vh_process_spec(process_dist[chunk_num])
+            self.check_vh_process_and_mpiprocs(process_dist[chunk_num], vh_procs, ve_procs, mpiprocs)
+            self.check_ve_process_spec(process_dist[chunk_num], ve_procs, nves)
+            self.check_ve_process_and_mpiprocs(process_dist[chunk_num], vh_procs, ve_procs, mpiprocs, nves)
+
+            chunk_num += 1
+    
+
+    def check_vh_process_spec(self, process_chunk):
+        """
+        Constraints for VH Process specification in NEC_PROCESS_DIST
+        1. A chunk shall not have more than one VH Process specification
+        i.e. NEC_PROCESS_DIST=s3:3:S2
+        2. A chunk with VH process specification shall have a positive
+        number for processes i.e. NEC_PROCESS_DIST=s0:3
+        """
+        is_vh_process = 0
+        vh_procs = 0
+        ve_procs = []
+
+        processes = process_chunk.split(":")
+        for process in processes:
+            # VH process
+            if "s" in process or "S" in process:
+                # Constraint - 1
+                if is_vh_process == 1:
+                    pbs.event().reject("Please specify only one VH Process in "
+                                       "the chunk %s of NEC_PROCESS_DIST"
+                                       % process_chunk)
+                elif is_vh_process == 0:
+                    is_vh_process = 1
+
+                vh_procs = int(process[1])
+
+                # Constraint - 2
+                if vh_procs == 0:
+                    pbs.event().reject("VH processes should be greater than "
+                                      "0 in chunk %s of NEC_PROCESS_DIST" %
+                                      process_chunk)
+            else:  # VE Process
+                ve_procs.append(int(process))
+        return (vh_procs, ve_procs)
+    
+    def check_vh_process_and_mpiprocs(self, process_chunk, vh_procs, ve_procs, mpiprocs):
+        """
+        Constraints for VH Process amd mpiprocs
+        1. In a chunk, the number of VH processes should be <= mpiprocs
+        value i.e
+        Ex - #PBS -l select=ncpus=4:mpiprocs=4:nves=1
+             #PBS –v NEC_PROCESS_DIST=s5:3
+
+        2. In a chunk, if number of VE processes are not specified,
+        the number of VH processes should be equal to mpiprocs value
+        Ex - #PBS –l select=ncpus=4:mpiprocs=4
+             #PBS –v NEC_PROCESS_DIST=s3
+
+        3. In a chunk, if number of VE processes is 0,
+        then the VH processes should be equal to mpiprocs value
+        Ex - #PBS –l select=ncpus=4:mpiprocs=4:nves=4
+             #PBS –v NEC_PROCESS_DIST=s3:0
+
+        """
+
+        # Constraint - 1
+        if vh_procs > mpiprocs:
+            pbs.event().reject("Number of VH processes > mpiprocs in "
+                         "chunk %s of NEC_PROCESS_DIST" % process_chunk)
+
+        # Constraint - 2
+        if len(ve_procs) == 0 and vh_procs != mpiprocs:
+            pbs.event().reject("Number of VH processes != mpiprocs value"
+                              "in chunk %s of NEC_PROCESS_DIST " % process_chunk)
+
+
+        # Constraint - 3
+        if len(ve_procs) == 1 and ve_procs[0] == 0:
+            if mpiprocs > 0 and vh_procs != mpiprocs:
+                pbs.event().reject("For VE offloading, number of VH processes"
+                                   " and mpiprocs value should be equal in "
+                                   "chunk %s of NEC_PROCESS_DIST " % process_chunk)    
+
+    def check_ve_process_spec(self, process_chunk, ve_procs, nves):
+        """
+        Constraints for VE Process specification
+        1. In Unequal VE process distribution, the number of colon
+        seperated VE processes should be equal to Resource_List.nves
+        Ex - #PBS –l select=mpiprocs=8:nves=2
+             #PBS –v NEC_PROCESS_DIST=1:5:2
+
+        2. For Unequal VE process distribution, all the colon seperated
+        VE processes values should be greater than zero.
+        Ex - #PBS –l select=mpiprocs=8:nves=2
+             #PBS –v NEC_PROCESS_DIST=1:0
+        """
+        # Constraint - 1
+        if len(ve_procs) > 1 and nves != len(ve_procs):
+            pbs.event().reject("nves != to the number of VE processes requested in " \
+                              "chunk %s of NEC_PROCESS_DIST" % process_chunk)
+
+        # Contraint - 2
+        if len(ve_procs) > 1 and 0 in ve_procs:
+            pbs.event().reject("Number of VE Processes is not greater than" \
+                               " zero in chunk %s of NEC_PROCESS_DIST" % \
+                               process_chunk)
+
+    def check_ve_process_and_mpiprocs(self, process_chunk, vh_procs, ve_procs, mpiprocs, nves):
+        """
+        Constraints for VE Process and mpiprocs
+        1. In a chunk, for equal VE process distribution,
+        the number of VE processes should be equal to ceil(n,m),
+        where n is the value of mpiprocs after subtracting VH processes
+        and m is Resource_List.nves
+        Ex - #PBS –l select=ncpus=2:mpiprocs=9:nves=2
+             #PBS –v NEC_PROCESS_DIST=s2:3
+
+        2. The sum of Unequal VE Process distribution and VH process
+        should be equal to Resource_List.mpiprocs.
+        Ex - #PBS –l select=mpiprocs=8:nves=2
+             #PBS –v NEC_PROCESS_DIST=s4:1:4
+        """
+        # Constraint - 1
+        if len(ve_procs) == 1:
+            ve_mpiprocs = mpiprocs - vh_procs
+            if math.ceil(ve_mpiprocs / nves) != ve_procs[0]:
+                pbs.event().reject("Equal VE Process distribution is not correct"
+                                 " in chunk %s of NEC_PROCESS_DIST" %
+                                 process_chunk)
+
+        # Constraint - 2
+        if len(ve_procs) > 1:
+            total_procs = sum(ve_procs) + vh_procs
+            if total_procs != mpiprocs:
+                pbs.event().reject("Sum of VH-VE Processes in chunk %s of " \
+                                   "NEC_PROCESS_DIST is not equal to mpiprocs " %
+                                   process_chunk)
+    
 #
 # CLASS HookUtils
 #
@@ -494,12 +668,12 @@ class HookUtils(object):
         pbs.logmsg(pbs.EVENT_DEBUG4, '%s: GID: real=%d, effective=%d' %
                    (caller_name(), os.getgid(), os.getegid()))
         if self.hashandler(event.type):
-            return self.hook_events[event.type]['handler'](event, sxautils,
-                                                           jobutil, *args)
+            return self.hook_events[event.type]['handler'](event, sxautils, jobutil, *args)
         pbs.logmsg(pbs.EVENT_DEBUG2,
                    '%s: %s event not handled by this hook' %
                    (caller_name(), self.event_name(event.type)))
         return False
+
 
     def _queuejob_handler(self, event, sxautils, jobutil):
         """
@@ -514,165 +688,18 @@ class HookUtils(object):
         process_dist = ""
         for var in vlist:
             if var.startswith('NEC_PROCESS_DIST'):
-                process_dist = var.split("=")[1]
+                process_dist = var.split("=")[1].split("+")
                 pbs.logmsg(pbs.EVENT_DEBUG, 'NEC_PROCESS_DIST = %s'
                            % process_dist)
 
-        if not process_dist:
+        # Return if no NEC_PROCESS_DIST has been requested for
+        if len(process_dist) == 0:
             return True
 
-        process_dist = process_dist.split("+")
         chunks = str(job.Resource_List.select).split('+')
         pbs.logmsg(pbs.EVENT_DEBUG, 'select=%s' % chunks)
 
-        # Number of chunks in NEC_RPOCESS_DIST and Resource_List.select
-        # should be same
-        if len(chunks) != len(process_dist):
-            msg = "The length of chunks in select spec and " \
-                  "NEC_PROCESS_DIST does not match"
-            event.reject(msg)
-
-        # Constraints for VH Process specification in NEC_PROCESS_DIST
-        # 1. A chunk shall not have more than one VH Process specification
-        # i.e. NEC_PROCESS_DIST=s3:3:S2
-        # 2. A chunk with VH process specification shall have a positive
-        # number for processes i.e. NEC_PROCESS_DIST=s0:3
-
-        # Constraints for number of VH processes and resource mpiprocs
-        # 3. In a chunk, the number of VH processes should be <= mpiprocs
-        # value i.e
-        # Ex - #PBS -l select=ncpus=4:mpiprocs=4:nves=1
-        #      #PBS –v NEC_PROCESS_DIST=s5:3
-        #
-        # 4. In a chunk, if number of VE processes are not specified,
-        # the number of VH processes should be equal to mpiprocs value
-        # Ex - #PBS –l select=ncpus=4:mpiprocs=4
-        #      #PBS –v NEC_PROCESS_DIST=s3
-        #
-        # 5. In a chunk, if number of VE processes is 0,
-        # then the VH processes should be equal to mpiprocs value
-        # Ex - #PBS –l select=ncpus=4:mpiprocs=4:nves=4
-        #      #PBS –v NEC_PROCESS_DIST=s3:0
-        #
-        # 6. In a chunk, for equal VE process distribution,
-        # the number of VE processes should be equal to ceil(n,m),
-        # where n is the value of mpiprocs after subtracting VH processes
-        # and m is Resource_List.nves
-        # Ex - #PBS –l select=ncpus=2:mpiprocs=9:nves=2
-        #      #PBS –v NEC_PROCESS_DIST=s2:3
-
-        # Constraints for number of VE processes and resource mpiprocs
-        # 7. In Unequal VE process distribution, the number of colon
-        # seperated VE processes should be equal to Resource_List.nves
-        # Ex - #PBS –l select=mpiprocs=8:nves=2
-        #      #PBS –v NEC_PROCESS_DIST=1:5:2
-        #
-        # 8. For Unequal VE process distribution, all the colon seperated
-        # VE processes values should be greater than zero.
-        # Ex - #PBS –l select=mpiprocs=8:nves=2
-        #      #PBS –v NEC_PROCESS_DIST=1:0
-        #
-        # 9. The sum of Unequal VE Process distribution and VH process
-        # should be equal to Resource_List.mpiprocs.
-        # Ex - #PBS –l select=mpiprocs=8:nves=2
-        #      #PBS –v NEC_PROCESS_DIST=s4:1:4
-
-        chunk_len = len(chunks)
-        chunk_num = 0
-
-        # Process each chunk of NEC_PROCESS_DIST and select spec
-        while chunk_num < chunk_len:
-            is_ve_process = 0
-            is_vh_process = 0
-            mpiprocs_val = 0
-            vh_procs_num = 0
-            ve_procs_num = []
-            nves_val = 0
-            processes = process_dist[chunk_num].split(":")
-            select_chunk = chunks[chunk_num].split(":")
-
-            for process in processes:
-                # VH process
-                if "s" in process or "S" in process:
-                    # Constraint - 1
-                    if is_vh_process == 1:
-                        event.reject("Please specify only one VH Process in "
-                                     "the chunk %s of NEC_PROCESS_DIST"
-                                     % process_dist[chunk_num])
-                    elif is_vh_process == 0:
-                        is_vh_process = 1
-
-                    vh_procs_num = int(process[1])
-                    # Constraint - 2
-                    if vh_procs_num == 0:
-                        event.reject("VH processes should be greater than "
-                                     "0 in chunk %s of NEC_PROCESS_DIST" %
-                                     process_dist[chunk_num])
-                else:  # VE Process
-                    is_ve_process = 1
-                    ve_procs_num.append(process)
-
-            for resc in select_chunk:
-                if "mpiprocs" in resc:
-                    mpiprocs_val = int(resc.split("=")[1])
-                if "nves" in resc:
-                    nves_val = int(resc.split("=")[1])
-
-            # Constraint - 3
-            if vh_procs_num > mpiprocs_val:
-                event.reject("Number of VH processes > mpiprocs in "
-                             "chunk %s of NEC_PROCESS_DIST for %s chunk"
-                             "of select spec" %
-                             (process_dist[chunk_num], chunks[chunk_num]))
-
-            # Constraint - 4
-            if not is_ve_process and vh_procs_num != mpiprocs_val:
-                event.reject("number of VH processes != mpiprocs value"
-                             "in chunk %s of NEC_PROCESS_DIST for %s "
-                             "chunk of select spec" %
-                             (process_dist[chunk_num], chunks[chunk_num]))
-
-            # Constraint - 5
-            if len(ve_procs_num) == 1 and ve_procs_num[0] == "0":
-                if mpiprocs_val > 0 and vh_procs_num != mpiprocs_val:
-                    event.reject("For VE offloading, number of VH processes"
-                                 " and mpiprocs value should be equal in "
-                                 "chunk %s of NEC_PROCESS_DIST for %s chunk "
-                                 "of select spec" %
-                                 (process_dist[chunk_num], chunks[chunk_num]))
-
-            # Constraint - 6
-            if len(ve_procs_num) == 1:
-                ve_mpiprocs = mpiprocs_val - vh_procs_num
-                if (ve_mpiprocs / nves_val) != int(ve_procs_num[0]):
-                    event.reject("Equal VE Process distribution is not correct"
-                                 " in chunk %s of NEC_PROCESS_DIST" %
-                                 process_dist[chunk_num])
-
-            if len(ve_procs_num) > 1:
-                msg = ""
-                total_procs = sum(map(int, ve_procs_num)) + vh_procs_num
-                # Constraint - 7
-                if nves_val != len(ve_procs_num):
-                    msg = "nves value in select chunk %s is not same as " \
-                          "the number of VE processes requested in " \
-                          "chunk %s of NEC_PROCESS_DIST" % \
-                          (chunks[chunk_num], process_dist[chunk_num])
-                # Contraint - 8
-                elif "0" in ve_procs_num:
-                    msg = "Number of VE Processes is not greater than" \
-                          " zero in chunk %s of NEC_PROCESS_DIST" % \
-                          process_dist[chunk_num]
-                # Contraint - 9
-                elif total_procs != mpiprocs_val:
-                    msg = "Sum of VH-VE Processes in chunk %s of " \
-                          "NEC_PROCESS_DIST is not equal to mpiprocs " \
-                          "%s of select spec" % \
-                          (process_dist[chunk_num], chunks[chunk_num])
-                if msg:
-                    event.reject(msg)
-
-            chunk_num += 1
+        sxautils.check_nec_process_dist(process_dist, chunks)
 
         return True
 
@@ -681,7 +708,7 @@ class HookUtils(object):
         Handler for exechost_startup events.
         """
         pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Method called' % caller_name())
-        node = NodeUtils(sxautils.cfg)
+        node = NodeUtils()
         pbs.logmsg(pbs.EVENT_DEBUG4, '%s: NodeUtils class instantiated' %
                    caller_name())
         node.create_vnodes()
@@ -692,7 +719,7 @@ class HookUtils(object):
         Handler for execjob_begin events.
         """
         pbs.logmsg(pbs.EVENT_DEBUG, '%s: Method called' % caller_name())
-        node = NodeUtils(sxautils.cfg)
+        node = NodeUtils()
         pbs.logmsg(pbs.EVENT_DEBUG, '%s: Host assigned job resources: %s' %
                    (caller_name(), jobutil.assigned_resources))
         already_assigned_ves = jobutil._get_assigned_ves(event.job.id)
@@ -714,7 +741,7 @@ class HookUtils(object):
 
         if not event.job.in_ms_mom():
             try:
-                filename = sxautils.host_job_ppid % event.job.id
+                filename = jobutil.host_job_ppid % event.job.id
                 with open(filename, 'w') as desc:
                     desc.write(str(os.getppid()))
             except Exception:
@@ -736,7 +763,7 @@ class HookUtils(object):
         # fetching VE pids, but there is no way to differentiate between 
         # VH and VE processes of a job. 
         
-        pids = jobutil.get_child_pids(sxautils.host_job_ppid)
+        pids = jobutil.get_child_pids()
         if pids is None:
             pbs.logmsg(pbs.EVENT_DEBUG,
                           '%s: Unable to fetch pids of job' %
@@ -778,7 +805,7 @@ class HookUtils(object):
         # fetching VE pids, but there is no way to differentiate between
         # VH and VE processes of a job.
 
-        pids = jobutil.get_child_pids(sxautils.host_job_ppid)
+        pids = jobutil.get_child_pids()
         if pids is None:
             pbs.logmsg(pbs.EVENT_DEBUG,
                           '%s: Unable to fetch pids of job' %
@@ -841,7 +868,7 @@ class HookUtils(object):
             parent_pid = job.session_id
         else:
             try:
-                fn = sxautils.host_job_ppid % job.id
+                fn = jobutil.host_job_ppid % job.id
                 with open(fn, 'r') as desc:
                     parent_pid = desc.read()
             except Exception:
@@ -875,7 +902,7 @@ class HookUtils(object):
         pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Method called' % caller_name())
         job = event.job 
         if not job.in_ms_mom():
-            fn = sxautils.host_job_ppid % job.id
+            fn = jobutil.host_job_ppid % job.id
             os.remove(fn)
             pbs.logmsg(pbs.EVENT_DEBUG4, "Removing the parent pid file %s" % fn)
         filelist = []
@@ -908,8 +935,19 @@ class JobUtils:
     def __init__(self, job, hostname=None, assigned_resources=None):
         self.job = job
         self.host_job_env_dir = os.path.join(PBS_MOM_HOME, 'aux')
+        self.hook_storage_dir = os.path.join(PBS_MOM_HOME, 'mom_priv',
+                                                 'hooks', 'hook_data')
+
+        if not os.path.isdir(self.hook_storage_dir):
+            try:
+                os.makedirs(self.hook_storage_dir, 0o700)
+            except OSError:
+                pbs.logmsg(pbs.EVENT_DEBUG, 'Failed to create %s' %
+                           self.hook_storage_dir)
         self.host_job_env_filename = os.path.join(self.host_job_env_dir,
                                                   '%s.env')
+        self.host_job_ppid = os.path.join(self.hook_storage_dir, '%s.ppid')
+        
         if hostname is not None:
             self.hostname = hostname
         else:
@@ -1279,7 +1317,7 @@ class JobUtils:
                        "Job will fail or be configured with default ncpus/mem")
             return {}
 
-    def get_child_pids(self, filename=""):
+    def get_child_pids(self):
         """
         Helper method for fetching the child pids
         of a job on this node.
@@ -1299,7 +1337,7 @@ class JobUtils:
             # the child pids on the sister mom using the parent pid.
 
             try:
-                fn = filename % self.job.id
+                fn = self.host_job_ppid % self.job.id
                 with open(fn, 'r') as desc:
                     pid = desc.read()
             except Exception:
@@ -1307,6 +1345,8 @@ class JobUtils:
             ps_cmd = ["ps", "-s", pid, "-o", "pid", "--no-headers"]
 
         return exec_cmd(ps_cmd)    
+
+
 
 #
 # CLASS NodeUtils
@@ -1319,9 +1359,8 @@ class NodeUtils(object):
           additional debugging if necessary.
     """
 
-    def __init__(self, cfg, hostname=None, cpuinfo=None, meminfo=None,
+    def __init__(self, hostname=None, cpuinfo=None, meminfo=None,
                  numa_nodes=None, ves=None):
-        self.cfg = cfg
         self.nodes = {}
         self.ibs = {}
         if hostname is not None:
@@ -1358,14 +1397,12 @@ class NodeUtils(object):
         self.offline_msg += 'Unable to clean up one or more cgroups'''
 
     def __repr__(self):
-        return ('NodeUtils(%s, %s, %s, %s, %s, %s)' %
-                (repr(self.cfg),
-                 repr(self.hostname),
+        return ('NodeUtils(%s, %s, %s, %s, %s)' %
+                (repr(self.hostname),
                  repr(self.cpuinfo),
                  repr(self.meminfo),
                  repr(self.numa_nodes),
                  repr(self.ves)))
-
 
     def finalize_nodes(self):
         """
@@ -2033,84 +2070,6 @@ class NodeUtils(object):
                        '%s: Failed to remove offline file: %s' %
                        (caller_name(), exc))
 
-#
-# CLASS SXAUtils
-#
-class SXAUtils:
-    """
-    SX Aurora utility methods
-    """
-
-    def __init__(self, hostname, vnode, cfg=None):
-        self.hostname = hostname
-        self.vnode = vnode
-        if cfg is not None:
-            self.cfg = cfg
-        else:
-            self.cfg = self.parse_config_file()
-         
-        pbs.logmsg(pbs.EVENT_DEBUG4, "SX Aurora Hook cfg: %s" % repr(self.cfg))
-
-        self.hook_storage_dir = os.path.join(PBS_MOM_HOME, 'mom_priv',
-                                                 'hooks', 'hook_data')
-
-        if not os.path.isdir(self.hook_storage_dir):
-            try:
-                os.makedirs(self.hook_storage_dir, 0o700)
-            except OSError:
-                pbs.logmsg(pbs.EVENT_DEBUG, 'Failed to create %s' %
-                           self.hook_storage_dir)
-        self.host_job_ppid = os.path.join(self.hook_storage_dir, '%s.ppid')
-
-    @staticmethod
-    def parse_config_file():
-        """
-        Read the config file in json format
-        """
-        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Method called' % caller_name())
-        defaults = {} 
-        defaults['sxa_lock_file'] = os.path.join(PBS_MOM_HOME, 'mom_priv',
-                                                    'sxa.lock')
-
-        # Identify the config file and read in the data
-        config_file = ''
-        if 'PBS_HOOK_CONFIG_FILE' in os.environ:
-            config_file = os.environ['PBS_HOOK_CONFIG_FILE']
-        if not config_file:
-            tmpcfg = os.path.join(PBS_MOM_HOME, 'mom_priv', 'hooks',
-                                  'pbs_sx_aurora.CF')
-            if os.path.isfile(tmpcfg):
-                config_file = tmpcfg
-        if not config_file:
-            tmpcfg = os.path.join(PBS_HOME, 'server_priv', 'hooks',
-                                  'pbs_sx_aurora.CF')
-            if os.path.isfile(tmpcfg):
-                config_file = tmpcfg
-        if not config_file:
-            tmpcfg = os.path.join(PBS_MOM_HOME, 'mom_priv', 'hooks',
-                                  'pbs_sx_aurora.json')
-            if os.path.isfile(tmpcfg):
-                config_file = tmpcfg
-        if not config_file:
-            tmpcfg = os.path.join(PBS_HOME, 'server_priv', 'hooks',
-                                  'pbs_aurora.json')
-            if os.path.isfile(tmpcfg):
-                config_file = tmpcfg
-        if not config_file:
-            raise SXAConfigError('Config file not found')
-        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Config file is %s' %
-                   (caller_name(), config_file))
-        try:
-            with open(config_file, 'r') as desc:
-                config = merge_dict(defaults,
-                                    json.load(desc, object_hook=decode_dict))
-        except IOError:
-            raise SXAConfigError('I/O error reading config file')
-        pbs.logmsg(pbs.EVENT_DEBUG4,
-                   '%s: sx aurora hook configuration: %s' %
-                   (caller_name(), config))
-        return config
-
 def set_global_vars():
     """
     Define some global variables that the hook may use
@@ -2206,6 +2165,20 @@ def main():
         pbs.logmsg(pbs.EVENT_DEBUG,
                    str(traceback.format_exc().strip().splitlines()))
         event.accept()
+
+    # Instantiate the SX Aurora utility class
+    try:
+        sxautils = SXAUtils(hostname)
+        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: SX Aurora utility class instantiated' %
+                   caller_name())
+    except Exception:
+        pbs.logmsg(pbs.EVENT_DEBUG,
+                   '%s: Failed to instantiate sx aurora utility class' %
+                   caller_name())
+        pbs.logmsg(pbs.EVENT_DEBUG,
+                   str(traceback.format_exc().strip().splitlines()))
+        event.accept()
+
     # Bail out if there is no handler for this event
     if not hooks.hashandler(event.type):
         pbs.logmsg(pbs.EVENT_DEBUG, '%s: %s event not handled by this hook' %
@@ -2214,7 +2187,6 @@ def main():
     try:
         # Instantiate the job utility class first so jobutil can be accessed
         # by the exception handlers.
-        jobutil = ""
         if hasattr(event, 'job') and not event.type == pbs.QUEUEJOB:
             jobutil = JobUtils(event.job)
             pbs.logmsg(pbs.EVENT_DEBUG4,
@@ -2223,14 +2195,14 @@ def main():
         else:
             pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Event does not include a job' %
                        caller_name())
-        # Parse the sx_aurora configuration file here so we can use the file lock
-        cfg = SXAUtils.parse_config_file()
-        # Instantiate the sx_aurora utility class
+       
+        sxa_lock_file = os.path.join(PBS_MOM_HOME, 'mom_priv', 'sxa.lock')
         vnode = None
+
         if hasattr(event, 'vnode_list'):
             if hostname in event.vnode_list:
                 vnode = event.vnode_list[hostname]
-        with Lock(cfg['sxa_lock_file']):
+        with Lock(sxa_lock_file):
             # Only write this once we grabbed the lock,
             # otherwise *another* event could actually win the lock
             # even though *this* event printed this message last,
@@ -2243,10 +2215,6 @@ def main():
             else:
                 pbs.logmsg(loglevel, '%s: Event type is %s'
                            % (caller_name(), hooks.event_name(event.type)))
-
-            sxautils = SXAUtils(hostname, vnode, cfg=cfg)
-            pbs.logmsg(pbs.EVENT_DEBUG4,
-                       '%s: SX Aurora utility class instantiated' % caller_name())
 
             # Call the appropriate handler
             if hooks.invoke_handler(event, sxautils, jobutil):

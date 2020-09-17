@@ -542,6 +542,65 @@ class SXAUtils:
                 pbs.event().reject("Sum of VH-VE Processes in chunk %s of "
                                    "NEC_PROCESS_DIST is not equal to mpiprocs"
                                    % process_chunk)
+
+    def swapout_ve_processes(self, pids=None):
+        """
+        For all the child pids fetched on this node for the job,
+        try to swap out each of them, VE processes would be
+        swapped out.
+        """
+        procs = []
+
+        for pid in pids:
+            cmd = ["/opt/nec/ve/bin/veswap", "-o", pid]
+            p = subprocess.Popen(cmd, stdin=subprocess.PIPE,
+                                 stdout=subprocess.PIPE)
+            result, error = p.communicate()
+            if p.returncode == 0:
+                procs.append(pid)
+
+        return procs
+
+    def swapin_ve_processes(self, pids=None):
+        """
+        For all the child pids fetched on this node for the job,
+        try to swap in each of them, VE processes should be
+        swapped in.
+        """
+        procs = []
+
+        for pid in pids:
+            cmd = ["/opt/nec/ve/bin/veswap", "-i", pid]
+            p = subprocess.Popen(cmd, stdin=subprocess.PIPE,
+                                 stdout=subprocess.PIPE)
+            result, error = p.communicate()
+            if p.returncode == 0:
+                procs.append(pid)
+
+        return procs
+
+    def ve_accounting_metrics(self, ves, parent_pid):
+        """
+        Get the accounting metrics i.e. cpu consumption 
+        and memory consumption for each VE Process on this
+        host
+        """
+        total_pcput = 0
+        total_pmem = 0
+
+        for ve in ves:
+            cmd = ["/opt/nec/ve/sbin/dump-acct", "--ve-info",
+                   "/var/opt/nec/ve/account/pacct_%s" % ve]
+            result = exec_cmd(cmd)
+            result = result.split("\n")
+            for record in result:
+                if str(parent_pid) in record:
+                    process_stats = record.split("|")
+                    # cpu time is in ticks, Convert it to seconds.
+                    total_pcput += (float(process_stats[2]) / 100)
+                    total_pmem += int(process_stats[14])
+        return total_pcput, total_pmem
+      
     
 #
 # CLASS HookUtils
@@ -767,7 +826,7 @@ class HookUtils(object):
  
         # Find out all the child pids of the job. Ideally, hook should be 
         # fetching VE pids, but there is no way to differentiate between 
-        # VH and VE processes of a job. 
+        # VH and VE processes of a job so fetching all the child pids. 
         
         pids = jobutil.get_child_pids()
         if pids is None:
@@ -777,31 +836,19 @@ class HookUtils(object):
             pbs.event().reject() 
 
         pids = [pid.strip() for pid in pids.strip().split("\n")]
-        swapout_procs = []
-
-        # For all the child pids fetched on this node for the job, 
-        # try to swap out each of them, VE processes would be 
-        # swapped out.
-
-        for pid in pids:
-            swap_out_cmd = ["/opt/nec/ve/bin/veswap", "-o", pid]
-            p = subprocess.Popen(swap_out_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-            result, error = p.communicate()
-            if p.returncode == 0:
-                swapout_procs.append(pid)
-
-        if len(swapout_procs) > 0:
-            pbs.logmsg(pbs.EVENT_DEBUG, "The VE processes of job %s swapped out on "
-                                      "this node are %s" % (job.id, swapout_procs))
-        else: 
-            pbs.logmsg(pbs.EVENT_DEBUG, "No VE processes swapped out for "
-                                      "job %s" % job.id)
+        procs = sxautils.swapout_ve_processes(pids)
+        if len(procs) > 0:
+            pbs.logmsg(pbs.EVENT_DEBUG,
+                       "The VE processes of job %s swapped-"
+                       "out on this node - %s" % (job.id, procs))
+        else:
+            pbs.logmsg(pbs.EVENT_DEBUG,
+                       "No VE processes swapped out for %s" % job.id)
         return True   
 
- 
     def _execjob_preresume_handler(self, event, sxautils, jobutil):
         """
-        Handler for execjob_preresume event - - VE processes of a job
+        Handler for execjob_preresume event - VE processes of a job
         need to be swapped in.
         """
         pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Method called' % caller_name())
@@ -814,26 +861,16 @@ class HookUtils(object):
         pids = jobutil.get_child_pids()
         if pids is None:
             pbs.logmsg(pbs.EVENT_DEBUG,
-                          '%s: Unable to fetch pids of job' %
-                          caller_name())
+                       '%s: Unable to fetch pids of job' % caller_name())
             pbs.event().reject()
 
         pids = [pid.strip() for pid in pids.strip().split("\n")]
-        swapin_procs = []
+        procs = sxautils.swapin_ve_processes(pids)
 
-        # For all the child pids fetched on this node for the job,
-        # try to swap in each of them, VE processes should be 
-        # swapped in.
-
-        for pid in pids:
-            swap_in_cmd = ["/opt/nec/ve/bin/veswap", "-i", pid]
-            p = subprocess.Popen(swap_in_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-            result, error = p.communicate()
-            if p.returncode == 0:
-                swapin_procs.append(pid)
-        if len(swapin_procs) > 0:
-            pbs.logmsg(pbs.LOG_DEBUG, "The VE processes of job %s swapped in on "
-                                      "this node are %s" % (job.id, swapin_procs))
+        if len(procs) > 0:
+            pbs.logmsg(pbs.LOG_DEBUG,
+                       "The VE processes of job %s swapped-in on "
+                       "this node - %s" % (job.id, procs))
         else:
             pbs.logmsg(pbs.LOG_DEBUG, "No VE processes swapped in for"
                                       " job %s" % job.id)
@@ -848,8 +885,6 @@ class HookUtils(object):
         pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Method called' % caller_name())
         job = event.job
         ves = []
-        total_pcput = 0
-        total_pmem = 0
 
         # Get the VE numbers assigned to this job
         fn = jobutil.host_job_env_filename % job.id
@@ -863,40 +898,26 @@ class HookUtils(object):
                 pbs.logmsg(pbs.EVENT_DEBUG, "VE's : %s" % ves) 
     
         if len(ves) == 0:
-            pbs.logmsg(pbs.EVENT_DEBUG, "No VE's are found for job %s" % job.id)
+            pbs.logmsg(pbs.EVENT_DEBUG,
+                       "No VE's are found for job %s" % job.id)
             return True
           
         # The hook will use the parent pid for grepping the VE processes
         # usage metrics. Thus, get the parent pid on each node for the job.
-        parent_pid = ""
+        parent_pid = jobutil.get_parent_pid()
 
-        if job.in_ms_mom():
-            parent_pid = job.session_id
-        else:
-            try:
-                fn = jobutil.host_job_ppid % job.id
-                with open(fn, 'r') as desc:
-                    parent_pid = desc.read()
-            except Exception:
-                pbs.logmsg(pbs.EVENT_DEBUG, "Unable to read pid file on this node.")
-                pbs.logmsg(pbs.EVENT_DEBUG, "VE Process accounting is not added in this node for job %s" % job.id)
-                return
+        if not parent_pid:
+            pbs.logmsg(pbs.EVENT_DEBUG,
+                       "VE Process accounting is not added in "
+                       "this node for %s" % job.id)
+            return
 
-        for ve in ves:
-            cmd = ["/opt/nec/ve/sbin/dump-acct", "--ve-info",
-                   "/var/opt/nec/ve/account/pacct_%s" % ve]
-            result = exec_cmd(cmd)
-            result = result.split("\n")
-            for record in result:
-                if str(parent_pid) in record:
-                    process_stats = record.split("|")
-                    # cpu time is in ticks, Convert it to seconds.
-                    total_pcput += (float(process_stats[2]) / 100)
-                    total_pmem += int(process_stats[14])
-        job.resources_used["ve_cput"] = pbs.duration(total_pcput)
+        pcput, pmem = sxautils.ve_accounting_metrics(ves, parent_pid) 
+
+        job.resources_used["ve_cput"] = pbs.duration(pcput)
 
         # The unit of memory usage is in kilobytes
-        job.resources_used["ve_mem"] = pbs.size(str(total_pmem) + "kb")
+        job.resources_used["ve_mem"] = pbs.size(str(pmem) + "kb")
         pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Updated resc_used = %s' %
                    (caller_name(), str(job.resources_used)))
         return True
@@ -910,7 +931,8 @@ class HookUtils(object):
         if not job.in_ms_mom():
             fn = jobutil.host_job_ppid % job.id
             os.remove(fn)
-            pbs.logmsg(pbs.EVENT_DEBUG4, "Removing the parent pid file %s" % fn)
+            pbs.logmsg(pbs.EVENT_DEBUG4, "Removing the parent "
+                                         "pid file %s" % fn)
         filelist = []
         if pbs.pbs_conf['PBS_MOM_HOME']:
             home_dir = pbs.pbs_conf['PBS_MOM_HOME']
@@ -923,7 +945,8 @@ class HookUtils(object):
             try:
                 os.remove(filename)
             except OSError:
-                pbs.logmsg(pbs.EVENT_DEBUG4, 'File: %s not found' % (filename))
+                pbs.logmsg(pbs.EVENT_DEBUG4,
+                           'File: %s not found' % (filename))
             except Exception:
                 pbs.logmsg(pbs.EVENT_DEBUG4,
                            'Error removing file: %s' % (filename))
@@ -1323,6 +1346,27 @@ class JobUtils:
                        "Job will fail or be configured with default ncpus/mem")
             return {}
 
+
+    def get_parent_pid(self):
+        """
+        Helper method for fetching the parent pid
+        of the job on this node. 
+        """
+        if self.job.in_ms_mom():
+            # If the node is mother superior, session id
+            # is the mother superior
+            return str(self.job.session_id)
+        else:
+            # If the node is sister, read the pid from the parent pid file
+            # i.e. created in execjob_launch hook event for this job. 
+            try:
+                fn = self.host_job_ppid % self.job.id
+                with open(fn, 'r') as desc:
+                    pid = desc.read()
+            except Exception:
+                return
+
+         
     def get_child_pids(self):
         """
         Helper method for fetching the child pids
@@ -1330,25 +1374,11 @@ class JobUtils:
         """
 
         ps_cmd = ""
-        if self.job.in_ms_mom():
-            # If the node is mother superior, with the session id,
-            # the child pids can be fetched.
-            ps_cmd = ["ps", "-s", str(self.job.session_id), "-o", "pid",
-                      "--no-headers"]
-        else:
-            pid = ""
+        parent_pid = self.get_parent_pid()
 
-            # If the node is sister, read the pid from the parent pid file
-            # i.e. created in execjob_launch hook event for this job. Fetch
-            # the child pids on the sister mom using the parent pid.
-
-            try:
-                fn = self.host_job_ppid % self.job.id
-                with open(fn, 'r') as desc:
-                    pid = desc.read()
-            except Exception:
-                return 
-            ps_cmd = ["ps", "-s", pid, "-o", "pid", "--no-headers"]
+        if not parent_pid:
+            pbs.logmsg(pbs.EVENT_DEBUG, "Unable to read pid file on this node.")
+        ps_cmd = ["ps", "-s", parent_pid, "-o", "pid", "--no-headers"]
 
         return exec_cmd(ps_cmd)    
 

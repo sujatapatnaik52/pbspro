@@ -1033,84 +1033,102 @@ class JobUtils:
         return assigned_ves
 
     def node_file(self, ves):
+        """
+        """
         pbs.logmsg(pbs.EVENT_DEBUG, '%s: Method called' % caller_name())
-        e = pbs.event()
-        job_sel = str(e.job.schedselect)
-        job_chunks = job_sel.split('+')
-        varlist = str(e.job.Variable_List)
+        # Look for NEC_PROCESS_DIST
+        varlist = str(self.job.Variable_List)
         vlist = re.split(r'(?<!\\),', varlist)
         procs_env = ""
         for i in vlist:
             if i.startswith('NEC_PROCESS_DIST'):
                 name = i.split("=")
                 procs_env = name[1]
-                pbs.logmsg(pbs.EVENT_DEBUG, 'procs_env = %s' % procs_env)
         if not procs_env:
+            # BAIL out
             return
+
+        # parse exec_vnode of the job
+        execv_chunks = re.findall(r'\(.*?\)', str(self.job.exec_vnode))
+        vnode_pos_on_host = []
+        execv_on_host = []
+        for chunk in execv_chunks:
+            if self.hostname in chunk:
+                execv_on_host.append(chunk)
+                vnode_pos_on_host.append(1)
+            else:
+                vnode_pos_on_host.append(0)
         chunk_procs = procs_env.split('+')
-        procs = {}
+
+        # not one to one correspondence
+        if len(chunk_procs) != len(execv_chunks):
+            l = len(chunk_procs)
+            val = chunk_procs
+            while l < len(execv_chunks):
+                chunk_procs.extend(val)
+                l += 1
+
+        # filter NEC_PROCESS_DIST for current host
+        chunk_procs_curr_host = []
+        i = 0
         for chunk in chunk_procs:
-            procs[chunk] = []
-            j = len(chunk)
-            i = 0
-            while i < j:
-                if chunk[i] == '[':
-                    procs[chunk].append(chunk[i+1] + 'h')
-                    i = i+2
-                elif chunk[i] == ':':
-                    i = i + 1
-                else:
-                    procs[chunk].append(chunk[i])
-                    i = i+1
-        pbs.logmsg(pbs.EVENT_DEBUG, 'procs = %s' % procs)
+            if vnode_pos_on_host[i] == 1:
+                 chunk_procs_curr_host.append(chunk)
+            i += 1
+
+        # create a list of no. of nves requested on the host
         nves = []
-        mult = 1
-        for chunk in job_chunks:
-            res = chunk.split(':')
-            for rs in res:
-                if len(rs) == 1:
-                    mult = int(rs)
-                if rs.startswith('nves'):
-                    val = rs.split('=')
-                    for i in range(mult):
-                        nves.append(val[1])
-        pbs.logmsg(pbs.EVENT_DEBUG, 'nves = %s' % nves)
-        pbs.logmsg(pbs.EVENT_DEBUG, 'ves = %s' % ves)
+        ve_cont = 0
+        for execv in execv_on_host:
+            # incase of super-chunkin
+            chunk = execv.split("+")
+            for ch in chunk:
+                res = ch.split(":")
+                for r in res:
+                    if "nves" in r:
+                        value = (r.split("=")[1])[0]
+                        ve_cont += int(value)
+                nves.append(ve_cont)
+                ve_cont = 0
+
+        # finally create a dict with env and ves corresponding
+        # should look like:
+        # {"2:3:3":[ve0,ve1,ve2]
+        #  "3": [ve4,ve5,ve6,ve7]}
+        final_dict = {}
+        i = 0
+        for chunk in chunk_procs_curr_host:
+            if chunk not in final_dict:
+                final_dict[chunk] = []
+            final_dict[chunk].extend(ves[:nves[i]])
+            ves = ves[nves[i]:]
+            i +=1
+        pbs.logmsg(pbs.EVENT_DEBUG, 'final_dict = %s' % final_dict)
+
         # write to file
         if pbs.pbs_conf['PBS_MOM_HOME']:
             home_dir = pbs.pbs_conf['PBS_MOM_HOME']
         else:
             home_dir = pbs.pbs_conf['PBS_HOME']
-        path = os.path.join(home_dir,'aux', e.job.id + '.nodefile')
-        # negative cases
-        if len(procs) != len(nves):
-             pbs.logmsg(pbs.EVENT_DEBUG, 'something is wrong')
-             return path
-        count = 0
-        for ch in procs:
-            for ele in procs[ch]:
-                if 'h' not in ele:
-                    count=count+1
-        if count != len(ves):
-            pbs.logmsg(pbs.EVENT_DEBUG, 'something is wrong')
-            return path
+        path = os.path.join(home_dir,'aux', self.job.id + '.nodefile')
         file = open(path, "a")
-        i=0
-        j=0
-        for chunk in chunk_procs:
-            if len(chunk) == 1:
-                for c in range(int(nves[i])*int(procs[chunk][0])):
-                    file.write("ve=" + ves[j] + "\n")
-                j = j+1
-            else:
-                for ele in procs[chunk]:
-                    if 'h' in ele:
+
+        for line in final_dict:
+            val = final_dict[line]
+            each_env_val = line.split(':')
+            if len(each_env_val) != len(val):
+                dup = each_env_val[len(each_env_val)-1]
+                for c in range(len(val) - len(each_env_val)):
+                    each_env_val.append(dup)
+            i = 0
+            for ele in each_env_val:
+                if 's' in ele or 'S' in ele:
+                    for c in range(int(ele[-1])):
                         file.write("\n")
-                    else:
-                        for c in range(int(ele)):
-                            file.write("ve=" + ves[j] + "\n")
-                        j = j+1
-            i = i+1
+                else:
+                    for c in range(int(ele)):
+                        file.write("ve=" + val[i] + "\n")
+                    i += 1
         return path
 
     def _write_job_env_file(self, ves, node, path):

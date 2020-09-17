@@ -382,7 +382,7 @@ class SXAUtils:
         # Number of chunks in NEC_RPOCESS_DIST and Resource_List.select
         # should be same
         if len(chunks) != len(process_dist):
-            pbs.event().reject("The length of chunks in select spec and " \
+            pbs.event().reject("Number of chunks in select spec and "
                                "NEC_PROCESS_DIST does not match")
 
         chunk_len = len(chunks)
@@ -400,13 +400,16 @@ class SXAUtils:
                     nves = int(resc.split("=")[1])
 
             # Check few constraints of NEC_PROCESS_DIST
-            vh_procs, ve_procs = self.check_vh_process_spec(process_dist[chunk_num])
-            self.check_vh_process_and_mpiprocs(process_dist[chunk_num], vh_procs, ve_procs, mpiprocs)
-            self.check_ve_process_spec(process_dist[chunk_num], ve_procs, nves)
-            self.check_ve_process_and_mpiprocs(process_dist[chunk_num], vh_procs, ve_procs, mpiprocs, nves)
+            vh_procs, ve_procs = \
+                self.check_vh_process_spec(process_dist[chunk_num])
+            self.check_vh_process_and_mpiprocs(process_dist[chunk_num],
+                                               vh_procs, ve_procs, mpiprocs)
+            self.check_ve_process_spec(process_dist[chunk_num],
+                                       ve_procs, nves)
+            self.check_ve_process_and_mpiprocs(process_dist[chunk_num],
+                                               vh_procs, ve_procs, mpiprocs, nves)
 
             chunk_num += 1
-    
 
     def check_vh_process_spec(self, process_chunk):
         """
@@ -426,8 +429,8 @@ class SXAUtils:
             if "s" in process or "S" in process:
                 # Constraint - 1
                 if is_vh_process == 1:
-                    pbs.event().reject("Please specify only one VH Process in "
-                                       "the chunk %s of NEC_PROCESS_DIST"
+                    pbs.event().reject("Please specify only one VH Process "
+                                       "in chunk %s of NEC_PROCESS_DIST"
                                        % process_chunk)
                 elif is_vh_process == 0:
                     is_vh_process = 1
@@ -437,13 +440,14 @@ class SXAUtils:
                 # Constraint - 2
                 if vh_procs == 0:
                     pbs.event().reject("VH processes should be greater than "
-                                      "0 in chunk %s of NEC_PROCESS_DIST" %
-                                      process_chunk)
+                                       "0 in chunk %s of NEC_PROCESS_DIST"
+                                       % process_chunk)
             else:  # VE Process
                 ve_procs.append(int(process))
-        return (vh_procs, ve_procs)
+        return vh_procs, ve_procs
     
-    def check_vh_process_and_mpiprocs(self, process_chunk, vh_procs, ve_procs, mpiprocs):
+    def check_vh_process_and_mpiprocs(self, process_chunk, vh_procs,
+                                      ve_procs, mpiprocs):
         """
         Constraints for VH Process amd mpiprocs
         1. In a chunk, the number of VH processes should be <= mpiprocs
@@ -466,20 +470,21 @@ class SXAUtils:
         # Constraint - 1
         if vh_procs > mpiprocs:
             pbs.event().reject("Number of VH processes > mpiprocs in "
-                         "chunk %s of NEC_PROCESS_DIST" % process_chunk)
+                               "chunk %s of NEC_PROCESS_DIST" % process_chunk)
 
         # Constraint - 2
         if len(ve_procs) == 0 and vh_procs != mpiprocs:
-            pbs.event().reject("Number of VH processes != mpiprocs value"
-                              "in chunk %s of NEC_PROCESS_DIST " % process_chunk)
-
+            pbs.event().reject("Number of VH processes != mpiprocs value "
+                               "in chunk %s of NEC_PROCESS_DIST "
+                               % process_chunk)
 
         # Constraint - 3
         if len(ve_procs) == 1 and ve_procs[0] == 0:
             if mpiprocs > 0 and vh_procs != mpiprocs:
                 pbs.event().reject("For VE offloading, number of VH processes"
                                    " and mpiprocs value should be equal in "
-                                   "chunk %s of NEC_PROCESS_DIST " % process_chunk)    
+                                   "chunk %s of NEC_PROCESS_DIST "
+                                   % process_chunk)
 
     def check_ve_process_spec(self, process_chunk, ve_procs, nves):
         """
@@ -496,16 +501,18 @@ class SXAUtils:
         """
         # Constraint - 1
         if len(ve_procs) > 1 and nves != len(ve_procs):
-            pbs.event().reject("nves != to the number of VE processes requested in " \
-                              "chunk %s of NEC_PROCESS_DIST" % process_chunk)
+            pbs.event().reject("nves != to the number of VE processes "
+                               "requested in chunk %s of NEC_PROCESS_DIST"
+                               % process_chunk)
 
         # Contraint - 2
         if len(ve_procs) > 1 and 0 in ve_procs:
-            pbs.event().reject("Number of VE Processes is not greater than" \
-                               " zero in chunk %s of NEC_PROCESS_DIST" % \
-                               process_chunk)
+            pbs.event().reject("Number of VE Processes is not greater than"
+                               " zero in chunk %s of NEC_PROCESS_DIST"
+                               % process_chunk)
 
-    def check_ve_process_and_mpiprocs(self, process_chunk, vh_procs, ve_procs, mpiprocs, nves):
+    def check_ve_process_and_mpiprocs(self, process_chunk, vh_procs,
+                                      ve_procs, mpiprocs, nves):
         """
         Constraints for VE Process and mpiprocs
         1. In a chunk, for equal VE process distribution,
@@ -524,17 +531,17 @@ class SXAUtils:
         if len(ve_procs) == 1:
             ve_mpiprocs = mpiprocs - vh_procs
             if math.ceil(ve_mpiprocs / nves) != ve_procs[0]:
-                pbs.event().reject("Equal VE Process distribution is not correct"
-                                 " in chunk %s of NEC_PROCESS_DIST" %
-                                 process_chunk)
+                pbs.event().reject("Equal VE Process distribution is not "
+                                   "correct in chunk %s of NEC_PROCESS_DIST"
+                                   % process_chunk)
 
         # Constraint - 2
         if len(ve_procs) > 1:
             total_procs = sum(ve_procs) + vh_procs
             if total_procs != mpiprocs:
-                pbs.event().reject("Sum of VH-VE Processes in chunk %s of " \
-                                   "NEC_PROCESS_DIST is not equal to mpiprocs " %
-                                   process_chunk)
+                pbs.event().reject("Sum of VH-VE Processes in chunk %s of "
+                                   "NEC_PROCESS_DIST is not equal to mpiprocs"
+                                   % process_chunk)
     
 #
 # CLASS HookUtils
@@ -673,7 +680,6 @@ class HookUtils(object):
                    '%s: %s event not handled by this hook' %
                    (caller_name(), self.event_name(event.type)))
         return False
-
 
     def _queuejob_handler(self, event, sxautils, jobutil):
         """

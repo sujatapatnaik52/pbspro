@@ -1048,6 +1048,13 @@ class JobUtils:
             # BAIL out
             return
 
+        # Check for VE offloading
+        global ve_offloading
+        if '0' in procs_env:
+            ve_offloading = 1
+        else:
+            ve_offloading = 0
+
         # parse exec_vnode of the job
         execv_chunks = re.findall(r'\(.*?\)', str(self.job.exec_vnode))
         vnode_pos_on_host = []
@@ -1067,7 +1074,6 @@ class JobUtils:
             while l < len(execv_chunks):
                 chunk_procs.extend(val)
                 l += 1
-
         # filter NEC_PROCESS_DIST for current host
         chunk_procs_curr_host = []
         i = 0
@@ -1117,9 +1123,9 @@ class JobUtils:
             val = final_dict[line]
             each_env_val = line.split(':')
             if len(each_env_val) != len(val):
-                dup = each_env_val[len(each_env_val)-1]
-                for c in range(len(val) - len(each_env_val)):
-                    each_env_val.append(dup)
+                dup = each_env_val
+                for c in range(len(val) - len(each_env_val)-1):
+                    each_env_val.extend(dup)
             i = 0
             for ele in each_env_val:
                 if 's' in ele or 'S' in ele:
@@ -1138,8 +1144,9 @@ class JobUtils:
         env_list = []
         env_list.append('VE_NODE_NUMBER=%s' % ves[0])
         env_list.append('_VENODELIST=%s' % ' '.join(ves))
-        env_list.append('_NECMPI_VE_NUM_NODES=%s' % len(ves))
-        env_list.append('_NECMPI_VE_NODELIST=%s' % ' ' .join(ves))
+        if not ve_offloading:
+            env_list.append('_NECMPI_VE_NUM_NODES=%s' % len(ves))
+            env_list.append('_NECMPI_VE_NODELIST=%s' % ' ' .join(ves))
         env_list.append('_NEC_NQSV_JOB=1')
         env_list.append('PBS_NODEFILE_VE=%s' % path)
         # check on job statement if nhcas is requested
@@ -1182,7 +1189,8 @@ class JobUtils:
                 infini_env += infini[:-1] + " "
             infini_env = infini_env[:-1]
         env_list.append('_NEC_HCA_LIST_IO=%s' % infini_env)
-        env_list.append('_NEC_HCA_LIST_MPI=%s' % infini_env)
+        if not ve_offloading:
+            env_list.append('_NEC_HCA_LIST_MPI=%s' % infini_env)
 
         pbs.logmsg(pbs.EVENT_DEBUG, "%s" % env_list)
         jobid = str(pbs.event().job.id)

@@ -1096,6 +1096,21 @@ class JobUtils:
                         ve_cont += int(value)
                 nves.append(ve_cont)
                 ve_cont = 0
+        
+        # create a list of mpiprocs
+        mpiprocs_req = []
+        if 'mpiprocs' in str(self.job.schedselect):
+            chunks = str(self.job.schedselect).split("+")
+            for chunk in chunks:
+                multiple = 1
+                if int(chunk[0]):
+                    multiple =  int(chunk[0])
+                res = chunk.split(":")
+                for r in res:
+                    if "mpiprocs" in r:
+                        val = int((r.split("=")[1])[0])
+                        mpiprocs_req.append(multiple*val)
+        pbs.logmsg(pbs.EVENT_DEBUG, 'mpiprocs_req = %s' % mpiprocs_req)
 
         # finally create a dict with env and ves corresponding
         # should look like:
@@ -1117,15 +1132,29 @@ class JobUtils:
         else:
             home_dir = pbs.pbs_conf['PBS_HOME']
         path = os.path.join(home_dir,'aux', self.job.id + '.nodefile')
-        file = open(path, "a")
+        file = open(path, "a")       
 
         for line in final_dict:
             val = final_dict[line]
             each_env_val = line.split(':')
-            if len(each_env_val) != len(val):
-                dup = each_env_val
-                for c in range(len(val) - len(each_env_val)-1):
+            # identify cases like nves=2 and NEC_PROCESS_DIS is S2:3
+            # make it S2:3:3
+            len_each_env_val = len(each_env_val)
+            non_host_val = []
+            pbs.logmsg(pbs.EVENT_DEBUG, ' each_env_val and len_each_env_val %s and %s' % (each_env_val,len_each_env_val))
+            for ele in each_env_val:
+                if 's' in ele or 'S' in ele:
+                    len_each_env_val -= 1
+                else:
+                    non_host_val.append(ele)
+            pbs.logmsg(pbs.EVENT_DEBUG, ' updated len_each_env_val = %s' % len_each_env_val)
+            if len_each_env_val < len(val):
+                dup = non_host_val
+                pbs.logmsg(pbs.EVENT_DEBUG, 'INside if cond dup = %s' % dup)
+                for c in range(int((len(val) - len_each_env_val)/len_each_env_val))
+                    pbs.logmsg(pbs.EVENT_DEBUG, 'INside for loop')
                     each_env_val.extend(dup)
+            pbs.logmsg(pbs.EVENT_DEBUG, 'each_env_val = %s' % each_env_val)
             i = 0
             for ele in each_env_val:
                 if 's' in ele or 'S' in ele:

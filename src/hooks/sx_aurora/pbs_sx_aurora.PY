@@ -91,14 +91,14 @@ class UserError(Exception):
     """
     pass
 
-class SXAConfigError(Exception):
+class ConfigError(Exception):
     """
     Errors in configuration.
     """
     pass
 
 
-class SXAProcessingError(Exception):
+class ProcessingError(Exception):
     """
     Errors processing cgroup.
     """
@@ -379,7 +379,7 @@ class SXAUtils:
         Helper method for verifying chunks of NEC specific
         environment variable i.e. NEC_PROCESS_DIST
         """
-        # Number of chunks in NEC_RPOCESS_DIST and Resource_List.select
+        # Number of chunks in NEC_PROCESS_DIST and Resource_List.select
         # should be same
         if len(chunks) != len(process_dist):
             pbs.event().reject("Number of chunks in select spec and "
@@ -407,7 +407,8 @@ class SXAUtils:
             self.check_ve_process_spec(process_dist[chunk_num],
                                        ve_procs, nves)
             self.check_ve_process_and_mpiprocs(process_dist[chunk_num],
-                                               vh_procs, ve_procs, mpiprocs, nves)
+                                               vh_procs, ve_procs,
+                                               mpiprocs, nves)
 
             chunk_num += 1
 
@@ -543,6 +544,70 @@ class SXAUtils:
                                    "NEC_PROCESS_DIST is not equal to mpiprocs"
                                    % process_chunk)
 
+    def _discover_ves_and_ibs(self):
+        """
+        Identify ves, to which pcies and numa nodes they are attached
+        using "vecmd topo tree"
+        """
+        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Method called' % caller_name())
+
+        ves = {} 
+        ibs = {}
+        cmd = ["/opt/nec/ve/bin/vecmd", "topo", "tree"]
+        output = exec_cmd(cmd)
+
+        if output is None:
+            return ves, ibs
+
+        result = output.split("+-")[1:]
+
+        index = 0
+        bridge_id = ""
+        pci_bus_id = ""
+
+        # Parse the VE devices and IB devices
+        # and find out the associated numa nodes 
+        # and PCIe bus id
+
+        while index < len(result):
+            bridge_id = result[index].strip("-")
+            if "SOCKET" in result[index + 1] or "SOCKET" in result[index]:
+                if "RE" in result[index + 1] or "RE" in bridge_id:
+                    index += 1
+                    continue
+                if "VE" in result[index + 1]:
+                    ve = ""
+                    bus_details = result[index + 1].split(" ")
+                    for each in bus_details:
+                        if "VE" in each:
+                            ve = each.strip("[").strip("]")
+                            ves[ve] = {"pci" : pci_bus_id}
+                        if "SOCKET" in each:
+                            socket = each.strip("[").split("]")[0]
+                            ves[ve]["numa_node"] = \
+                                int(socket.lstrip("SOCKET"))
+                if "IB" in result[index + 1]:
+                    ib_name = ""
+                    socket = ""
+                    bus_details = result[index + 1].split(" ")
+                    for each in bus_details:
+                        if "SOCKET" in each:
+                            ib_index = bus_details.index(each)
+                            socket = each.strip("[").split("]")[0]
+                            ib_name = bus_details[ib_index + 1].split("\n")[0]
+                            ibs[ib_name] = {"pci": pci_bus_id}
+                            ibs[ib_name]["numa_node"] = \
+                                int(socket.lstrip("SOCKET"))
+                            ibs[ib_name]["numa_node"] = \
+                                int(socket.lstrip("SOCKET"))
+            else:
+                pci_bus_id = result[index + 1].strip("-")
+            index += 2
+
+        pbs.logmsg(pbs.EVENT_DEBUG, "VE devices info: %s" % ves)
+        pbs.logmsg(pbs.EVENT_DEBUG, "IB devices info: %s" % ibs)
+        return (ves, ibs) 
+
     def swapout_ve_processes(self, pids=None):
         """
         For all the child pids fetched on this node for the job,
@@ -551,13 +616,16 @@ class SXAUtils:
         """
         procs = []
 
-        for pid in pids:
-            cmd = ["/opt/nec/ve/bin/veswap", "-o", pid]
-            p = subprocess.Popen(cmd, stdin=subprocess.PIPE,
-                                 stdout=subprocess.PIPE)
-            result, error = p.communicate()
-            if p.returncode == 0:
-                procs.append(pid)
+        try:
+            for pid in pids:
+                cmd = ["/opt/nec/ve/bin/veswap", "-o", pid]
+                p = subprocess.Popen(cmd, stdin=subprocess.PIPE,
+                                     stdout=subprocess.PIPE)
+                result, error = p.communicate()
+                if p.returncode == 0:
+                    procs.append(pid)
+        except Exception as exc:
+            return []        
 
         return procs
 
@@ -569,13 +637,16 @@ class SXAUtils:
         """
         procs = []
 
-        for pid in pids:
-            cmd = ["/opt/nec/ve/bin/veswap", "-i", pid]
-            p = subprocess.Popen(cmd, stdin=subprocess.PIPE,
-                                 stdout=subprocess.PIPE)
-            result, error = p.communicate()
-            if p.returncode == 0:
-                procs.append(pid)
+        try:
+            for pid in pids:
+                cmd = ["/opt/nec/ve/bin/veswap", "-i", pid]
+                p = subprocess.Popen(cmd, stdin=subprocess.PIPE,
+                                     stdout=subprocess.PIPE)
+                result, error = p.communicate()
+                if p.returncode == 0:
+                    procs.append(pid)
+        except Exception as exc:
+            return []
 
         return procs
 
@@ -588,17 +659,20 @@ class SXAUtils:
         total_pcput = 0
         total_pmem = 0
 
-        for ve in ves:
-            cmd = ["/opt/nec/ve/sbin/dump-acct", "--ve-info",
-                   "/var/opt/nec/ve/account/pacct_%s" % ve]
-            result = exec_cmd(cmd)
-            result = result.split("\n")
-            for record in result:
-                if str(parent_pid) in record:
-                    process_stats = record.split("|")
-                    # cpu time is in ticks, Convert it to seconds.
-                    total_pcput += (float(process_stats[2]) / 100)
-                    total_pmem += int(process_stats[14])
+        try:
+            for ve in ves:
+                cmd = ["/opt/nec/ve/sbin/dump-acct", "--ve-info",
+                       "/var/opt/nec/ve/account/pacct_%s" % ve]
+                result = exec_cmd(cmd)
+                result = result.split("\n")
+                for record in result:
+                    if str(parent_pid) in record:
+                        process_stats = record.split("|")
+                        # cpu time is in ticks, Convert it to seconds.
+                        total_pcput += (float(process_stats[2]) / 100)
+                        total_pmem += int(process_stats[14])
+        except Exception as exc:
+            return False, False     
         return total_pcput, total_pmem
       
     
@@ -701,8 +775,6 @@ class HookUtils(object):
                 'handler': None
             }
 
-    def __repr__(self):
-        return 'HookUtils(%s)' % (repr(self.hook_events))
 
     def event_name(self, hooktype):
         """
@@ -773,7 +845,13 @@ class HookUtils(object):
         Handler for exechost_startup events.
         """
         pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Method called' % caller_name())
-        node = NodeUtils()
+        ves, ibs = sxautils._discover_ves_and_ibs()
+        if not ves or not ibs:
+            pbs.logmsg(pbs.EVENT_DEBUG,
+                       '%s: Failed to identify VE and IB devices' %
+                       caller_name())
+            event.reject()   
+        node = NodeUtils(ves=ves, ibs=ibs)
         pbs.logmsg(pbs.EVENT_DEBUG4, '%s: NodeUtils class instantiated' %
                    caller_name())
         node.create_vnodes()
@@ -784,7 +862,13 @@ class HookUtils(object):
         Handler for execjob_begin events.
         """
         pbs.logmsg(pbs.EVENT_DEBUG, '%s: Method called' % caller_name())
-        node = NodeUtils()
+        ves, ibs = sxautils._discover_ves_and_ibs()
+        if not ves or not ibs:
+            pbs.logmsg(pbs.EVENT_DEBUG,
+                          '%s: Failed to identify VE and IB devices' %
+                          caller_name())
+            event.reject()
+        node = NodeUtils(ves=ves, ibs=ibs)
         pbs.logmsg(pbs.EVENT_DEBUG, '%s: Host assigned job resources: %s' %
                    (caller_name(), jobutil.assigned_resources))
         already_assigned_ves = jobutil._get_assigned_ves(event.job.id)
@@ -833,17 +917,19 @@ class HookUtils(object):
             pbs.logmsg(pbs.EVENT_DEBUG,
                           '%s: Unable to fetch pids of job' %
                           caller_name())
-            pbs.event().reject() 
+            return True
 
         pids = [pid.strip() for pid in pids.strip().split("\n")]
         procs = sxautils.swapout_ve_processes(pids)
         if len(procs) > 0:
             pbs.logmsg(pbs.EVENT_DEBUG,
-                       "The VE processes of job %s swapped-"
-                       "out on this node - %s" % (job.id, procs))
+                       "%s: The VE processes of job %s swapped-"
+                       "out on this node - %s" %
+                       (caller_name(), job.id, procs))
         else:
             pbs.logmsg(pbs.EVENT_DEBUG,
-                       "No VE processes swapped out for %s" % job.id)
+                       "%s: No VE processes swapped out for %s" %
+                       (caller_name(), job.id))
         return True   
 
     def _execjob_preresume_handler(self, event, sxautils, jobutil):
@@ -862,18 +948,18 @@ class HookUtils(object):
         if pids is None:
             pbs.logmsg(pbs.EVENT_DEBUG,
                        '%s: Unable to fetch pids of job' % caller_name())
-            pbs.event().reject()
+            return True
 
         pids = [pid.strip() for pid in pids.strip().split("\n")]
         procs = sxautils.swapin_ve_processes(pids)
 
         if len(procs) > 0:
             pbs.logmsg(pbs.LOG_DEBUG,
-                       "The VE processes of job %s swapped-in on "
-                       "this node - %s" % (job.id, procs))
+                       "%s: The VE processes of job %s swapped-in on "
+                       "this node - %s" % (caller_name(), job.id, procs))
         else:
-            pbs.logmsg(pbs.LOG_DEBUG, "No VE processes swapped in for"
-                                      " job %s" % job.id)
+            pbs.logmsg(pbs.LOG_DEBUG, "%s: No VE processes swapped in for"
+                                      " job %s" % (caller_name(), job.id))
         return True
 
     def _execjob_epilogue_handler(self, event, sxautils, jobutil):
@@ -886,33 +972,44 @@ class HookUtils(object):
         job = event.job
         ves = []
 
-        # Get the VE numbers assigned to this job
-        fn = jobutil.host_job_env_filename % job.id
-        with open(fn, 'r') as desc:
-            ve_env_list = desc.readlines()
+        # Get the VE numbers assigned to the job on this node
+        try:
+            fn = jobutil.host_job_env_filename % job.id
+            with open(fn, 'r') as desc:
+                ve_env_list = desc.readlines()
             
-        for ve_env in ve_env_list:
-            if "_VENODELIST" in ve_env:
-                ves = ve_env.strip("\n").split("=")[1]
-                ves = ves.strip('"').split(" ")     
-                pbs.logmsg(pbs.EVENT_DEBUG, "VE's : %s" % ves) 
-    
+            for ve_env in ve_env_list:
+                if "_VENODELIST" in ve_env:
+                    ves = ve_env.strip("\n").split("=")[1]
+                    ves = ves.strip('"').split(" ")     
+                    pbs.logmsg(pbs.EVENT_DEBUG, "VE's : %s" % ves)
+        except Exception as exc:
+            pbs.logmsg(pbs.EVENT_DEBUG, '%s: Failed to fetch VEs for job %s'
+                       % (caller_name(), job.id))
+            return True
+     
         if len(ves) == 0:
             pbs.logmsg(pbs.EVENT_DEBUG,
-                       "No VE's are found for job %s" % job.id)
+                       "%s: No VE's are found for job %s"
+                       % (caller_name(), job.id))
             return True
           
         # The hook will use the parent pid for grepping the VE processes
         # usage metrics. Thus, get the parent pid on each node for the job.
         parent_pid = jobutil.get_parent_pid()
-
         if not parent_pid:
             pbs.logmsg(pbs.EVENT_DEBUG,
-                       "VE Process accounting is not added in "
-                       "this node for %s" % job.id)
-            return
+                       "%s: VE Process accounting is not added in "
+                       "this node for %s" % (caller_name(), job.id))
+            return True
 
-        pcput, pmem = sxautils.ve_accounting_metrics(ves, parent_pid) 
+        pcput, pmem = sxautils.ve_accounting_metrics(ves, parent_pid)  
+
+        if pcput is False and pmem is False:
+            pbs.logmsg(pbs.EVENT_DEBUG,
+                       '%s: Unable to fetch VE accounting metrics'
+                       % caller_name())
+            return True
 
         job.resources_used["ve_cput"] = pbs.duration(pcput)
 
@@ -931,8 +1028,8 @@ class HookUtils(object):
         if not job.in_ms_mom():
             fn = jobutil.host_job_ppid % job.id
             os.remove(fn)
-            pbs.logmsg(pbs.EVENT_DEBUG4, "Removing the parent "
-                                         "pid file %s" % fn)
+            pbs.logmsg(pbs.EVENT_DEBUG4, "%s: Removing the parent "
+                                         "pid file %s" % (caller_name, fn))
         filelist = []
         if pbs.pbs_conf['PBS_MOM_HOME']:
             home_dir = pbs.pbs_conf['PBS_MOM_HOME']
@@ -987,11 +1084,6 @@ class JobUtils:
         else:
             self.assigned_resources = self._get_assigned_job_resources()
 
-    def __repr__(self):
-        return ('JobUtils(%s, %s, %s)' %
-                (repr(self.job),
-                 repr(self.hostname),
-                 repr(self.assigned_resources)))
 
     def gather_jobs_on_node(self):
         """
@@ -1151,7 +1243,7 @@ class JobUtils:
             if len_each_env_val < len(val):
                 dup = non_host_val
                 pbs.logmsg(pbs.EVENT_DEBUG, 'INside if cond dup = %s' % dup)
-                for c in range(int((len(val) - len_each_env_val)/len_each_env_val))
+                for c in range(int((len(val) - len_each_env_val)/len_each_env_val)):
                     pbs.logmsg(pbs.EVENT_DEBUG, 'INside for loop')
                     each_env_val.extend(dup)
             pbs.logmsg(pbs.EVENT_DEBUG, 'each_env_val = %s' % each_env_val)
@@ -1414,13 +1506,14 @@ class JobUtils:
         else:
             # If the node is sister, read the pid from the parent pid file
             # i.e. created in execjob_launch hook event for this job. 
+            pid = ""
             try:
                 fn = self.host_job_ppid % self.job.id
                 with open(fn, 'r') as desc:
                     pid = desc.read()
-            except Exception:
-                return
-
+            except Exception as exc:
+                return 
+            return pid
          
     def get_child_pids(self):
         """
@@ -1430,11 +1523,10 @@ class JobUtils:
 
         ps_cmd = ""
         parent_pid = self.get_parent_pid()
-
         if not parent_pid:
-            pbs.logmsg(pbs.EVENT_DEBUG, "Unable to read pid file on this node.")
-        ps_cmd = ["ps", "-s", parent_pid, "-o", "pid", "--no-headers"]
+            return 
 
+        ps_cmd = ["ps", "-s", parent_pid, "-o", "pid", "--no-headers"]
         return exec_cmd(ps_cmd)    
 
 
@@ -1451,9 +1543,9 @@ class NodeUtils(object):
     """
 
     def __init__(self, hostname=None, cpuinfo=None, meminfo=None,
-                 numa_nodes=None, ves=None):
+                 numa_nodes=None, ves=None, ibs=None):
+
         self.nodes = {}
-        self.ibs = {}
         if hostname is not None:
             self.hostname = hostname
         else:
@@ -1471,42 +1563,33 @@ class NodeUtils(object):
         else:
             self.numa_nodes = dict()
             self.numa_nodes = self._discover_numa_nodes()
-        if ves is not None:
-            self.ves = ves
-        else:
-            self.ves, self.ibs = self._discover_ves_and_ibs()
-        
+       
+        self.ves = ves
+        self.ibs = ibs
+
+        # Update the Numa node dictionary with VE devices
+        # and IB devices info
+
+        self.update_numa_nodes_with_ves()
+        self.update_numa_nodes_with_ibs()
+        pbs.logmsg(pbs.EVENT_DEBUG4, "Updated Numa nodes info: %s"
+                   % self.numa_nodes)
+ 
         self.finalize_nodes()
 
         # Add the ve device count to the nodes
         self._add_ve_device_counts_to_nodes()
-        # Information for offlining nodes
-        '''self.offline_file = os.path.join(PBS_MOM_HOME, 'mom_priv', 'hooks',
-                                         ('%s.offline' %
-                                          pbs.event().hook_name))
-        self.offline_msg = 'Hook %s: ' % pbs.event().hook_name
-        self.offline_msg += 'Unable to clean up one or more cgroups'''
 
-    def __repr__(self):
-        return ('NodeUtils(%s, %s, %s, %s, %s)' %
-                (repr(self.hostname),
-                 repr(self.cpuinfo),
-                 repr(self.meminfo),
-                 repr(self.numa_nodes),
-                 repr(self.ves)))
-
-    def finalize_nodes(self):
+    def update_numa_nodes_with_ves(self):
         """
-        Determine the pci bus ids attached to each numa node
-        and create a final list of the nodes 
+        Helper method to update the Numa nodes 
+        dictionary with VE devices and its associated
+        PCIe.
         """
-        numa_keys_to_delete = []
-        numa_nodes = copy.deepcopy(self.numa_nodes)
-
-        # Update the VE devices info in numa nodes
+        
         for ve, info in self.ves.items():
 
-            ### Identify PCI_bus_id from the ve info
+            # Identify PCI_bus_id from the ve info
             pci_bus_id = info["pci"]
 
             # The if-block is for a model in which each numa node
@@ -1518,16 +1601,26 @@ class NodeUtils(object):
                 # update numa nodes dictionary with the pci bus id
                 if "pci" not in self.numa_nodes[info["numa_node"]]:
                     self.numa_nodes[info["numa_node"]]["pci"] = {}
-                if pci_bus_id not in self.numa_nodes[info["numa_node"]]["pci"]:
+                if pci_bus_id not in \
+                        self.numa_nodes[info["numa_node"]]["pci"]:
                     self.numa_nodes[info["numa_node"]]["pci"][pci_bus_id] = {}
-                if "ves" not in self.numa_nodes[info["numa_node"]]["pci"][pci_bus_id]:
-                    self.numa_nodes[info["numa_node"]]["pci"][pci_bus_id]["ves"] = []
-                self.numa_nodes[info["numa_node"]]["pci"][pci_bus_id]["ves"].append(ve)
+                if "ves" not in \
+                        self.numa_nodes[info["numa_node"]]["pci"][pci_bus_id]:
+                    self.numa_nodes[
+                        info["numa_node"]]["pci"][pci_bus_id]["ves"] = []
+                self.numa_nodes[
+                    info["numa_node"]]["pci"][pci_bus_id]["ves"].append(ve)
             else:
                 if "ves" not in self.numa_nodes[info["numa_node"]]:
                     self.numa_nodes[info["numa_node"]]["ves"] = []
                 self.numa_nodes[info["numa_node"]]["ves"].append(ve)
-
+     
+    def update_numa_nodes_with_ibs(self):
+        """
+        Helper method to update the Numa nodes
+        dictionary with IB devices and its associated
+        PCIe.
+        """
         for ib, info in self.ibs.items():
 
             ### Identify PCI_bus_id from the ib info
@@ -1537,24 +1630,34 @@ class NodeUtils(object):
                 # update numa nodes dictionary with the pci bus id
                 if "pci" not in self.numa_nodes[info["numa_node"]]:
                     self.numa_nodes[info["numa_node"]]["pci"] = {}
-                if pci_bus_id not in self.numa_nodes[info["numa_node"]]["pci"]:
-                    self.numa_nodes[info["numa_node"]]["pci"][pci_bus_id] = {}
-                if "ibs" not in self.numa_nodes[info["numa_node"]]["pci"][pci_bus_id]:
-                    self.numa_nodes[info["numa_node"]]["pci"][pci_bus_id]["ibs"] = []
-                self.numa_nodes[info["numa_node"]]["pci"][pci_bus_id]["ibs"].append(ib)
+                if pci_bus_id not in \
+                        self.numa_nodes[info["numa_node"]]["pci"]:
+                    self.numa_nodes[
+                        info["numa_node"]]["pci"][pci_bus_id] = {}
+                if "ibs" not in \
+                        self.numa_nodes[info["numa_node"]]["pci"][pci_bus_id]:
+                    self.numa_nodes[
+                        info["numa_node"]]["pci"][pci_bus_id]["ibs"] = []
+                self.numa_nodes[
+                    info["numa_node"]]["pci"][pci_bus_id]["ibs"].append(ib)
             else:
                 if "ibs" not in self.numa_nodes[info["numa_node"]]:
                     self.numa_nodes[info["numa_node"]]["ibs"] = []
                 self.numa_nodes[info["numa_node"]]["ibs"].append(ib)
 
-        pbs.logmsg(pbs.EVENT_DEBUG4, "Updated Numa nodes info: %s" % self.numa_nodes)
+    def finalize_nodes(self):
+        """
+        Determine the pci bus ids attached to each numa node
+        and create a final list of the nodes 
+        """
 
         for nnid in self.numa_nodes.keys():
             pci_num = 0
             if "pci" in self.numa_nodes[nnid].keys():
                 for pci, info in self.numa_nodes[nnid]["pci"].items():
                     node_name = self.hostname + '[%d]_pci%d' % (nnid, pci_num)
-                    self.nodes[node_name] = copy.deepcopy(numa_nodes[nnid])
+                    self.nodes[node_name] = \
+                        copy.deepcopy(self.numa_nodes[nnid])
                     self.nodes[node_name]["numa_node"] = [nnid]
                     self.nodes[node_name]["ves"] = copy.deepcopy(info["ves"])
                     self.nodes[node_name]["ibs"] = copy.deepcopy(info["ibs"])
@@ -1562,17 +1665,20 @@ class NodeUtils(object):
             else:
                 if "ves" in self.numa_nodes[nnid].keys():
                     node_name = self.hostname + '[%d]_pci%d' % (nnid, pci_num)
-                    self.nodes[node_name] = copy.deepcopy(numa_nodes[nnid])
+                    self.nodes[node_name] = \
+                        copy.deepcopy(self.numa_nodes[nnid])
                     self.nodes[node_name]["numa_node"] = [nnid]
-                    self.nodes[node_name]["ves"] = copy.deepcopy(self.numa_nodes[nnid]["ves"])
+                    self.nodes[node_name]["ves"] = \
+                        copy.deepcopy(self.numa_nodes[nnid]["ves"])
                     if "ibs" in self.numa_nodes[nnid].keys():
-                        self.nodes[node_name]["ibs"] = copy.deepcopy(self.numa_nodes[nnid]["ibs"])
+                        self.nodes[node_name]["ibs"] = \
+                            copy.deepcopy(self.numa_nodes[nnid]["ibs"])
                 else:
                     node_name = self.hostname + '[%d]' % nnid
-                    self.nodes[node_name] = copy.deepcopy(numa_nodes[nnid])
+                    self.nodes[node_name] = \
+                        copy.deepcopy(self.numa_nodes[nnid])
                 pci_num += 1
         pbs.logmsg(pbs.LOG_DEBUG, "Final nodes info: %s" % self.nodes)
-
 
     def _add_ve_device_counts_to_nodes(self):
         """
@@ -1603,7 +1709,6 @@ class NodeUtils(object):
             num = int(os.path.basename(node)[4:])
             if num not in numa_nodes:
                 numa_nodes[num] = {}
-                numa_nodes[num]['devices'] = []
             with open(os.path.join(node, 'cpulist'), 'r') as desc:
                 avail = expand_list(desc.readline())
                 numa_nodes[num]['cpus'] = [x for x in avail]
@@ -1621,12 +1726,15 @@ class NodeUtils(object):
                     elif entries[2] == 'HugePages_Total:':
                         numa_nodes[num]['HugePages_Total'] = int(entries[3])
 
-        pbs.logmsg(pbs.LOG_DEBUG, "The numa nodes info is %s" % numa_nodes)    
+        # Update the numa nodes dictionary with mem, vmem and hpmem values
         num_numa_nodes = len(numa_nodes)
         if num_numa_nodes > 0:
-            host_mem_net = self.get_memory_on_node()
-            host_vmem_net = self.get_vmem_on_node()
-            node_swapmem = int(math.floor((host_vmem_net - host_mem_net)
+            # Physical Memory 
+            host_mem = self.get_memory_on_node()
+
+            # Swap to be added to virtual memory net values
+            host_vmem = self.get_vmem_on_node()
+            node_swapmem = int(math.floor((host_vmem - host_mem)
                                           / num_numa_nodes))
             if node_swapmem < 0:
                 node_swapmem = 0
@@ -1644,66 +1752,6 @@ class NodeUtils(object):
                 numa_nodes[num]['vmem'] = val
         pbs.logmsg(pbs.EVENT_DEBUG4, '%s: %s' % (caller_name(), numa_nodes))
         return numa_nodes
-
-    def _discover_ves_and_ibs(self):
-        """
-        Identify ves, to which pcies and numa nodes they are attached
-        using "vecmd topo tree"
-        """
-        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Method called' % caller_name())
-          
-        ves = {}
-        ibs = {}
-        cmd = ["/opt/nec/ve/bin/vecmd", "topo", "tree"]
-        output = exec_cmd(cmd)
-        if output is None:
-            return 
-        result = output.split("+-")[1:]
-
-        if output is None:
-            pbs.logmsg(pbs.EVENT_DEBUG,
-                          '%s: Execution of cmd %s failed' %
-                          (caller_name(), cmd))
-            pbs.event().reject()         
-
-        index = 0
-        bridge_id = ""
-        pci_bus_id = ""
-        
-        while index < len(result):
-            bridge_id = result[index].strip("-")
-            if "SOCKET" in result[index + 1] or "SOCKET" in result[index]:
-                if "RE" in result[index + 1] or "RE" in bridge_id:
-                    index += 1
-                    continue
-                if "VE" in result[index + 1]:
-                    ve = ""
-                    bus_details = result[index + 1].split(" ")
-                    for each in bus_details:
-                        if "VE" in each:
-                            ve = each.strip("[").strip("]")
-                            ves[ve] = {"pci" : pci_bus_id}
-                        if "SOCKET" in each:
-                            socket = each.strip("[").split("]")[0]
-                            ves[ve]["numa_node"] = int(socket.lstrip("SOCKET"))
-                if "IB" in result[index + 1]:
-                    ib_name = ""
-                    socket = ""
-                    bus_details = result[index + 1].split(" ")
-                    for each in bus_details:
-                        if "SOCKET" in each:
-                            ib_index = bus_details.index(each)
-                            socket = each.strip("[").split("]")[0]
-                            ib_name = bus_details[ib_index + 1].split("\n")[0]
-                            ibs[ib_name] = {"pci": pci_bus_id}
-                            ibs[ib_name]["numa_node"] = int(socket.lstrip("SOCKET"))
-            else:
-                pci_bus_id = result[index + 1].strip("-")
-            index += 2
-             
-        pbs.logmsg(pbs.EVENT_DEBUG, "VE devices info: %s" % ves)
-        pbs.logmsg(pbs.EVENT_DEBUG, "IB devices info: %s" % ibs)
-        return (ves, ibs)
 
     def _discover_meminfo(self):
         """
@@ -1750,11 +1798,11 @@ class NodeUtils(object):
                 key = entries[0].strip()
                 val = entries[1].strip()
                 if proc is None and key != 'processor':
-                    raise SXAProcessingError('Failed to parse /proc/cpuinfo')
+                    raise ProcessingError('Failed to parse /proc/cpuinfo')
                 if key == 'processor':
                     proc = int(val)
                     if proc in cpuinfo:
-                        raise SXAProcessingError('Duplicate CPU ID found')
+                        raise ProcessingError('Duplicate CPU ID found')
                     cpuinfo['cpu'][proc] = {}
                     cpuinfo['cpu'][proc]['threads'] = []
                 elif key == 'flags':
@@ -1764,7 +1812,7 @@ class NodeUtils(object):
                 else:
                     cpuinfo['cpu'][proc][key] = val
         if not cpuinfo['cpu']:
-            raise SXAProcessingError('No CPU information found')
+            raise ProcessingError('No CPU information found')
         cpuinfo['logical_cpus'] = len(cpuinfo['cpu'])
         cpuinfo['hyperthreads_per_core'] = 1
         cpuinfo['hyperthreads'] = []
@@ -1882,6 +1930,8 @@ class NodeUtils(object):
                        caller_name())
         # Calculate total vmem; start with visible or usable physical memory
         total = self.get_memory_on_node(None)
+        pbs.logmsg(pbs.EVENT_DEBUG4, 'total visible mem: %d' % total)
+
         # Calculate total swap
         try:
             if vmemtotal is None:
@@ -1899,9 +1949,8 @@ class NodeUtils(object):
                        caller_name())
             swap = 0
         pbs.logmsg(pbs.EVENT_DEBUG4, 'total swap: %d' % swap)
-        total = self.get_memory_on_node()
-        pbs.logmsg(pbs.EVENT_DEBUG4, 'total mem: %d' % total)
         total += swap
+        
         pbs.logmsg(pbs.EVENT_DEBUG4, 'total vmem: %d' % total)
         amount = convert_size(str(total), 'kb')
         pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Returning: %s' %
@@ -1955,7 +2004,7 @@ class NodeUtils(object):
 
     def create_vnodes(self, vntype=None):
         """
-        Create vnodes for each PCIE with ves and each numa node
+        Create vnodes for each PCIe with ves and each numa node
         which does not have any ve.
         """
         pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Method called' % caller_name())
@@ -1980,7 +2029,7 @@ class NodeUtils(object):
             pbs.logmsg(pbs.EVENT_ERROR, "b) v2 config files are used "
                        "but none mention the natural vnode. Add a line for "
                        "the natural vnode in one of the v2 config files.")
-            raise SXAProcessingError('Could not identify local vnode')
+            raise ProcessingError('Could not identify local vnode')
         vnode_list[vnode_name] = pbs.vnode(vnode_name)
         host_resc_avail = vnode_list[vnode_name].resources_available
         pbs.logmsg(pbs.EVENT_DEBUG4, '%s: host_resc_avail: %s' %
@@ -1994,7 +2043,6 @@ class NodeUtils(object):
         host_resc_avail['vmem'] = pbs.size('0')
         host_resc_avail['hpmem'] = pbs.size('0')
 
-        
         for node, info in self.nodes.items():     
             vnode_key = node
             vnode_list[vnode_key] = pbs.vnode(vnode_name)
@@ -2008,16 +2056,16 @@ class NodeUtils(object):
                     pbs.logmsg(pbs.EVENT_DEBUG4, '%s: val is None'
                            % caller_name())
                     continue
+                pbs.logmsg(pbs.EVENT_DEBUG4, '%s: %s = %s'
+                           % (caller_name(), key, val))
                 if key in ['MemTotal', 'HugePages_Total']:
                     # Irrelevant: transformed to other keys if vnodes is True
                     # done outside of loop if vnodes is False
                     pbs.logmsg(pbs.EVENT_DEBUG4, '%s: key %s skipped'
                                 % (caller_name(), key))
-                pbs.logmsg(pbs.EVENT_DEBUG4, '%s: %s = %s'
-                            % (caller_name(), key, val))
-                if key == 'cpus':
-                    if "pci" in vnode_key and "pci" in self.numa_nodes[info["numa_node"][0]]:
-                        threads = len(val) / len(self.numa_nodes[info["numa_node"][0]]["pci"]) 
+                elif key == 'cpus':
+                    if "pci" in info:
+                        threads = len(val) / len(info["pci"]) 
                     else:
                         threads = len(val) 
                     # set the value on the host to 0
@@ -2034,7 +2082,7 @@ class NodeUtils(object):
                     mem_val = val
                     if isinstance(val, float):
                         mem_val = int(val)
-                        vnode_resc_avail[key] = pbs.size(convert_size(mem_val, 'mb'))
+                    vnode_resc_avail[key] = pbs.size(convert_size(mem_val, 'mb'))
                 elif isinstance(val, list):
                     pass
                 elif isinstance(val, dict):
@@ -2059,107 +2107,6 @@ class NodeUtils(object):
                    (caller_name(), host_resc_avail))
         return True
 
-    def take_node_offline(self):
-        """
-        Take the local node and associated vnodes offline
-        """
-        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Method called' % caller_name())
-        pbs.logmsg(pbs.EVENT_DEBUG2, '%s: Taking vnode(s) offline' %
-                   caller_name())
-        # Attempt to take vnodes that match this host offline
-        # Assume vnode names resemble self.hostname[#]
-        match_found = False
-        for vnode_name in pbs.event().vnode_list:
-            if (vnode_name == self.hostname or
-                    re.match(self.hostname + r'\[.*\]', vnode_name)):
-                pbs.event().vnode_list[vnode_name].state = pbs.ND_OFFLINE
-                pbs.event().vnode_list[vnode_name].comment = self.offline_msg
-                pbs.logmsg(pbs.EVENT_DEBUG2, '%s: %s; offlining %s' %
-                           (caller_name(), self.offline_msg, vnode_name))
-                match_found = True
-        if not match_found:
-            pbs.logmsg(pbs.EVENT_DEBUG2, '%s: No vnodes match %s' %
-                       (caller_name(), self.hostname))
-            return
-        # Write a file locally to reduce server traffic when the node
-        # is brought back online
-        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Offline file: %s' %
-                   (caller_name(), self.offline_file))
-        if os.path.isfile(self.offline_file):
-            pbs.logmsg(pbs.EVENT_DEBUG2,
-                       '%s: Offline file already exists, not overwriting' %
-                       caller_name())
-            return
-        try:
-            # Write a timestamp so that exechost_periodic can avoid
-            # cleaning up before this event has sent updates to server
-            with open(self.offline_file, 'w') as fd:
-                fd.write(str(time.time()))
-        except Exception as exc:
-            pbs.logmsg(pbs.EVENT_DEBUG, '%s: Failed to write to %s: %s' %
-                       (caller_name(), self.offline_file, exc))
-            pass
-        if not os.path.isfile(self.offline_file):
-            pbs.logmsg(pbs.EVENT_DEBUG2, '%s: Offline file not present: %s' %
-                       (caller_name(), self.offline_file))
-        pbs.logmsg(pbs.EVENT_DEBUG2, '%s: Node taken offline' %
-                   caller_name())
-
-    def bring_node_online(self):
-        """
-        Bring the local node and associated vnodes online
-        """
-        pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Method called' % caller_name())
-        if not os.path.isfile(self.offline_file):
-            pbs.logmsg(pbs.EVENT_DEBUG3, '%s: Offline file not present: %s' %
-                       (caller_name(), self.offline_file))
-            return
-        # Read timestamp from offline file
-        timestamp = float()
-        try:
-            with open(self.offline_file, 'r') as fd:
-                timestamp = float(fd.read())
-        except Exception as exc:
-            pbs.logmsg(pbs.EVENT_DEBUG, '%s: Failed to read from %s: %s' %
-                       (caller_name(), self.offline_file, exc))
-            return
-        # Only bring node online after minimum delay has passed
-        delta = time.time() - timestamp
-        if delta < float(self.cfg['online_nodes_min_delay']):
-            pbs.logmsg(pbs.EVENT_DEBUG2,
-                       '%s: Too soon since node was offlined' % caller_name())
-            return
-        # Get comments for vnodes associated with this event
-        vnl = pbs.event().vnode_list.keys()
-        (vnode_comments, failure) = \
-            fetch_vnode_comments(vnl, timeout=self.cfg['server_timeout'])
-        if failure:
-            pbs.logmsg(pbs.EVENT_ERROR,
-                       '%s: Failed contacting server for vnode comments'
-                       % caller_name())
-            pbs.logmsg(pbs.EVENT_ERROR, '%s: Not bringing vnodes online'
-                       % caller_name())
-            return
-        # Bring vnodes online that this hook has taken offline
-        for vnode_name in vnode_comments:
-            if vnode_comments[vnode_name] != self.offline_msg:
-                pbs.logmsg(pbs.EVENT_DEBUG, ('%s: Comment for vnode %s '
-                           + 'was not set by this hook')
-                           % (caller_name(), vnode_name))
-                continue
-            vnode = pbs.event().vnode_list[vnode_name]
-            vnode.state = pbs.ND_FREE
-            vnode.comment = None
-            pbs.logmsg(pbs.EVENT_DEBUG,
-                       '%s: Vnode %s will be brought back online' %
-                       (caller_name(), vnode_name))
-        # Remove the offline file
-        try:
-            os.remove(self.offline_file)
-        except Exception as exc:
-            pbs.logmsg(pbs.EVENT_DEBUG,
-                       '%s: Failed to remove offline file: %s' %
-                       (caller_name(), exc))
 
 def set_global_vars():
     """
@@ -2336,7 +2283,7 @@ def main():
         msg += (': %s %s' % (exc.__class__.__name__, str(exc.args)))
         pbs.logmsg(pbs.EVENT_ERROR, msg)
         event.reject(msg)
-    except SXAProcessingError as exc:
+    except ProcessingError as exc:
         # Something went wrong manipulating the cgroups
         pbs.logmsg(pbs.EVENT_DEBUG,
                    str(traceback.format_exc().strip().splitlines()))

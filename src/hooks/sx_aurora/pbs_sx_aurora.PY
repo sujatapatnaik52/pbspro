@@ -1233,20 +1233,30 @@ class JobUtils:
             # make it S2:3:3
             len_each_env_val = len(each_env_val)
             non_host_val = []
-            pbs.logmsg(pbs.EVENT_DEBUG, ' each_env_val and len_each_env_val %s and %s' % (each_env_val,len_each_env_val))
             for ele in each_env_val:
                 if 's' in ele or 'S' in ele:
                     len_each_env_val -= 1
                 else:
                     non_host_val.append(ele)
-            pbs.logmsg(pbs.EVENT_DEBUG, ' updated len_each_env_val = %s' % len_each_env_val)
             if len_each_env_val < len(val):
                 dup = non_host_val
-                pbs.logmsg(pbs.EVENT_DEBUG, 'INside if cond dup = %s' % dup)
                 for c in range(int((len(val) - len_each_env_val)/len_each_env_val)):
-                    pbs.logmsg(pbs.EVENT_DEBUG, 'INside for loop')
                     each_env_val.extend(dup)
-            pbs.logmsg(pbs.EVENT_DEBUG, 'each_env_val = %s' % each_env_val)
+
+            # check if env val add up to mpiprocs total
+            mpiprocs_total = 0
+            # to check with total mpi
+            total_env_val = 0
+            for ele in each_env_val:
+                if 's' in ele or 'S' in ele:
+                    continue
+                total_env_val += int(ele[-1])
+            for each_mpi_val in mpiprocs_req:
+                mpiprocs_total += int(each_mpi_val)
+            diff = total_env_val - mpiprocs_total
+            if diff != 0:
+                each_env_val[-1] = str(int(each_env_val[-1]) - diff)
+
             i = 0
             for ele in each_env_val:
                 if 's' in ele or 'S' in ele:

@@ -1128,6 +1128,8 @@ class JobUtils:
         """
         """
         pbs.logmsg(pbs.EVENT_DEBUG, '%s: Method called' % caller_name())
+        global ve_offloading
+        ve_offloading = 0
         # Look for NEC_PROCESS_DIST
         varlist = str(self.job.Variable_List)
         vlist = re.split(r'(?<!\\),', varlist)
@@ -1141,7 +1143,6 @@ class JobUtils:
             return
 
         # Check for VE offloading
-        global ve_offloading
         if '0' in procs_env:
             ve_offloading = 1
         else:

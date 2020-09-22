@@ -1437,27 +1437,41 @@ class JobUtils:
         """
         pbs.logmsg(pbs.EVENT_DEBUG, '%s: Method called' % caller_name())
         nodes = node.nodes
-        ves_available = []
+        ves_available = {}
         assigned_res = self.assigned_resources
         for vnode in assigned_res['vnodes']:
-            if vnode in nodes:
                 if 'nves' in assigned_res['vnodes'][vnode].keys():
-                    ves_available.extend(nodes[vnode]['ves'])
+                    ves_available[vnode] = []
+                    ves_available[vnode].extend(nodes[vnode]['ves'])
         if not ves_available:
             # somethings wrong
             pbs.logmsg(pbs.EVENT_DEBUG, 'Somethings wrong')
-        ve_num = []
-        for ve in ves_available:
-           ve_num.append(ve[-1])
+        pbs.logmsg(pbs.EVENT_DEBUG, 'ves_available = %s' % ves_available)
 
         # remove already assigned ves
-        for ve in ve_num:
-            if ve in assigned_ves:
-                ve_num.remove(ve)
+        for ve_node in ves_available:
+            for ve in list(ves_available[ve_node]):
+                if ve[-1] in assigned_ves:
+                    ves_available[ve_node].remove(ve)
+        pbs.logmsg(pbs.EVENT_DEBUG, 'updated ves_available = %s' % ves_available)
 
+        ves_req = []
+        for vnode in assigned_res['vnodes']:
+            if 'nves' in assigned_res['vnodes'][vnode].keys():
+                ves_req.append(assigned_res['vnodes'][vnode]['nves'])
+        i = 0
+        for ve_node in ves_available:
+            ves_available[ve_node] = ves_available[ve_node][:ves_req[i]]
+            i += 1
+        pbs.logmsg(pbs.EVENT_DEBUG, 'updated ves_available = %s' % ves_available)
+
+        ve_num = []
+        for ve_node in ves_available:
+            for ve in ves_available[ve_node]:
+                ve_num.append(ve[-1])
         ve_num.sort()
-        no_ves_requested = assigned_res['nves']
-        return ve_num[:no_ves_requested]
+        pbs.logmsg(pbs.EVENT_DEBUG, 've_num = %s' % ve_num)
+        return ve_num
 
     def setup_job_devices_env(self):
         """

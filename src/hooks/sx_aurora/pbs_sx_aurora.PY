@@ -1239,7 +1239,7 @@ class JobUtils:
         # filter execv for current host
         vnode_pos_on_host = []
         execv_on_host = execv_dist
-        for chunk in execv_on_host:
+        for chunk in list(execv_on_host):
             if self.hostname in chunk:
                 vnode_pos_on_host.append(1)
             else:
@@ -1266,17 +1266,22 @@ class JobUtils:
         i = 0
         execv_on_host = execv_dist
         for chunk in execv_on_host:
+            ves_on_vnhost = []
             ve_chunk = int(execv_dist[chunk]['nves'])
             vnhost_pattern = r'%s\[[\d]+\].pci\d' % self.hostname
             vnhost = re.findall(vnhost_pattern, chunk)
             pbs.logmsg(pbs.EVENT_DEBUG, 'vnhost = %s' % vnhost)
-            ves_on_vnhost = nodes[vnhost[0]]['ves']
-            pbs.logmsg(pbs.EVENT_DEBUG, 'ves_on_vnhost = %s' % ves_on_vnhost)
             execv_dist[chunk]['ves'] = []
-            for v in ves:
-                if 'VE'+v in ves_on_vnhost:
-                    execv_dist[chunk]['ves'].append(v)
-                    nodes[vnhost[0]]['ves'].remove('VE'+v)
+            for vhost in vnhost:
+                ves_on_vnhost.extend(nodes[vhost]['ves'])
+                pbs.logmsg(pbs.EVENT_DEBUG, 'ves_on_vnhost = %s' % ves_on_vnhost)
+            for v in ves_on_vnhost:
+                if v[-1] in ves:
+                    execv_dist[chunk]['ves'].append(v[-1])
+                    for vhost in vnhost:
+                        if v in nodes[vhost]['ves']:
+                            pbs.logmsg(pbs.EVENT_DEBUG, 'removing %s from %s' % (v,nodes[vhost]['ves']))
+                            nodes[vhost]['ves'].remove(v)
                     ve_chunk -= 1
                     if ve_chunk == 0:
                         break
@@ -1436,8 +1441,8 @@ class JobUtils:
         assigned_res = self.assigned_resources
         for vnode in assigned_res['vnodes']:
             if vnode in nodes:
-                ves_req = assigned_res['vnodes'][vnode]['nves']
-                ves_available.extend(nodes[vnode]['ves'][:ves_req])
+                if 'nves' in assigned_res['vnodes'][vnode].keys():
+                    ves_available.extend(nodes[vnode]['ves'])
         if not ves_available:
             # somethings wrong
             pbs.logmsg(pbs.EVENT_DEBUG, 'Somethings wrong')
@@ -1451,7 +1456,7 @@ class JobUtils:
                 ve_num.remove(ve)
 
         ve_num.sort()
-        no_ves_requested = self.assigned_resources['nves']        
+        no_ves_requested = assigned_res['nves']
         return ve_num[:no_ves_requested]
 
     def setup_job_devices_env(self):

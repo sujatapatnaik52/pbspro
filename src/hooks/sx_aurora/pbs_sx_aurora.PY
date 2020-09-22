@@ -531,10 +531,14 @@ class SXAUtils:
         # Constraint - 1
         if len(ve_procs) == 1:
             ve_mpiprocs = mpiprocs - vh_procs
-            if math.ceil(ve_mpiprocs / nves) != ve_procs[0]:
-                pbs.event().reject("Equal VE Process distribution is not "
-                                   "correct in chunk %s of NEC_PROCESS_DIST"
-                                   % process_chunk)
+            if ve_mpiprocs > 0 and nves == 0:
+                pbs.event().reject("nves are not requested for chunk "
+                                   "%s of NEC_PROCESS_DIST" % process_chunk)
+            if ve_procs[0] > 0 and nves > 0:
+                if math.ceil(ve_mpiprocs / nves) != ve_procs[0]:
+                    pbs.event().reject("Equal VE Process distribution is not "
+                                       "correct in chunk %s of "
+                                       "NEC_PROCESS_DIST" % process_chunk)
 
         # Constraint - 2
         if len(ve_procs) > 1:
@@ -1036,9 +1040,10 @@ class HookUtils(object):
         job = event.job 
         if not job.in_ms_mom():
             fn = jobutil.host_job_ppid % job.id
-            os.remove(fn)
-            pbs.logmsg(pbs.EVENT_DEBUG4, "%s: Removing the parent "
-                                         "pid file %s" % (caller_name, fn))
+            if os.path.isfile(fn):
+                os.remove(fn)
+                pbs.logmsg(pbs.EVENT_DEBUG4, "%s: Removing the parent pid "
+                                             "file %s" % (caller_name(), fn))
         filelist = []
         if pbs.pbs_conf['PBS_MOM_HOME']:
             home_dir = pbs.pbs_conf['PBS_MOM_HOME']

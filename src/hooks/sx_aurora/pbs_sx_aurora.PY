@@ -1155,14 +1155,11 @@ class JobUtils:
             if i.startswith('NEC_PROCESS_DIST'):
                 name = i.split("=")
                 nec_procs_env = name[1]
-        if not nec_procs_env:
-            # BAIL out
-            return
-
-        if '0' in nec_procs_env:
-            ve_offloading = 1
-        else:
-            ve_offloading = 0
+        if nec_procs_env:
+            if '0' in nec_procs_env:
+                ve_offloading = 1
+            else:
+                ve_offloading = 0
 
 
         # create a dict with select statement
@@ -1179,10 +1176,10 @@ class JobUtils:
                 multiple = int(chunk[0])
             for r in res:
                 if "mpiprocs" in r:
-                    val = int((r.split("=")[1])[0])
+                    val = int((r.split("=")[1]))
                     select_dist[chunk]['mpiprocs'] = val
                 if "nves" in r:
-                    val = int((r.split("=")[1])[0])
+                    val = int((r.split("=")[1]))
                     select_dist[chunk]['nves'] = val
 
         pbs.logmsg(pbs.EVENT_DEBUG, 'select_dist = %s' % select_dist)
@@ -1191,8 +1188,13 @@ class JobUtils:
         execv_dist = {}
         execv_chunks = re.findall(r'\(.*?\)', str(self.job.exec_vnode))
         for execv in execv_chunks:
+            #TODO below if's are temp solutions
             if execv in execv_dist.keys():
                 execv = execv[1:-1]
+            if execv in execv_dist.keys():
+                execv = execv + ')'
+            if execv in execv_dist.keys():
+                execv = ')' + execv
             execv_dist[execv] = {}
             ve_cont = 0
             # incase of super-chunkin
@@ -1205,8 +1207,38 @@ class JobUtils:
                         ve_cont += int(value)
                 execv_dist[execv]['nves'] = ve_cont
         pbs.logmsg(pbs.EVENT_DEBUG, 'execv_dist = %s' % execv_dist)
-        
-        nec_dist = nec_procs_env.split('+')
+
+        if nec_procs_env:
+            nec_dist = nec_procs_env.split('+')
+        else:
+            # build nec_dist using nves and mpiprocs in select_dist
+            nec_dist = []
+            for chunk in select_dist:
+                if not "nves" in select_dist[chunk].keys():
+                    continue
+                if not "mpiprocs" in select_dist[chunk].keys():
+                    continue
+                multiple = 1
+                res = chunk.split(":")
+                if res[0].isdigit():
+                    multiple = int(chunk[0])
+                while multiple > 0:
+                    nves_in_select = select_dist[chunk]['nves']
+                    mpiprocs_in_select = select_dist[chunk]['mpiprocs']
+                    nec_dist_chunk = []
+                    while nves_in_select > 0:
+                        val = int(math.ceil(mpiprocs_in_select/nves_in_select))
+                        nec_dist_chunk.append(str(val))
+                        nves_in_select -= 1
+                        mpiprocs_in_select -= val
+                    pbs.logmsg(pbs.EVENT_DEBUG, 'nec_dist_chunk = %s' % nec_dist_chunk)
+                    nec_dist_str = ':'.join(nec_dist_chunk)
+                    nec_dist.append(nec_dist_str)
+                    multiple -= 1
+
+        if not nec_dist:
+            pbs.logmsg(pbs.EVENT_DEBUG, 'Unable to parse or construct NEC_PROCESS_DIST')
+            return
         pbs.logmsg(pbs.EVENT_DEBUG, 'nec_dist = %s' % nec_dist)
         
         i = 0
@@ -1231,7 +1263,7 @@ class JobUtils:
                     nec_dist.extend(val)
             else: 
                 # no idea 
-                pbs.logmsg(pbs.EVENT_DEBUG, 'Cannot understand NEC_PROCESS_DIS')
+                pbs.logmsg(pbs.EVENT_DEBUG, 'Cannot understand NEC_PROCESS_DIST')
                 return
         pbs.logmsg(pbs.EVENT_DEBUG, 'updated nec_dist = %s' % nec_dist)
         pbs.logmsg(pbs.EVENT_DEBUG, 'ves = %s' % ves)

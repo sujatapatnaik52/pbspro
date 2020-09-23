@@ -887,6 +887,8 @@ class HookUtils(object):
         already_assigned_ves = jobutil._get_assigned_ves(event.job.id)
         job_ves = jobutil._assign_ves(node, already_assigned_ves)
         path = jobutil.node_file(job_ves, node.nodes)
+        # previous node object's attributes are changed in node_file method
+        node = NodeUtils(ves=ves, ibs=ibs)
         jobutil._write_job_env_file(job_ves, node.nodes, path)
         return True
 
@@ -1306,13 +1308,11 @@ class JobUtils:
             execv_dist[chunk]['ves'] = []
             for vhost in vnhost:
                 ves_on_vnhost.extend(nodes[vhost]['ves'])
-                pbs.logmsg(pbs.EVENT_DEBUG, 'ves_on_vnhost = %s' % ves_on_vnhost)
             for v in ves_on_vnhost:
                 if v[-1] in ves:
                     execv_dist[chunk]['ves'].append(v[-1])
                     for vhost in vnhost:
                         if v in nodes[vhost]['ves']:
-                            pbs.logmsg(pbs.EVENT_DEBUG, 'removing %s from %s' % (v,nodes[vhost]['ves']))
                             nodes[vhost]['ves'].remove(v)
                     ve_chunk -= 1
                     if ve_chunk == 0:
@@ -1343,8 +1343,20 @@ class JobUtils:
                     non_host_val.append(ele)
             if len_each_env_val < len(val):
                 dup = non_host_val
-                for c in range(int((len(val) - len_each_env_val)/len_each_env_val)):
-                    each_env_val.extend(dup)
+                nec_st = execv_dist[line]['nec_process_dist'] 
+                # special case of 2:S2, make it 2:2:S2 for nves=2
+                if 's' in nec_st or 'S' in nec_st:
+                    i = 0
+                    for ele in list(each_env_val):
+                        if 's' in ele or 'S' in ele:
+                            continue
+                        else:
+                            for num in dup:
+                                each_env_val.insert(i+1, num)
+                        i += 1
+                else:
+                    for c in range(int((len(val) - len_each_env_val)/len_each_env_val)):
+                        each_env_val.extend(dup)
             pbs.logmsg(pbs.EVENT_DEBUG, 'updated each_env_val = %s' % each_env_val)
 
             """# check if env val add up to mpiprocs total

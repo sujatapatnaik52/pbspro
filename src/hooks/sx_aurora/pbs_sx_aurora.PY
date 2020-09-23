@@ -1335,14 +1335,13 @@ class JobUtils:
             # identify cases like nves=2 and NEC_PROCESS_DIS is S2:3
             # make it S2:3:3
             len_each_env_val = len(each_env_val)
-            non_host_val = []
+            non_host_val = ""
             for ele in each_env_val:
                 if 's' in ele or 'S' in ele:
                     len_each_env_val -= 1
                 else:
-                    non_host_val.append(ele)
+                    non_host_val = ele
             if len_each_env_val < len(val):
-                dup = non_host_val
                 nec_st = execv_dist[line]['nec_process_dist'] 
                 # special case of 2:S2, make it 2:2:S2 for nves=2
                 if 's' in nec_st or 'S' in nec_st:
@@ -1351,12 +1350,12 @@ class JobUtils:
                         if 's' in ele or 'S' in ele:
                             continue
                         else:
-                            for num in dup:
-                                each_env_val.insert(i+1, num)
+                            for c in range(int((len(val) - len_each_env_val)/len_each_env_val)):
+                                each_env_val.insert(i+1, non_host_val)
                         i += 1
                 else:
                     for c in range(int((len(val) - len_each_env_val)/len_each_env_val)):
-                        each_env_val.extend(dup)
+                        each_env_val.extend(non_host_val)
             pbs.logmsg(pbs.EVENT_DEBUG, 'updated each_env_val = %s' % each_env_val)
 
             """# check if env val add up to mpiprocs total

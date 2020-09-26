@@ -887,8 +887,6 @@ class HookUtils(object):
         already_assigned_ves = jobutil._get_assigned_ves(event.job.id)
         job_ves = jobutil._assign_ves(node, already_assigned_ves)
         path = jobutil.node_file(job_ves, node.nodes)
-        # previous node object's attributes are changed in node_file method
-        node = NodeUtils(ves=ves, ibs=ibs)
         jobutil._write_job_env_file(job_ves, node.nodes, path)
         return True
 
@@ -1157,6 +1155,7 @@ class JobUtils:
             if i.startswith('NEC_PROCESS_DIST'):
                 name = i.split("=")
                 nec_procs_env = name[1]
+
         if nec_procs_env:
             if '0' in nec_procs_env:
                 ve_offloading = 1
@@ -1166,74 +1165,75 @@ class JobUtils:
 
         # create a dict with select statement
         # and filter out mpiprocs and nves values
-        select_dist = {}
+        nodefile_dist = {}
         select_chunks = str(self.job.schedselect).split("+")
-        for chunk in select_chunks:
-            select_dist[chunk] = {}
-        dup_dist = select_dist
-        for chunk in dup_dist:
+        for chunk in list(select_chunks):
             multiple = 1
             res = chunk.split(":")
             if res[0].isdigit():
-                multiple = int(chunk[0])
-            for r in res:
-                if "mpiprocs" in r:
-                    val = int((r.split("=")[1]))
-                    select_dist[chunk]['mpiprocs'] = val
-                if "nves" in r:
-                    val = int((r.split("=")[1]))
-                    select_dist[chunk]['nves'] = val
+                multiple = int(res[0])
+            # this helps with mapping select statement with
+            # exec_vnode output and NEC_PROCESS_DIST
+            while multiple > 0:
+                # save a select=2:mpiprocs=4:nves=2 job like
+                # {'2:mpiprocs=4:nves=2':{},'1:mpiprocs=4:nves=2':{}}
+                sel_statement = str(multiple) + ":" + ':'.join(res[1:])
+                if sel_statement in nodefile_dist:
+                    if multiple == 1:
+                        sel_statement = str(multiple) + ":" + sel_statement
+                nodefile_dist[sel_statement] = {}
+                for r in res:
+                    if "mpiprocs" in r:
+                        val = int((r.split("=")[1]))
+                        nodefile_dist[sel_statement]['mpiprocs'] = val
+                    if "nves" in r:
+                        val = int((r.split("=")[1]))
+                        nodefile_dist[sel_statement]['nves'] = val
+                multiple -= 1
+                    
 
-        pbs.logmsg(pbs.EVENT_DEBUG, 'select_dist = %s' % select_dist)
+        pbs.logmsg(pbs.EVENT_DEBUG, 'nodefile_dist = %s' % nodefile_dist)
         
         # parse exec_vnode of the job
-        execv_dist = {}
         execv_chunks = re.findall(r'\(.*?\)', str(self.job.exec_vnode))
-        for execv in execv_chunks:
-            #TODO below if's are temp solutions
-            if execv in execv_dist.keys():
-                execv = execv[1:-1]
-            if execv in execv_dist.keys():
-                execv = execv + ')'
-            if execv in execv_dist.keys():
-                execv = ')' + execv
-            execv_dist[execv] = {}
-            ve_cont = 0
-            # incase of super-chunkin
-            chunk = execv.split("+")
-            for ch in chunk:                
-                res = ch.split(":")
-                for r in res:
-                    if "nves" in r:
-                        value = (r.split("=")[1])[0]
-                        ve_cont += int(value)
-                execv_dist[execv]['nves'] = ve_cont
-        pbs.logmsg(pbs.EVENT_DEBUG, 'execv_dist = %s' % execv_dist)
+        pbs.logmsg(pbs.EVENT_DEBUG, 'execv_chunks=%s' % execv_chunks)
+
+        if len(nodefile_dist) != len(execv_chunks):
+            # probably a -lplace=exclhost job
+            pbs.logmsg(pbs.EVENT_DEBUG, 'check for -lplace=exclhost')
+            
+        i = 0
+        for chunk in list(nodefile_dist):
+            nodefile_dist[chunk]['execv'] = execv_chunks[i]            
+            i += 1
+
+        pbs.logmsg(pbs.EVENT_DEBUG, 'nodefile_dist with execv: %s' % nodefile_dist)
 
         if nec_procs_env:
             nec_dist = nec_procs_env.split('+')
         else:
-            # build nec_dist using nves and mpiprocs in select_dist
+            # build nec_dist using nves and mpiprocs in nodefile_dist
             nec_dist = []
-            for chunk in select_dist:
-                if not "nves" in select_dist[chunk].keys():
+            for chunk in select_chunks:
+                if not "nves" in nodefile_dist[chunk].keys():
                     continue
-                if not "mpiprocs" in select_dist[chunk].keys():
+                # Not likely but just to be safe because if nves
+                # is requested then mpiprocs is also included in job statement
+                if not "mpiprocs" in nodefile_dist[chunk].keys():
                     continue
                 multiple = 1
                 res = chunk.split(":")
                 if res[0].isdigit():
                     multiple = int(chunk[0])
                 while multiple > 0:
-                    nves_in_select = select_dist[chunk]['nves']
-                    mpiprocs_in_select = select_dist[chunk]['mpiprocs']
+                    nves_in_select = nodefile_dist[chunk]['nves']
+                    mpiprocs_in_select = nodefile_dist[chunk]['mpiprocs']
                     nec_dist_chunk = []
                     while nves_in_select > 0:
                         val = int(math.ceil(mpiprocs_in_select/nves_in_select))
                         nec_dist_chunk.append(str(val))
                         nves_in_select -= 1
                         mpiprocs_in_select -= val
-                    pbs.logmsg(pbs.EVENT_DEBUG, 'nec_dist_chunk = %s' % nec_dist_chunk)
                     nec_dist_str = ':'.join(nec_dist_chunk)
                     nec_dist.append(nec_dist_str)
                     multiple -= 1
@@ -1244,81 +1244,78 @@ class JobUtils:
         pbs.logmsg(pbs.EVENT_DEBUG, 'nec_dist = %s' % nec_dist)
         
         i = 0
-        if len(nec_dist) < len(execv_dist):
-            if len(nec_dist) == len(select_dist):
+        if len(nec_dist) < len(nodefile_dist):
+            if len(nec_dist) == len(select_chunks):
                 # do a 1-1 doubling
-                for chunk in select_dist:
+                # Example: lselect=2:mpiprocs=4:nves=3
+                #          NEC_PROCESS_DIST=S2:1
+                # then change nec_dist = [S2:1, S2:1]
+                for chunk in select_chunks:
                     r = chunk.split(':')[0]
+                    multi = 1
                     if r.isdigit():
                         multi = int(r)
-                        while multi > 1:
-                            val = nec_dist[i]
-                            i += 1
-                            nec_dist.insert(i, val)
-                            multi -= 1
+                    while multi > 1:
+                        val = nec_dist[i]
+                        i += 1
+                        nec_dist.insert(i, val)
+                        multi -= 1
                     i += 1
             elif len(nec_dist) == 1:
                 # repeat
+                # Example: -lselect=2:mpiprocs=4:nves=2
+                #          -v NEC_PROCESS_DIST=2
+                # then change nec_dist = [2,2]
                 val = nec_dist
                 l = len(nec_dist)
-                while l <= len(execv_dist):
+                while l <= len(nodefile_dist):
                     nec_dist.extend(val)
-            else: 
-                # no idea 
-                pbs.logmsg(pbs.EVENT_DEBUG, 'Cannot understand NEC_PROCESS_DIST')
-                return
+        if len(nec_dist) != len(nodefile_dist): 
+            # no idea 
+            pbs.logmsg(pbs.EVENT_DEBUG, 'Cannot understand NEC_PROCESS_DIST')
+            return
         pbs.logmsg(pbs.EVENT_DEBUG, 'updated nec_dist = %s' % nec_dist)
+ 
+        # Update nodefile_dist with nec_process_dist
+        i = 0
+        for chunk in list(nodefile_dist):
+            nodefile_dist[chunk]['nec_process_dist'] = nec_dist[i]
+            i += 1
+        pbs.logmsg(pbs.EVENT_DEBUG, 'nodefile_dist with NEC_PROCESS_DIST = %s' % nodefile_dist)
+
         pbs.logmsg(pbs.EVENT_DEBUG, 'ves = %s' % ves)
 
         # filter execv for current host
-        vnode_pos_on_host = []
-        execv_on_host = execv_dist
-        for chunk in list(execv_on_host):
-            if self.hostname in chunk:
-                vnode_pos_on_host.append(1)
-            else:
-                vnode_pos_on_host.append(0)
-                execv_dist.pop(chunk)
+        for chunk in list(nodefile_dist):
+            if not self.hostname in nodefile_dist[chunk]['execv']:
+                nodefile_dist.pop(chunk)
 
-        # filter NEC_PROCESS_DIST for current host
-        chunk_procs_curr_host = []
-        i = 0
-        for chunk in nec_dist:
-            if vnode_pos_on_host[i] == 1:
-                 chunk_procs_curr_host.append(chunk)
-            i += 1
-
-        # add chunk_procs_curr_host to execv_dist
-        i = 0
-        execv_on_host = execv_dist        
-        for chunk in execv_on_host:
-            execv_dist[chunk]['nec_process_dist'] = chunk_procs_curr_host[i]
-            i += 1
-        pbs.logmsg(pbs.EVENT_DEBUG, 'updated execv_dist = %s' % execv_dist)
  
-        # finally add corresponding ves to execv_dist
-        i = 0
-        execv_on_host = execv_dist
-        for chunk in execv_on_host:
+        # finally add corresponding ves to nodefile_dist
+        dup_nodes = dict(nodes)
+        for chunk in nodefile_dist:            
             ves_on_vnhost = []
-            ve_chunk = int(execv_dist[chunk]['nves'])
+            if not "nves" in nodefile_dist[chunk].keys():
+                continue
+            nves_req_in_chunk = int(nodefile_dist[chunk]['nves'])
+            # since only pci vnodes will have ves assigned
             vnhost_pattern = r'%s\[[\d]+\].pci\d' % self.hostname
-            vnhost = re.findall(vnhost_pattern, chunk)
-            pbs.logmsg(pbs.EVENT_DEBUG, 'vnhost = %s' % vnhost)
-            execv_dist[chunk]['ves'] = []
+            # an execv can have more than one vnode name, like in the case of super-chunking
+            vnhost = re.findall(vnhost_pattern, nodefile_dist[chunk]['execv'])            
+            nodefile_dist[chunk]['ves'] = []
             for vhost in vnhost:
-                ves_on_vnhost.extend(nodes[vhost]['ves'])
+                ves_on_vnhost.extend(dup_nodes[vhost]['ves'])
             for v in ves_on_vnhost:
                 if v[-1] in ves:
-                    execv_dist[chunk]['ves'].append(v[-1])
+                    nodefile_dist[chunk]['ves'].append(v[-1])
                     for vhost in vnhost:
-                        if v in nodes[vhost]['ves']:
-                            nodes[vhost]['ves'].remove(v)
-                    ve_chunk -= 1
-                    if ve_chunk == 0:
+                        if v in dup_nodes[vhost]['ves']:
+                            dup_nodes[vhost]['ves'].remove(v)
+                    nves_req_in_chunk -= 1
+                    if nves_req_in_chunk == 0:
                         break
 
-        pbs.logmsg(pbs.EVENT_DEBUG, 'final dict of execv_dist= %s' % execv_dist)
+        pbs.logmsg(pbs.EVENT_DEBUG, 'final dict of nodefile_dist= %s' % nodefile_dist)
 
         # write to file
         if pbs.pbs_conf['PBS_MOM_HOME']:
@@ -1328,9 +1325,10 @@ class JobUtils:
         path = os.path.join(home_dir,'aux', self.job.id + '.nodefile')
         file = open(path, "a")       
         
-        for line in execv_dist:
-            val = execv_dist[line]['ves']
-            each_env_val = execv_dist[line]['nec_process_dist'].split(':')
+        for line in nodefile_dist:
+            if 'ves' in nodefile_dist[line].keys():
+                ve_val = nodefile_dist[line]['ves']
+            each_env_val = nodefile_dist[line]['nec_process_dist'].split(':')
 
             # identify cases like nves=2 and NEC_PROCESS_DIS is S2:3
             # make it S2:3:3
@@ -1341,39 +1339,36 @@ class JobUtils:
                     len_each_env_val -= 1
                 else:
                     non_host_val = ele
-            if len_each_env_val < len(val):
-                nec_st = execv_dist[line]['nec_process_dist'] 
-                # special case of 2:S2, make it 2:2:S2 for nves=2
-                if 's' in nec_st or 'S' in nec_st:
-                    i = 0
-                    for ele in list(each_env_val):
-                        if 's' in ele or 'S' in ele:
-                            continue
-                        else:
-                            for c in range(int((len(val) - len_each_env_val)/len_each_env_val)):
-                                each_env_val.insert(i+1, non_host_val)
-                        i += 1
-                else:
-                    for c in range(int((len(val) - len_each_env_val)/len_each_env_val)):
-                        each_env_val.extend(non_host_val)
+            if len_each_env_val < len(ve_val):
+                nec_st = nodefile_dist[line]['nec_process_dist'] 
+                # case of 2:S2, make it 2:2:S2 for nves=2
+                i = 0
+                for ele in list(each_env_val):
+                    if 's' in ele or 'S' in ele:
+                        continue
+                    else:
+                        for c in range(int((len(ve_val) - len_each_env_val)/len_each_env_val)):
+                            each_env_val.insert(i+1, non_host_val)
+                    i += 1
             pbs.logmsg(pbs.EVENT_DEBUG, 'updated each_env_val = %s' % each_env_val)
 
-            """# check if env val add up to mpiprocs total
-            mpiprocs_total = 0
-            # to check with total mpi
+            # check if env val add up to mpiprocs total
+            # Example: -lselect=2:mpiprocs=3:nves=2 -v NEC_PROCESS_DIST=2
+            # NEC_PROCESS_DIST should be [2:1]
             total_env_val = 0
+            mpiprocs_total = 0
             for ele in each_env_val:
                 if 's' in ele or 'S' in ele:
-                    continue
+                    ele = ele[-1]
                 total_env_val += int(ele)
             pbs.logmsg(pbs.EVENT_DEBUG, 'total_env_val = %s' % total_env_val)
-            for each_mpi_val in mpiprocs_req:
-                mpiprocs_total += int(each_mpi_val)
+            mpiprocs_total += int(nodefile_dist[line]['mpiprocs'])
             pbs.logmsg(pbs.EVENT_DEBUG, 'mpiprocs_total = %s' % mpiprocs_total)
             diff = total_env_val - mpiprocs_total
             if diff != 0:
+                # just update the last element
                 each_env_val[-1] = str(int(each_env_val[-1]) - diff)
-            pbs.logmsg(pbs.EVENT_DEBUG, 'updated after mpiprocs check: each_env_val = %s' % each_env_val)"""
+            pbs.logmsg(pbs.EVENT_DEBUG, 'updated after mpiprocs check: each_env_val = %s' % each_env_val)
 
             i = 0
             for ele in each_env_val:
@@ -1382,7 +1377,7 @@ class JobUtils:
                         file.write("\n")
                 else:
                     for c in range(int(ele)):
-                        file.write("ve=" + val[i] + "\n")
+                        file.write("ve=" + ve_val[i] + "\n")
                     i += 1
         return path
 

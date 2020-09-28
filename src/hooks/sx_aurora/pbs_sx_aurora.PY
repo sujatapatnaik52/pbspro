@@ -1146,6 +1146,8 @@ class JobUtils:
         # for VE offloading check 
         global ve_offloading
         ve_offloading = 0
+        global offloading_ves
+        offloading_ves = []
 
         # Look for NEC_PROCESS_DIST
         varlist = str(self.job.Variable_List)
@@ -1292,7 +1294,7 @@ class JobUtils:
 
  
         # finally add corresponding ves to nodefile_dist
-        dup_nodes = dict(nodes)
+        dup_nodes = copy.deepcopy(nodes)
         for chunk in nodefile_dist:            
             ves_on_vnhost = []
             if not "nves" in nodefile_dist[chunk].keys():
@@ -1316,6 +1318,13 @@ class JobUtils:
                         break
 
         pbs.logmsg(pbs.EVENT_DEBUG, 'final dict of nodefile_dist= %s' % nodefile_dist)
+        
+        if ve_offloading == 1:              
+            for line in nodefile_dist:
+                nec_proc_dist = nodefile_dist[line]['nec_process_dist']
+                for proc in nec_proc_dist:             
+                    if '0' in proc:
+                        offloading_ves.extend(nodefile_dist[line]['ves'])
 
         # write to file
         if pbs.pbs_conf['PBS_MOM_HOME']:
@@ -1388,11 +1397,16 @@ class JobUtils:
         env_list = []
         env_list.append('VE_NODE_NUMBER=%s' % ves[0])
         env_list.append('_VENODELIST=%s' % ' '.join(ves))
-        if not ve_offloading:
-            env_list.append('_NECMPI_VE_NUM_NODES=%s' % len(ves))
-            env_list.append('_NECMPI_VE_NODELIST=%s' % ' ' .join(ves))
+        pbs.logmsg(pbs.EVENT_DEBUG, "offloading_ves = %s" % offloading_ves)
+        s = set(offloading_ves)
+        temp3 = [x for x in ves if x not in s]
+        if not temp3 and not ve_offloading:
+            temp3 = ves
+        env_list.append('_NECMPI_VE_NUM_NODES=%s' % len(temp3))
+        env_list.append('_NECMPI_VE_NODELIST=%s' % ' ' .join(temp3))
         env_list.append('_NEC_NQSV_JOB=1')
         env_list.append('PBS_NODEFILE_VE=%s' % path)
+
         # check on job statement if nhcas is requested
         e = pbs.event()
         job_statement = str(e.job.schedselect)
@@ -1421,21 +1435,28 @@ class JobUtils:
                         for c in ch:
                             vnode_name.append((c.split(":")[0]).strip('(').strip(')'))
                 vnode_pos += 1
-        infini_env = "" 
+        infini_env = ""
+        hca_dist = self.discover_infini()
         if export_hca:
             for ve in ves:
                 for vnode in node:
-                    if node[vnode]["nves"]:
+                    if node[vnode]["nves"] and vnode in vnode_name:
                         if "VE" + ve in node[vnode]["ves"]:
-                            infini_env += node[vnode]["ibs"][0] + ":1" + " "
+                            hca = node[vnode]["ibs"][0]
+                            infini_env += hca + hca_dist[hca] + " "
         else:
-            infini = self.discover_infini()
+            infini = ""
+            for hca in hca_dist:
+                infini += hca + hca_dist[hca] + ","
             for i in range(len(ves)):
                 infini_env += infini[:-1] + " "
-            infini_env = infini_env[:-1]
+        infini_env = infini_env[:-1]
         env_list.append('_NEC_HCA_LIST_IO=%s' % infini_env)
-        if not ve_offloading:
-            env_list.append('_NEC_HCA_LIST_MPI=%s' % infini_env)
+        if ve_offloading:
+            infini_env  = ""
+            for i in range(len(ves) - len(offloading_ves)):
+                infini_env += infini[:-1] + " "
+        env_list.append('_NEC_HCA_LIST_MPI=%s' % infini_env)
 
         pbs.logmsg(pbs.EVENT_DEBUG, "%s" % env_list)
         jobid = str(pbs.event().job.id)
@@ -1463,12 +1484,22 @@ class JobUtils:
         if output is None:
             print("Failed to execute cmd: %s" % " ".join(cmd))
         list = output.split('\n')
+        hca_list = []
+        port_list = []
         for el in list:
             if 'hca_id:\t' in el:
-                infini += el.split('\t')[-1]
+                hca_list.append(el.split('\t')[-1])
             if '\tport:\t' in el:
-                infini += ":" + el.split(':')[-1].strip('\t') + ","
-        return infini
+                port_list.append(":" + el.split(':')[-1].strip('\t'))
+        hca_dist = {}
+        i = 0
+        pbs.logmsg(pbs.EVENT_DEBUG, ' hca_list = %s and port_list = %s' % (hca_list,port_list))
+        for hca in hca_list:
+            hca_dist[hca] = ""
+            hca_dist[hca] = port_list[i]
+            i += 1
+        pbs.logmsg(pbs.EVENT_DEBUG, 'hca_dist = %s' % hca_dist)
+        return hca_dist
 
     def _assign_ves(self, node, assigned_ves):
         """

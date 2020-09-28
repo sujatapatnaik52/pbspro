@@ -1098,6 +1098,63 @@ class JobUtils:
         else:
             self.assigned_resources = self._get_assigned_job_resources()
 
+    def job_is_suspended(self, jobid):
+        """
+        Returns True if job is in a suspended or unknown substate
+        """
+        jobinfo = self.printjob_info(jobid)
+        if 'substate' in jobinfo:
+            return jobinfo['substate'] in [43, 45, 'unknown']
+        return False
+
+    def printjob_info(self, jobid):
+        """
+        Use printjob to acquire the job information
+        """
+        info = {}
+        jobfile = os.path.join(PBS_MOM_JOBS, '%s.JB' % jobid)
+        if not os.path.isfile(jobfile):
+            pbs.logmsg(pbs.EVENT_DEBUG4, 'File not found: %s' % (jobfile))
+            return info
+        cmd = [os.path.join(PBS_EXEC, 'bin', 'printjob')]
+        cmd.append('-a')
+        cmd.append(jobfile)
+        try:
+            pbs.logmsg(pbs.EVENT_DEBUG4, 'Running: %s' % cmd)
+            process = subprocess.Popen(cmd, shell=False,
+                                       stdout=subprocess.PIPE,
+                                       stderr=subprocess.PIPE,
+                                       universal_newlines=True)
+            out, err = process.communicate()
+            if process.returncode != 0:
+                pbs.logmsg(pbs.EVENT_DEBUG4,
+                           'command return code non-zero: %s'
+                           % str(process.returncode))
+                pbs.logmsg(pbs.EVENT_DEBUG4,
+                           'command stderr: %s'
+                           % err)
+        except Exception as exc:
+            pbs.logmsg(pbs.EVENT_DEBUG2, 'Error running command: %s' % cmd)
+            pbs.logmsg(pbs.EVENT_DEBUG2, 'Exception: %s' % exc)
+            return {}
+        out_split = out.splitlines()
+        pattern = re.compile(r'^(\w.*):\s*(\S+)')
+        for line in out_split:
+            result = re.match(pattern, line)
+            if not result:
+                continue
+            key, val = result.groups()
+            if not key or not val:
+                continue
+            if val.startswith('0x'):
+                info[key] = int(val, 16)
+            elif val.isdigit():
+                info[key] = int(val)
+            else:
+                info[key] = val
+        return info
+
+
     def gather_jobs_on_node(self):
         """
         """
@@ -1124,12 +1181,17 @@ class JobUtils:
         for job in self.gather_jobs_on_node():
             if job == curr_job_id:
                 continue
+            if self.job_is_suspended(job):
+                pbs.logmsg(pbs.EVENT_DEBUG, 'Job %s is suspended' % job)
+                continue
             filename = self.host_job_env_filename % job
             try:
                 with open(filename, 'r') as f1:
-                    lines.extend(f1.readlines())
-            except Exception:
-                pass
+                    lines = f1.readlines()
+            except IOError:
+                pbs.logmsg(pbs.EVENT_SYSTEM, '%s: Failed to read file: %s' %
+                           (caller_name(), filename))
+                e.reject("IOError for trying to read file: %s" % filename)
         for line in lines:
             if '_VENODELIST' in line:
                 venodelist_value += line.split('=')[1].strip("\n") + " "
@@ -1160,8 +1222,6 @@ class JobUtils:
         if nec_procs_env:
             if '0' in nec_procs_env:
                 ve_offloading = 1
-            else:
-                ve_offloading = 0
 
 
         # create a dict with select statement
@@ -1274,7 +1334,6 @@ class JobUtils:
                 while l <= len(nodefile_dist):
                     nec_dist.extend(val)
         if len(nec_dist) != len(nodefile_dist): 
-            # no idea 
             pbs.logmsg(pbs.EVENT_DEBUG, 'Cannot understand NEC_PROCESS_DIST')
             return
         pbs.logmsg(pbs.EVENT_DEBUG, 'updated nec_dist = %s' % nec_dist)
@@ -1341,6 +1400,11 @@ class JobUtils:
                 ve_val = nodefile_dist[line]['ves']
             each_env_val = nodefile_dist[line]['nec_process_dist'].split(':')
 
+            # Check for ve offloading
+            for env_val in each_env_val:
+                if "0" == nec_procs_env:
+                    ve_offloading = 1
+
             # identify cases like nves=2 and NEC_PROCESS_DIS is S2:3
             # make it S2:3:3
             len_each_env_val = len(each_env_val)
@@ -1383,6 +1447,8 @@ class JobUtils:
 
             i = 0
             for ele in each_env_val:
+                if not ve_val:
+                    continue
                 if 's' in ele or 'S' in ele:
                     for c in range(int(ele[-1])):
                         file.write("\n")
@@ -1401,11 +1467,11 @@ class JobUtils:
         env_list.append('_VENODELIST=%s' % ' '.join(ves))
         pbs.logmsg(pbs.EVENT_DEBUG, "offloading_ves = %s" % offloading_ves)
         s = set(offloading_ves)
-        temp3 = [x for x in ves if x not in s]
-        if not temp3 and not ve_offloading:
-            temp3 = ves
-        env_list.append('_NECMPI_VE_NUM_NODES=%s' % len(temp3))
-        env_list.append('_NECMPI_VE_NODELIST=%s' % ' ' .join(temp3))
+        ves_for_mpi_env = [x for x in ves if x not in s]
+        if not ves_for_mpi_env and not ve_offloading:
+            ves_for_mpi_env = ves
+        env_list.append('_NECMPI_VE_NUM_NODES=%s' % len(ves_for_mpi_env))
+        env_list.append('_NECMPI_VE_NODELIST=%s' % ' ' .join(ves_for_mpi_env))
         env_list.append('_NEC_NQSV_JOB=1')
         env_list.append('PBS_NODEFILE_VE=%s' % path)
 
@@ -1473,8 +1539,10 @@ class JobUtils:
             pbs.logmsg(pbs.EVENT_DEBUG4, 'Wrote out file: %s' % (filename))
             pbs.logmsg(pbs.EVENT_DEBUG4, 'Data: %s' % (lines))
             return True
-        except Exception:
-            return False
+        except Exception as exc:
+            pbs.logmsg(pbs.EVENT_DEBUG, '%s: Failed to write to %s: %s' %
+                       (caller_name(), filename, exc))
+            e.reject("Failed to write to %s" % filename)
 
     def discover_infini(self):
         """
@@ -1484,7 +1552,8 @@ class JobUtils:
         cmd = ["ibv_devinfo"]
         output = exec_cmd(cmd)
         if output is None:
-            print("Failed to execute cmd: %s" % " ".join(cmd))
+            pbs.logmsg(pbs.EVENT_DEBUG, "Failed to execute cmd: %s" % " ".join(cmd))
+            return None
         list = output.split('\n')
         hca_list = []
         port_list = []
@@ -1514,9 +1583,6 @@ class JobUtils:
                 if 'nves' in assigned_res['vnodes'][vnode].keys():
                     ves_available[vnode] = []
                     ves_available[vnode].extend(nodes[vnode]['ves'])
-        if not ves_available:
-            # somethings wrong
-            pbs.logmsg(pbs.EVENT_DEBUG, 'Somethings wrong')
         pbs.logmsg(pbs.EVENT_DEBUG, 'ves_available = %s' % ves_available)
 
         # remove already assigned ves
@@ -1556,8 +1622,11 @@ class JobUtils:
         try:
             with open(filename, 'r') as f1:
                 lines = f1.readlines()
-        except Exception:
-            pass
+        except IOError:
+            pbs.logmsg(pbs.EVENT_DEBUG, 'Failed to open file: %s' %
+                       filename)
+            e.reject("IOError while trying to open file: %s" % filename)
+            
         for line in lines:
             key = line.split('=')[0]
             value = line.split('=')[1].strip("\n")

@@ -1335,6 +1335,7 @@ class JobUtils:
         file = open(path, "a")       
         
         for line in nodefile_dist:
+            ve_val = []
             if 'ves' in nodefile_dist[line].keys():
                 ve_val = nodefile_dist[line]['ves']
             each_env_val = nodefile_dist[line]['nec_process_dist'].split(':')

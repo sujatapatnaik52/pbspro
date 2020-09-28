@@ -1098,7 +1098,6 @@ class JobUtils:
         else:
             self.assigned_resources = self._get_assigned_job_resources()
 
-
     def gather_jobs_on_node(self):
         """
         """
@@ -1111,6 +1110,7 @@ class JobUtils:
         except Exception:
             pbs.logmsg(pbs.EVENT_DEBUG, 'Could not get job list for %s' %
                        self.hostname)
+            pbs.event().reject("Unable to find jobs on this node.")
         pbs.logmsg(pbs.EVENT_DEBUG, 'Local job dictionary: %s' % str(joblist))
         return joblist
 
@@ -1121,20 +1121,19 @@ class JobUtils:
         assigned_ves = []
         venodelist_value = ""
         lines = []
-        e = pbs.event()
         for job in self.gather_jobs_on_node():
             if job == curr_job_id:
                 continue
             filename = self.host_job_env_filename % job
             try:
                 with open(filename, 'r') as f1:
-                    lines = f1.readlines()
+                    lines.extend(f1.readlines())
             except Exception:
                 pass
         for line in lines:
             if '_VENODELIST' in line:
-                venodelist_value = line.split('=')[1]
-        assigned_ves = re.findall(r'\d+', venodelist_value) 
+                venodelist_value += line.split('=')[1].strip("\n") + " "
+        assigned_ves = venodelist_value.strip(" ").split(" ")
         pbs.logmsg(pbs.EVENT_DEBUG, 'already assigned ves: %s' % assigned_ves)
         return assigned_ves
 
@@ -1174,6 +1173,8 @@ class JobUtils:
             res = chunk.split(":")
             if res[0].isdigit():
                 multiple = int(res[0])
+            # Here, the variable multiple=3 for a chunk 3:nves=1 i.e.
+            # the number of duplicate chunks requested.
             # this helps with mapping select statement with
             # exec_vnode output and NEC_PROCESS_DIST
             while multiple > 0:
@@ -1525,6 +1526,7 @@ class JobUtils:
                     ves_available[ve_node].remove(ve)
         pbs.logmsg(pbs.EVENT_DEBUG, 'updated ves_available = %s' % ves_available)
 
+        # Find the number of ves requested and assign it
         ves_req = []
         for vnode in assigned_res['vnodes']:
             if 'nves' in assigned_res['vnodes'][vnode].keys():
@@ -1533,14 +1535,14 @@ class JobUtils:
         for ve_node in ves_available:
             ves_available[ve_node] = ves_available[ve_node][:ves_req[i]]
             i += 1
-        pbs.logmsg(pbs.EVENT_DEBUG, 'updated ves_available = %s' % ves_available)
+        pbs.logmsg(pbs.EVENT_DEBUG, 'Assigned ves = %s' % ves_available)
 
         ve_num = []
         for ve_node in ves_available:
             for ve in ves_available[ve_node]:
                 ve_num.append(ve[-1])
         ve_num.sort()
-        pbs.logmsg(pbs.EVENT_DEBUG, 've_num = %s' % ve_num)
+        pbs.logmsg(pbs.EVENT_DEBUG, 'Ve numbers = %s' % ve_num)
         return ve_num
 
     def setup_job_devices_env(self):
@@ -1560,7 +1562,6 @@ class JobUtils:
             key = line.split('=')[0]
             value = line.split('=')[1].strip("\n")
             e.env[key] = '%s' % value
-        return
 
     def _get_assigned_job_resources(self, hostname=None):
         """
@@ -1571,10 +1572,10 @@ class JobUtils:
         if not hostname:
             hostname = self.hostname
         if not hostname:
-            raise CgroupProcessingError('No hostname available')
+            raise ProcessingError('No hostname available')
         # Bail out if no job information is present
         if self.job is None:
-            raise CgroupProcessingError('No job information available')
+            raise ProcessingError('No job information available')
         # Create a list of local vnodes
         vnodes = []
         vnhost_pattern = r'%s\[[\d]+\].pci\d' % hostname

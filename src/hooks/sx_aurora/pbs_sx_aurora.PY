@@ -1452,13 +1452,13 @@ class JobUtils:
 
             i = 0
             for ele in each_env_val:
-                if not ve_val:
-                    continue
                 if 's' in ele or 'S' in ele:
                     for c in range(int(ele[-1])):
                         file.write("\n")
                 else:
                     for c in range(int(ele)):
+                        if not ve_val:
+                            continue
                         file.write("ve=" + ve_val[i] + "\n")
                     i += 1
         return path

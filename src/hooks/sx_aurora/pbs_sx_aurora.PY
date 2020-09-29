@@ -1481,40 +1481,13 @@ class JobUtils:
         env_list.append('_NEC_NQSV_JOB=1')
         env_list.append('PBS_NODEFILE_VE=%s' % path)
 
-        # check on job statement if nhcas is requested
-        e = pbs.event()
-        job_statement = str(e.job.schedselect)
-        hca_req = {}
-        # store the chunk position in job select spec
-        chunk_pos = 0
-        export_hca = 0
-        if 'nhcas' in job_statement:
-            chunks = str(e.job.schedselect).split("+")
-            for chunk in chunks:
-                res = chunk.split(":")
-                for r in res:
-                    if "nhcas" in r:
-                        hca_req[chunk_pos] = []
-                        hca_req[chunk_pos] = r[-1]
-                chunk_pos +=1
-
-            execv_chunks = re.findall(r'\(.*?\)', str(self.job.exec_vnode))
-            vnode_pos = 0
-            vnode_name = []
-            for chunk in execv_chunks:
-                if vnode_pos in hca_req:
-                    if self.hostname in chunk:
-                        export_hca = 1
-                        ch = chunk.split("+")
-                        for c in ch:
-                            vnode_name.append((c.split(":")[0]).strip('(').strip(')'))
-                vnode_pos += 1
+        export_hca,vnode_name = self._check_for_nhca_req()
         infini_env = ""
         hca_dist = self.discover_infini()
         if export_hca:
             for ve in ves:
                 for vnode in node:
-                    if node[vnode]["nves"] and vnode in vnode_name:
+                    if node[vnode]["nves"]:
                         if "VE" + ve in node[vnode]["ves"]:
                             hca = node[vnode]["ibs"][0]
                             infini_env += hca + hca_dist[hca] + " "
@@ -1549,6 +1522,41 @@ class JobUtils:
             pbs.logmsg(pbs.EVENT_DEBUG, '%s: Failed to write to %s: %s' %
                        (caller_name(), filename, exc))
             e.reject("Failed to write to %s" % filename)
+
+    def _check_for_nhca_req(self):
+        """
+        Method  to check if nhcas are requested in job statement
+        """
+        pbs.logmsg(pbs.EVENT_DEBUG, '%s: Method called' % caller_name())
+        # check on job statement if nhcas is requested
+        e = pbs.event()
+        job_statement = str(e.job.schedselect)
+        hca_req = {}
+        # store the chunk position in job select spec
+        chunk_pos = 0
+        export_hca = 0
+        vnode_name = []
+        if 'nhcas' in job_statement:
+            chunks = str(e.job.schedselect).split("+")
+            for chunk in chunks:
+                res = chunk.split(":")
+                for r in res:
+                    if "nhcas" in r:
+                        hca_req[chunk_pos] = []
+                        hca_req[chunk_pos] = r[-1]
+                chunk_pos +=1
+
+            execv_chunks = re.findall(r'\(.*?\)', str(self.job.exec_vnode))
+            vnode_pos = 0
+            for chunk in execv_chunks:
+                if vnode_pos in hca_req:
+                    if self.hostname in chunk:
+                        export_hca = 1
+                        ch = chunk.split("+")
+                        for c in ch:
+                            vnode_name.append((c.split(":")[0]).strip('(').strip(')'))
+                vnode_pos += 1
+        return export_hca,vnode_name
 
     def discover_infini(self):
         """

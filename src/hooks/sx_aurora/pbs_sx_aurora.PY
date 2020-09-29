@@ -1049,7 +1049,7 @@ class HookUtils(object):
             home_dir = pbs.pbs_conf['PBS_MOM_HOME']
         else:
             home_dir = pbs.pbs_conf['PBS_HOME']
-        path = os.path.join(home_dir,'aux', job.id + '.nodefile')
+        path = os.path.join(home_dir,'aux', job.id + '.ve_nodefile')
         filelist.append(path)        
         filelist.append(jobutil.host_job_env_filename % job.id)
         for filename in filelist:
@@ -1157,6 +1157,7 @@ class JobUtils:
 
     def gather_jobs_on_node(self):
         """
+        Gather the jobs assigned to this node
         """
         pbs.logmsg(pbs.EVENT_DEBUG, '%s: Method called' % caller_name())
         joblist = []
@@ -1201,6 +1202,10 @@ class JobUtils:
 
     def node_file(self, ves, nodes):
         """
+        Parse NEC_PROCESS_DIST and create the 2nd node file for NEC Mpi
+        If NEC_PROCESS_DIST is passed to the job then a
+        block of ceil(m,n) processes should be assigned to each VE node
+        where m is mpiprocs and n is number of ves requested in each chunk
         """
         pbs.logmsg(pbs.EVENT_DEBUG, '%s: Method called' % caller_name())
 
@@ -1391,7 +1396,7 @@ class JobUtils:
             home_dir = pbs.pbs_conf['PBS_MOM_HOME']
         else:
             home_dir = pbs.pbs_conf['PBS_HOME']
-        path = os.path.join(home_dir,'aux', self.job.id + '.nodefile')
+        path = os.path.join(home_dir,'aux', self.job.id + '.ve_nodefile')
         file = open(path, "a")       
         
         for line in nodefile_dist:
@@ -1460,6 +1465,7 @@ class JobUtils:
 
     def _write_job_env_file(self, ves, node, path):
         """
+        Write out host NEC environment for this job
         """
         pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Method called' % caller_name())
         env_list = []
@@ -1546,6 +1552,7 @@ class JobUtils:
 
     def discover_infini(self):
         """
+        Method to extract HCA information on the host
         """
         pbs.logmsg(pbs.EVENT_DEBUG, '%s: Method called' % caller_name())
         infini = ""
@@ -1574,6 +1581,7 @@ class JobUtils:
 
     def _assign_ves(self, node, assigned_ves):
         """
+        Assign VEs for the job
         """
         pbs.logmsg(pbs.EVENT_DEBUG, '%s: Method called' % caller_name())
         nodes = node.nodes
@@ -1613,6 +1621,8 @@ class JobUtils:
 
     def setup_job_devices_env(self):
         """
+        Retrive and Setup the job environment for VEs assigned
+        to the job for an execjob_launch hook
         """
         pbs.logmsg(pbs.EVENT_DEBUG, '%s: Method called' % caller_name())
         e = pbs.event()

@@ -564,7 +564,6 @@ class SXAUtils:
             return ves, ibs
 
         result = output.split("+-")[1:]
-
         index = 0
         bridge_id = ""
         pci_bus_id = ""
@@ -593,13 +592,19 @@ class SXAUtils:
                 if "IB" in result[index + 1]:
                     ib_name = ""
                     socket = ""
+                    has_pci = 0
                     bus_details = result[index + 1].split(" ")
+                    if "IB" in bus_details[1]:
+                        has_pci = 1
                     for each in bus_details:
                         if "SOCKET" in each:
                             ib_index = bus_details.index(each)
                             socket = each.strip("[").split("]")[0]
                             ib_name = bus_details[ib_index + 1].split("\n")[0]
-                            ibs[ib_name] = {"pci": pci_bus_id}
+                            if has_pci == 1:
+                                ibs[ib_name] = {"pci": pci_bus_id}
+                            else:
+                                ibs[ib_name] = {"pci" : ""}
                             ibs[ib_name]["numa_node"] = \
                                 int(socket.lstrip("SOCKET"))
                             ibs[ib_name]["numa_node"] = \
@@ -1906,6 +1911,7 @@ class NodeUtils(object):
                     self.numa_nodes[info["numa_node"]]["ibs"] = []
                 self.numa_nodes[info["numa_node"]]["ibs"].append(ib)
 
+
     def finalize_nodes(self):
         """
         Determine the pci bus ids attached to each numa node
@@ -1921,7 +1927,8 @@ class NodeUtils(object):
                         copy.deepcopy(self.numa_nodes[nnid])
                     self.nodes[node_name]["numa_node"] = [nnid]
                     self.nodes[node_name]["ves"] = copy.deepcopy(info["ves"])
-                    self.nodes[node_name]["ibs"] = copy.deepcopy(info["ibs"])
+                    if "ibs" in info:
+                        self.nodes[node_name]["ibs"] = copy.deepcopy(info["ibs"])
                     pci_num += 1
             else:
                 if "ves" in self.numa_nodes[nnid].keys():

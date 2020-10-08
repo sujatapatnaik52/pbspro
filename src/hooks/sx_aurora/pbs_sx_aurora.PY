@@ -1486,12 +1486,13 @@ class JobUtils:
         env_list.append('_NEC_NQSV_JOB=1')
         env_list.append('PBS_NODEFILE_VE=%s' % path)
 
-        export_hca,vnode_name = self._check_for_nhca_req()
+        hca_num, vnode_names = self._check_for_nhca_req(node)
         infini_env = ""
         hca_dist = self.discover_infini()
-        if export_hca:
+       
+        if hca_num == "1":
             for ve in ves:
-                for vnode in node:
+                for vnode in vnode_names:
                     if node[vnode]["nves"]:
                         if "VE" + ve in node[vnode]["ves"]:
                             hca = node[vnode]["ibs"][0]
@@ -1528,41 +1529,86 @@ class JobUtils:
                        (caller_name(), filename, exc))
             e.reject("Failed to write to %s" % filename)
 
-    def _check_for_nhca_req(self):
+    def _check_for_nhca_req(self, nodes):
         """
-        Method  to check if nhcas are requested in job statement
+        Method to check if nhcas is requested in first chunk of this host
         """
         pbs.logmsg(pbs.EVENT_DEBUG, '%s: Method called' % caller_name())
-        # check on job statement if nhcas is requested
-        e = pbs.event()
-        job_statement = str(e.job.schedselect)
-        hca_req = {}
-        # store the chunk position in job select spec
-        chunk_pos = 0
-        export_hca = 0
-        vnode_name = []
-        if 'nhcas' in job_statement:
-            chunks = str(e.job.schedselect).split("+")
-            for chunk in chunks:
-                res = chunk.split(":")
-                for r in res:
-                    if "nhcas" in r:
-                        hca_req[chunk_pos] = []
-                        hca_req[chunk_pos] = r[-1]
-                chunk_pos +=1
+ 
+        chunks = str(self.job.schedselect).split("+")
+        execv = re.findall(r'\(.*?\)', str(self.job.exec_vnode))
+        host_execv = []
 
-            execv_chunks = re.findall(r'\(.*?\)', str(self.job.exec_vnode))
-            vnode_pos = 0
-            for chunk in execv_chunks:
-                if vnode_pos in hca_req:
-                    if self.hostname in chunk:
-                        export_hca = 1
-                        ch = chunk.split("+")
-                        for c in ch:
-                            vnode_name.append((c.split(":")[0]).strip('(').strip(')'))
-                vnode_pos += 1
-        return export_hca,vnode_name
+        # We need to get exec_vnodes of this host. We find out the VE's
+        # of the vnodes and export the closest HCA.
+        chunk_len = 0
+        first_chunk = 0 # Index of the first select chunk on this host
+        vnode_num = 0 # Number of actual vnodes (if -lplace=excl is asked)
 
+        while chunk_len < len(execv):
+            # If -lplace=excl is requested, do not consider
+            # the additional vnodes, hence adding a check for
+            # "ncpus"
+            if "ncpus" in execv[chunk_len]:
+                vnode_num += 1
+
+                # Find out vnodes on this host
+                if self.hostname in execv[chunk_len]:
+                    if first_chunk == 0:
+                        first_chunk = vnode_num
+                    ch = execv[chunk_len].split("+")
+                    for c in ch:
+                        vnode_name = (c.split(":")[0]).strip('(').strip(')')
+                        if vnode_name not in host_execv:
+                            host_execv.append(vnode_name)
+            chunk_len += 1
+
+        pbs.logmsg(pbs.EVENT_DEBUG, "Host exec_vnode - %s" % host_execv)
+
+        # Initialize HCA's to default i.e. 2
+        hca_num = 2
+
+        # Check if IB devices are connected to any vnodes.
+        # If they are not connected, then export all the HCA's
+
+        ib_node_len = 0
+        for node, info in nodes.items():
+            if "pci" in info:
+                for key, val in info["pci"].items():
+                    if "ibs" not in val:
+                        ib_node_len += 1
+                break
+            else:
+                continue
+
+        if ib_node_len == len(nodes):
+            pbs.logmsg(pbs.EVENT_DEBUG, "Vnodes does not have IB devices attached")
+            pbs.logmsg(pbs.EVENT_DEBUG, "Number of HCA's - %s" % hca_num)
+            return hca_num, host_execv
+
+        # Find the value of hcas requested in the first chunk
+        # If nhcas is nott requested, then we export all.
+        chunk_len = 0
+        chunk_index = 0
+        temp = 0
+        while chunk_len < len(chunks):
+            chunk = chunks[chunk_len].split(":")
+            if chunk[0].isdigit():
+                chunk_index += int(chunk[0])
+            else:
+                chunk_index += 1
+
+            if temp < first_chunk <= chunk_index:
+                pbs.logmsg(pbs.EVENT_DEBUG, "First chunk on this node - %s" % chunks[chunk_len])
+                for resc in chunk:
+                    if "nhcas" in resc:
+                        hca_num = resc.split("=")[1]
+                break
+            temp = chunk_index
+            chunk_len += 1
+        pbs.logmsg(pbs.EVENT_DEBUG, "Number of HCA's - %s" % hca_num)
+        return hca_num, host_execv
+ 
     def discover_infini(self):
         """
         Method to extract HCA information on the host

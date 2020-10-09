@@ -1500,15 +1500,15 @@ class JobUtils:
         else:
             infini = ""
             for hca in hca_dist:
-                infini += hca + hca_dist[hca] + ","
+                infini += hca + hca_dist[hca] + "\,"
             for i in range(len(ves)):
-                infini_env += infini[:-1] + " "
+                infini_env += infini[:-2] + " "
         infini_env = infini_env[:-1]
         env_list.append('_NEC_HCA_LIST_IO=%s' % infini_env)
         if ve_offloading:
             infini_env  = ""
             for i in range(len(ves) - len(offloading_ves)):
-                infini_env += infini[:-1] + " "
+                infini_env += infini[:-2] + " "
         env_list.append('_NEC_HCA_LIST_MPI=%s' % infini_env)
 
         pbs.logmsg(pbs.EVENT_DEBUG, "%s" % env_list)

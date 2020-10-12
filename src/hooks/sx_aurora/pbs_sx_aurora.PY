@@ -554,7 +554,6 @@ class SXAUtils:
         using "vecmd topo tree"
         """
         pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Method called' % caller_name())
-
         ves = {} 
         ibs = {}
         cmd = ["/opt/nec/ve/bin/vecmd", "topo", "tree"]
@@ -562,8 +561,8 @@ class SXAUtils:
 
         if output is None:
             return ves, ibs
-
-        result = output.split("+-")[1:]
+ 
+        result = output.split("-+-", 1)[1].split("+-")
         index = 0
         bridge_id = ""
         pci_bus_id = ""
@@ -854,12 +853,16 @@ class HookUtils(object):
         Handler for exechost_startup events.
         """
         pbs.logmsg(pbs.EVENT_DEBUG4, '%s: Method called' % caller_name())
-        ves, ibs = sxautils._discover_ves_and_ibs()
+        try:
+            ves, ibs = sxautils._discover_ves_and_ibs()
+        except Exception as exc:
+            pbs.logmsg(pbs.EVENT_DEBUG, "Unable to identify VE and IB devices")
+            event.reject() 
         if not ves or not ibs:
             pbs.logmsg(pbs.EVENT_DEBUG,
                        '%s: Failed to identify VE and IB devices' %
                        caller_name())
-            event.reject()   
+            event.reject() 
         node = NodeUtils(ves=ves, ibs=ibs)
         pbs.logmsg(pbs.EVENT_DEBUG4, '%s: NodeUtils class instantiated' %
                    caller_name())
@@ -871,7 +874,11 @@ class HookUtils(object):
         Handler for execjob_begin events.
         """
         pbs.logmsg(pbs.EVENT_DEBUG, '%s: Method called' % caller_name())
-        ves, ibs = sxautils._discover_ves_and_ibs()
+        try:
+            ves, ibs = sxautils._discover_ves_and_ibs()
+        except Exception as exc:
+            pbs.logmsg(pbs.EVENT_DEBUG, "Unable to identify VE and IB devices")
+            event.reject()
         if not ves or not ibs:
             pbs.logmsg(pbs.EVENT_DEBUG,
                           '%s: Failed to identify VE and IB devices' %
@@ -2381,7 +2388,10 @@ class NodeUtils(object):
                     if "pci" in info:
                         threads = len(val) / len(info["pci"]) 
                     else:
-                        threads = len(val) 
+                        threads = len(val)
+
+                    if "nves" in info and info["nves"] > 0:
+                        threads -= info["nves"]
                     # set the value on the host to 0
                     host_resc_avail['ncpus'] = 0
                     pbs.logmsg(pbs.EVENT_DEBUG4, vnode_msg_cpu %
@@ -2396,6 +2406,8 @@ class NodeUtils(object):
                     mem_val = val
                     if isinstance(val, float):
                         mem_val = int(val)
+                    if "pci" in info:
+                        mem_val = mem_val / len(info["pci"])
                     vnode_resc_avail[key] = pbs.size(convert_size(mem_val, 'mb'))
                 elif isinstance(val, list):
                     pass
